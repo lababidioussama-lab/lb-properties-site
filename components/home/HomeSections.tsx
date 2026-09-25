@@ -402,10 +402,15 @@ export function FounderStory() {
   const c = t.home.story;
   return (
     <section className="py-24 sm:py-32">
-      <div className="mx-auto grid max-w-[1320px] items-center gap-14 px-5 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-20">
-        <Reveal className="relative">
-          <div className="relative aspect-[922/538] overflow-hidden shadow-[var(--shadow-lift)]">
-            <Image src="/brand/founder.jpg" alt={c.name} fill sizes="(min-width:1024px) 55vw, 100vw" className="object-cover" />
+      <div className="mx-auto grid max-w-[1320px] items-center gap-14 px-5 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20">
+        <Reveal className="relative mx-auto w-full max-w-[520px]">
+          <div className="relative aspect-[922/1152] overflow-hidden shadow-[var(--shadow-lift)]" dir="ltr">
+            <Image src="/brand/founder-portrait.jpg" alt={c.name} fill sizes="(min-width:1024px) 40vw, 100vw" className="object-cover" />
+            {/* The source photo has a caption printed across it; this card sits exactly over it. */}
+            <div className="absolute left-[40%] right-0 top-[45.5%] flex h-[17%] flex-col justify-center border-l-2 border-[#c8a96e] bg-[#0b1a2b]/95 px-[5%] backdrop-blur-sm">
+              <span className="font-[family-name:var(--font-wordmark)] text-[clamp(15px,1.9vw,22px)] tracking-[0.08em] text-white">{c.name}</span>
+              <span className="mt-1 font-[family-name:var(--font-eyebrow)] text-[clamp(8px,0.95vw,10.5px)] font-semibold uppercase tracking-[0.2em] text-[#d4b87f] rtl:tracking-normal">{c.role}</span>
+            </div>
           </div>
           <span className="absolute -bottom-5 -end-5 -z-10 hidden h-full w-full border border-[#c8a96e]/60 sm:block" />
         </Reveal>
