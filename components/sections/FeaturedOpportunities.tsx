@@ -56,7 +56,7 @@ export function FeaturedOpportunities() {
 
   return (
     <section className="relative border-t border-[var(--hairline)] bg-[var(--surface)] px-5 py-16 sm:py-20 sm:px-8 lg:py-24">
-      <div className="mx-auto max-w-[1440px]">
+      <div className="mx-auto max-w-[1320px]">
         <SectionHeader
           eyebrow={t.opportunities.eyebrow}
           title={t.opportunities.title}
@@ -91,7 +91,7 @@ export function FeaturedOpportunities() {
                 <h3 className="display-3 mt-5 text-[var(--text-primary)]">
                   {t.hubs[card.area as keyof typeof t.hubs]}
                 </h3>
-                <p className="mt-1 text-[12.5px] text-[var(--text-muted)]">
+                <p className="mt-1 text-[13.5px] text-[var(--text-muted)]">
                   {t.bedrooms[card.bedroom]} · {card.sqft.toLocaleString()} sq ft
                 </p>
 
@@ -120,7 +120,7 @@ export function FeaturedOpportunities() {
           </Button>
         </div>
 
-        <p className="mt-8 max-w-[92ch] text-[11.5px] leading-[1.85] text-[var(--text-muted)]">
+        <p className="mt-8 max-w-[92ch] text-[12.5px] leading-[1.85] text-[var(--text-muted)]">
           {t.opportunities.disclaimer}
         </p>
       </div>

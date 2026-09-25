@@ -41,17 +41,31 @@ export const SERVICE_KEYS: ServiceKey[] = [
   "advisory",
   "netRoi",
   "relocation",
-  "maintenance",
   "fitout",
   "construction",
   "mortgage",
 ];
 
-/** The five that earn a slot in the desktop nav bar. */
-export const NAV_KEYS: ServiceKey[] = [
-  "advisory",
-  "netRoi",
-  "fitout",
-  "construction",
-  "mortgage",
-];
+/** Top-level pages. Each service section now lives on one of them. */
+export type PageKey = "projects" | "invest" | "services";
+
+export const SERVICE_PAGE: Record<ServiceKey, PageKey> = {
+  advisory: "invest",
+  netRoi: "invest",
+  mortgage: "invest",
+  relocation: "services",
+  maintenance: "services",
+  fitout: "services",
+  construction: "services",
+};
+
+export function pageHref(locale: string, page: PageKey, hash?: string) {
+  return `/${locale}/${page}${hash ? `#${hash}` : ""}`;
+}
+
+export function serviceHref(locale: string, service: ServiceKey) {
+  return pageHref(locale, SERVICE_PAGE[service], SECTION_IDS[service]);
+}
+
+export const MARKET_SECTION_ID = "market-data";
+export const PROJECTS_SECTION_ID = "off-plan-projects";

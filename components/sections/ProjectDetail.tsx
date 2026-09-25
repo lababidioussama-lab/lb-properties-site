@@ -105,7 +105,7 @@ export function ProjectDetail({
                   {project.name}
                 </h2>
 
-                <p className="mt-3 flex items-center gap-1.5 text-[13px] text-[var(--text-muted)]">
+                <p className="mt-3 flex items-center gap-1.5 text-[14px] text-[var(--text-muted)]">
                   <MapPin size={14} strokeWidth={1.5} />
                   {project.community}
                 </p>
@@ -117,7 +117,7 @@ export function ProjectDetail({
                 <div className="mt-8 grid gap-8 sm:grid-cols-2">
                   <div>
                     <h3 className="eyebrow">{t.projects.unitMixLabel}</h3>
-                    <p className="mt-2 flex items-start gap-2 text-[13.5px] leading-[1.7] text-[var(--text-secondary)]">
+                    <p className="mt-2 flex items-start gap-2 text-[14.5px] leading-[1.7] text-[var(--text-secondary)]">
                       <Building2 size={14} strokeWidth={1.5} className="mt-1 shrink-0" />
                       {p.unitMix}
                     </p>
@@ -129,7 +129,7 @@ export function ProjectDetail({
                           {p.connectivity.map((c) => (
                             <li
                               key={c.label}
-                              className="flex items-center gap-2 text-[13px] text-[var(--text-secondary)]"
+                              className="flex items-center gap-2 text-[14px] text-[var(--text-secondary)]"
                             >
                               <Clock size={13} strokeWidth={1.5} className="shrink-0 text-[var(--text-muted)]" />
                               <span className="font-[family-name:var(--font-numeric)] tabular-nums">
@@ -149,7 +149,7 @@ export function ProjectDetail({
                       {p.highlights.map((h) => (
                         <li
                           key={h}
-                          className="flex items-start gap-2 text-[13.5px] leading-[1.7] text-[var(--text-secondary)]"
+                          className="flex items-start gap-2 text-[14.5px] leading-[1.7] text-[var(--text-secondary)]"
                         >
                           <Check size={14} strokeWidth={2} className="mt-1 shrink-0 text-[var(--accent)]" />
                           {h}
@@ -190,7 +190,7 @@ export function ProjectDetail({
                   {t.projects.cta}
                 </Button>
 
-                <p className="mt-6 text-[11.5px] leading-[1.7] text-[var(--text-muted)]">
+                <p className="mt-6 text-[12.5px] leading-[1.7] text-[var(--text-muted)]">
                   {t.projects.disclaimer}
                 </p>
               </div>

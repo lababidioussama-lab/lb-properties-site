@@ -28,7 +28,7 @@ export function AcquisitionProcess() {
 
   return (
     <section className="relative border-t border-[var(--hairline)] bg-[var(--surface-sunken)] px-5 py-16 sm:py-20 sm:px-8 lg:py-24">
-      <div className="mx-auto max-w-[1440px]">
+      <div className="mx-auto max-w-[1320px]">
         <SectionHeader
           eyebrow={t.process.eyebrow}
           title={t.process.title}
@@ -59,10 +59,10 @@ export function AcquisitionProcess() {
                     >
                       <Icon size={19} strokeWidth={1.5} />
                     </motion.span>
-                    <h4 className="mt-5 text-[13.5px] font-semibold text-[var(--text-primary)]">
+                    <h4 className="mt-5 text-[14.5px] font-semibold text-[var(--text-primary)]">
                       {copy.title}
                     </h4>
-                    <p className="mt-2 max-w-[26ch] text-[12px] leading-[1.7] text-[var(--text-muted)]">
+                    <p className="mt-2 max-w-[26ch] text-[13px] leading-[1.7] text-[var(--text-muted)]">
                       {copy.desc}
                     </p>
                   </li>

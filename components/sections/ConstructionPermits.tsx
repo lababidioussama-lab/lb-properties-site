@@ -39,7 +39,7 @@ export function ConstructionPermits() {
     >
       <div className="blueprint-grid pointer-events-none absolute inset-0" aria-hidden="true" />
 
-      <div className="relative mx-auto max-w-[1440px]">
+      <div className="relative mx-auto max-w-[1320px]">
         <SectionHeader
           eyebrow={t.construction.eyebrow}
           title={t.construction.title}
@@ -63,7 +63,7 @@ export function ConstructionPermits() {
                     <Icon size={22} strokeWidth={1.5} />
                   </span>
                   <h3 className="display-3 mt-6 text-[var(--text-primary)]">{copy.title}</h3>
-                  <p className="mt-3.5 text-[13.5px] leading-[1.8] text-[var(--text-secondary)]">
+                  <p className="mt-3.5 text-[14.5px] leading-[1.8] text-[var(--text-secondary)]">
                     {copy.desc}
                   </p>
                 </GlassCard>
@@ -102,10 +102,10 @@ export function ConstructionPermits() {
                           {index + 1}
                         </span>
                       </motion.span>
-                      <h4 className="mt-4 text-[13px] font-semibold text-[var(--text-primary)]">
+                      <h4 className="mt-4 text-[14px] font-semibold text-[var(--text-primary)]">
                         {copy.title}
                       </h4>
-                      <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--text-muted)]">
+                      <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--text-muted)]">
                         {copy.desc}
                       </p>
                     </li>
@@ -130,7 +130,7 @@ export function ConstructionPermits() {
           <p className="display-3 mx-auto mt-6 max-w-[26ch] text-[var(--text-primary)]">
             {t.construction.trustBanner}
           </p>
-          <p className="mx-auto mt-4 max-w-[62ch] text-[13px] leading-[1.8] text-[var(--text-secondary)]">
+          <p className="mx-auto mt-4 max-w-[62ch] text-[14px] leading-[1.8] text-[var(--text-secondary)]">
             {t.construction.trustSub}
           </p>
           <div className="mt-8 flex justify-center">

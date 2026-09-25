@@ -27,7 +27,7 @@ export function RelocationConcierge() {
       id={SECTION_IDS.relocation}
       className="relative scroll-mt-24 border-t border-[var(--hairline)] bg-[var(--surface-sunken)] px-5 py-16 sm:py-20 sm:px-8 lg:py-24"
     >
-      <div className="mx-auto max-w-[1440px]">
+      <div className="mx-auto max-w-[1320px]">
         <SectionHeader
           eyebrow={t.relocation.eyebrow}
           title={t.relocation.title}
@@ -62,7 +62,7 @@ export function RelocationConcierge() {
                   </div>
 
                   <h3 className="display-3 mt-6 text-[var(--text-primary)]">{copy.title}</h3>
-                  <p className="mt-3.5 text-[13.5px] leading-[1.8] text-[var(--text-secondary)]">
+                  <p className="mt-3.5 text-[14.5px] leading-[1.8] text-[var(--text-secondary)]">
                     {copy.desc}
                   </p>
 
@@ -72,7 +72,7 @@ export function RelocationConcierge() {
                         <span className="mt-0.5 shrink-0 text-[var(--accent)]">
                           <Check size={15} strokeWidth={1.5} />
                         </span>
-                        <span className="text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+                        <span className="text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
                           {item}
                         </span>
                       </li>
@@ -87,7 +87,7 @@ export function RelocationConcierge() {
                       <span className="accent-text text-[19px] font-semibold">
                         {formatCurrency(estimate.from, currency)}
                       </span>
-                      <span className="text-[11.5px] text-[var(--text-muted)]">
+                      <span className="text-[12.5px] text-[var(--text-muted)]">
                         – {formatCurrency(estimate.to, currency)}
                       </span>
                     </div>

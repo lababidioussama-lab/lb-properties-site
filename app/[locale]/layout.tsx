@@ -33,8 +33,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f4ef" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0708" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f1ea" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c1622" },
   ],
 };
 
@@ -64,10 +64,7 @@ export async function generateMetadata({
     appleWebApp: {
       capable: true,
       title: "Lababidi Properties",
-      // Matches the dark house theme, so the status bar does not sit as a
-      // white band above a near-black page once it is launched from the
-      // home screen.
-      statusBarStyle: "black-translucent",
+      statusBarStyle: "default",
     },
 
     alternates: {
@@ -84,14 +81,11 @@ export async function generateMetadata({
 }
 
 /* Applies the theme before first paint, so nobody sees a flash of the wrong
-   ground. The house default is dark regardless of the OS preference — light
-   is a choice the visitor makes, not one their laptop makes for them — so
-   this stamps 'dark' whenever there is no stored preference. It has to run
-   as a blocking script in <head>: doing it in an effect would paint light
-   first and then swap, which is the flash it exists to prevent. */
+   ground. The house default is light — the limestone the logo is carved
+   into — and dark is a choice the visitor makes with the toggle. */
 const THEME_BOOTSTRAP = `
 (function(){
-  var theme = 'dark';
+  var theme = 'light';
   try {
     var saved = localStorage.getItem('dec:theme');
     if (saved === 'light' || saved === 'dark') theme = saved;

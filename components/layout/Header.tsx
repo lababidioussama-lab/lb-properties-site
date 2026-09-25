@@ -2,25 +2,34 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "motion/react";
 
 import { useSite } from "@/lib/context/site-context";
-import { SECTION_IDS, NAV_KEYS, SITE, type ServiceKey } from "@/lib/site-config";
+import { SITE, pageHref, type PageKey } from "@/lib/site-config";
 import { BrandLockup } from "@/components/ui/BrandMark";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { IconWhatsApp } from "@/components/ui/Icons";
 import { CurrencyToggle } from "./CurrencyToggle";
 import { LanguageSelector } from "./LanguageSelector";
 
+const PAGES: { key: PageKey; label: "projects" | "investors" | "services"; desc: "projectsDesc" | "investorsDesc" | "servicesDesc" }[] = [
+  { key: "projects", label: "projects", desc: "projectsDesc" },
+  { key: "invest", label: "investors", desc: "investorsDesc" },
+  { key: "services", label: "services", desc: "servicesDesc" },
+];
+
+/** Every public page opens on full-bleed photography, so the bar starts
+    transparent with a white lockup and turns to limestone once scrolled. */
 export function Header() {
-  const { t, locale, theme, toggleTheme } = useSite();
+  const { t, locale, theme, toggleTheme, openDrawer } = useSite();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const { scrollY } = useScroll();
   useMotionValueEvent(scrollY, "change", (latest) => setScrolled(latest > 40));
 
-  // Close the mobile sheet on Escape, matching the drawer's behaviour.
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
@@ -28,15 +37,16 @@ export function Header() {
     return () => window.removeEventListener("keydown", onKey);
   }, [menuOpen]);
 
-  const navItems = NAV_KEYS.map((service) => ({
-    service,
-    href: `/${locale}#${SECTION_IDS[service]}`,
-    label: t.nav[service],
-    /* The bar uses short labels; the full name still appears in the hover
-       flyout and the mobile sheet, where there is room for it. */
-    short: t.nav[`${service}Short` as keyof typeof t.nav] as string,
-    desc: t.nav[`${service}Desc` as keyof typeof t.nav] as string,
-  }));
+  const onPhoto = !scrolled;
+  const items = PAGES.map((p) => {
+    const href = pageHref(locale, p.key);
+    return { ...p, href, text: t.nav[p.label], sub: t.nav[p.desc], active: pathname === href };
+  });
+
+  const linkTone = onPhoto ? "text-white/85 hover:text-white" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]";
+  const iconBtn = onPhoto
+    ? "border-white/35 text-white hover:border-white"
+    : "border-[var(--hairline)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)]";
 
   return (
     <>
@@ -44,52 +54,67 @@ export function Header() {
         className={[
           "fixed inset-x-0 top-0 z-50 transition-all duration-500 [transition-timing-function:var(--ease-lux)]",
           scrolled
-            ? "border-b border-[var(--glass-border)] bg-[var(--glass-bg-strong)] backdrop-blur-md"
-            : "border-b border-transparent bg-transparent",
+            ? "border-b border-[var(--glass-border)] bg-[var(--glass-bg-strong)] shadow-[0_8px_30px_-24px_rgb(11_26_43/0.5)] backdrop-blur-md"
+            : "border-b border-white/10 bg-gradient-to-b from-[rgb(7_26_46/0.45)] to-transparent",
         ].join(" ")}
       >
-        <div className="mx-auto flex h-[72px] max-w-[1440px] items-center gap-6 px-5 sm:px-8">
+        <div className={`mx-auto flex max-w-[1440px] items-center gap-6 px-5 transition-all duration-500 sm:px-8 ${scrolled ? "h-[72px]" : "h-[88px]"}`}>
           <Link href={`/${locale}`} aria-label={SITE.name} className="shrink-0">
-            <BrandLockup idSuffix="hdr" />
+            <BrandLockup tone={onPhoto ? "light" : "auto"} />
           </Link>
 
-          {/* Desktop navigation with description flyouts */}
-          <nav aria-label="Primary" className="hidden flex-1 items-center justify-center gap-0.5 xl:flex">
-            {navItems.map((item) => (
-              <a
-                key={item.service}
+          <nav aria-label="Primary" className="hidden flex-1 items-center justify-center gap-2 lg:flex">
+            {items.map((item) => (
+              <Link
+                key={item.key}
                 href={item.href}
-                className="group relative whitespace-nowrap rounded-full px-3 py-2 text-[12px] font-medium text-[var(--text-secondary)] transition-colors duration-300 hover:text-[var(--text-primary)]"
+                aria-current={item.active ? "page" : undefined}
+                className={`group relative px-4 py-2 font-[family-name:var(--font-eyebrow)] text-[11px] font-semibold uppercase tracking-[0.2em] transition-colors duration-300 rtl:tracking-normal rtl:text-[13px] ${linkTone}`}
               >
-                {item.short}
-                <span className="pointer-events-none absolute inset-x-3.5 bottom-1 h-px origin-center scale-x-0 bg-[var(--accent)] transition-transform duration-400 [transition-timing-function:var(--ease-lux)] group-hover:scale-x-100" />
-                <span className="pointer-events-none absolute start-1/2 top-[calc(100%+10px)] w-max max-w-[240px] -translate-x-1/2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-strong)] px-3.5 py-2 text-[11px] leading-snug text-[var(--text-muted)] opacity-0 shadow-[var(--shadow-card)] backdrop-blur-xl transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 rtl:translate-x-1/2">
-                  <span className="mb-1 block font-semibold text-[var(--text-primary)]">{item.label}</span>
-                  {item.desc}
-                </span>
-              </a>
+                {item.text}
+                <span
+                  className={`pointer-events-none absolute inset-x-4 -bottom-0.5 h-px origin-center transition-transform duration-500 [transition-timing-function:var(--ease-lux)] ${
+                    onPhoto ? "bg-white" : "bg-[var(--accent)]"
+                  } ${item.active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"}`}
+                />
+              </Link>
             ))}
+            <button
+              onClick={() => openDrawer()}
+              className={`px-4 py-2 font-[family-name:var(--font-eyebrow)] text-[11px] font-semibold uppercase tracking-[0.2em] transition-colors duration-300 rtl:tracking-normal rtl:text-[13px] ${linkTone}`}
+            >
+              {t.nav.contact}
+            </button>
           </nav>
 
-          <div className="ms-auto flex items-center gap-2.5 xl:ms-0">
-            <div className="hidden items-center gap-2.5 2xl:flex">
+          <div className="ms-auto flex items-center gap-2.5 lg:ms-0">
+            <div className={`hidden items-center gap-2.5 xl:flex ${onPhoto ? "[&_button]:!text-white/90" : ""}`}>
               <CurrencyToggle />
               <LanguageSelector />
-              <button
-                onClick={toggleTheme}
-                aria-label={theme === "dark" ? t.utility.themeToLight : t.utility.themeToDark}
-                className="grid h-9 w-9 place-items-center rounded-full border border-[var(--hairline)] text-[var(--text-secondary)] transition-colors duration-300 hover:border-[var(--accent)] hover:text-[var(--accent)]"
-              >
-                {theme === "dark" ? <Sun size={15} strokeWidth={1.5} /> : <Moon size={15} strokeWidth={1.5} />}
-              </button>
             </div>
+            <button
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? t.utility.themeToLight : t.utility.themeToDark}
+              className={`hidden h-9 w-9 place-items-center rounded-full border transition-colors duration-300 sm:grid ${iconBtn}`}
+            >
+              {theme === "dark" ? <Sun size={15} strokeWidth={1.5} /> : <Moon size={15} strokeWidth={1.5} />}
+            </button>
 
-            <ConciergeCta />
+            <a
+              href={SITE.waLink(`Hello — I would like to speak to an advisor about a Dubai property.`)}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t.utility.concierge}
+              className="btn btn-wa !min-h-10 !px-4"
+            >
+              <IconWhatsApp size={15} />
+              <span className="hidden sm:inline">{t.utility.conciergeShort}</span>
+            </a>
 
             <button
               onClick={() => setMenuOpen(true)}
               aria-label={t.nav.openMenu}
-              className="grid h-10 w-10 place-items-center rounded-full border border-[var(--hairline)] text-[var(--text-primary)] xl:hidden"
+              className={`grid h-10 w-10 place-items-center rounded-full border lg:hidden ${iconBtn}`}
             >
               <Menu size={18} strokeWidth={1.5} />
             </button>
@@ -98,34 +123,9 @@ export function Header() {
       </header>
 
       <AnimatePresence>
-        {menuOpen && (
-          <MobileSheet items={navItems} onClose={() => setMenuOpen(false)} />
-        )}
+        {menuOpen && <MobileSheet items={items} onClose={() => setMenuOpen(false)} />}
       </AnimatePresence>
     </>
-  );
-}
-
-function ConciergeCta() {
-  const { t } = useSite();
-  return (
-    <a
-      href={SITE.waLink(`Hello — I would like to speak to an advisor about a Dubai property.`)}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={t.utility.concierge}
-      className="group inline-flex h-10 items-center gap-2.5 rounded-full cta-fill px-4 shadow-[var(--shadow-card)] transition-all duration-300 sm:px-5"
-    >
-      {/* Live dot: a static core with an expanding ring behind it. */}
-      <span className="relative grid h-2 w-2 place-items-center">
-        <span className="absolute h-2 w-2 rounded-full bg-white/90 pulse-ring" />
-        <span className="h-2 w-2 rounded-full bg-white" />
-      </span>
-      <span className="hidden font-[family-name:var(--font-eyebrow)] text-[10.5px] font-semibold uppercase tracking-[0.16em] sm:inline">
-        {t.utility.concierge}
-      </span>
-      <IconWhatsApp size={16} className="sm:hidden" />
-    </a>
   );
 }
 
@@ -133,10 +133,11 @@ function MobileSheet({
   items,
   onClose,
 }: {
-  items: { service: ServiceKey; href: string; label: string; desc: string }[];
+  items: { key: PageKey; href: string; text: string; sub: string }[];
   onClose: () => void;
 }) {
-  const { t, theme, toggleTheme } = useSite();
+  const { t, locale, theme, toggleTheme, openDrawer } = useSite();
+  const links = [{ key: "home", href: `/${locale}`, text: t.nav.home, sub: "" }, ...items];
 
   return (
     <motion.div
@@ -144,10 +145,10 @@ function MobileSheet({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25 }}
-      className="fixed inset-0 z-[70] overflow-y-auto overscroll-contain bg-[var(--surface)]/96 pb-10 backdrop-blur-2xl xl:hidden"
+      className="fixed inset-0 z-[70] overflow-y-auto overscroll-contain bg-[var(--surface)] pb-10 lg:hidden"
     >
       <div className="flex h-[72px] items-center justify-between px-5 sm:px-8">
-        <BrandLockup idSuffix="sheet" />
+        <BrandLockup />
         <button
           onClick={onClose}
           aria-label={t.nav.closeMenu}
@@ -157,21 +158,34 @@ function MobileSheet({
         </button>
       </div>
 
-      <nav className="flex flex-col px-5 pt-4 sm:px-8">
-        {items.map((item, i) => (
-          <motion.a
-            key={item.service}
-            href={item.href}
-            onClick={onClose}
+      <nav className="flex flex-col px-5 pt-6 sm:px-8">
+        {links.map((item, i) => (
+          <motion.div
+            key={item.key}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 + i * 0.05, duration: 0.4 }}
-            className="border-b border-[var(--hairline)] py-5"
+            transition={{ delay: 0.04 + i * 0.05, duration: 0.4 }}
+            className="border-b border-[var(--hairline)]"
           >
-            <span className="display-3 block text-[var(--text-primary)]">{item.label}</span>
-            <span className="mt-1.5 block text-[12px] text-[var(--text-muted)]">{item.desc}</span>
-          </motion.a>
+            <Link href={item.href} onClick={onClose} className="block py-5">
+              <span className="block font-[family-name:var(--font-display)] text-[32px] leading-none text-[var(--text-primary)]">{item.text}</span>
+              {item.sub && <span className="mt-2 block text-[13px] text-[var(--text-muted)]">{item.sub}</span>}
+            </Link>
+          </motion.div>
         ))}
+        <motion.button
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.4 }}
+          onClick={() => {
+            onClose();
+            openDrawer();
+          }}
+          className="border-b border-[var(--hairline)] py-5 text-start"
+        >
+          <span className="block font-[family-name:var(--font-display)] text-[32px] leading-none text-[var(--text-primary)]">{t.nav.contact}</span>
+          <span className="mt-2 block text-[13px] text-[var(--text-muted)]">{t.nav.contactDesc}</span>
+        </motion.button>
       </nav>
 
       <div className="mt-8 flex flex-wrap items-center gap-3 px-5 sm:px-8">

@@ -25,7 +25,7 @@ export function ResourceLibrary() {
 
   return (
     <section className="relative border-t border-[var(--hairline)] bg-[var(--surface)] px-5 py-16 sm:py-20 sm:px-8 lg:py-24">
-      <div className="mx-auto max-w-[1440px]">
+      <div className="mx-auto max-w-[1320px]">
         <SectionHeader
           eyebrow={t.resources.eyebrow}
           title={t.resources.title}
@@ -50,7 +50,7 @@ export function ResourceLibrary() {
                     <Icon size={20} strokeWidth={1.5} />
                   </span>
                   <h3 className="display-3 mt-5 text-[var(--text-primary)]">{copy.title}</h3>
-                  <p className="mt-3 flex-1 text-[13px] leading-[1.75] text-[var(--text-secondary)]">
+                  <p className="mt-3 flex-1 text-[14px] leading-[1.75] text-[var(--text-secondary)]">
                     {copy.desc}
                   </p>
                   <Button

@@ -75,7 +75,7 @@ export function MortgageAdvisory() {
       id={SECTION_IDS.mortgage}
       className="relative scroll-mt-24 border-t border-[var(--hairline)] bg-[var(--surface)] px-5 py-16 sm:py-20 sm:px-8 lg:py-24"
     >
-      <div className="mx-auto max-w-[1440px]">
+      <div className="mx-auto max-w-[1320px]">
         <SectionHeader
           eyebrow={t.mortgage.eyebrow}
           title={t.mortgage.title}
@@ -133,7 +133,7 @@ export function MortgageAdvisory() {
                 minLabel={`${RATE_PCT.min}%`}
                 maxLabel={`${RATE_PCT.max}%`}
               />
-              <p className="mt-4 flex items-start gap-2.5 text-[11.5px] leading-relaxed text-[var(--text-muted)]">
+              <p className="mt-4 flex items-start gap-2.5 text-[12.5px] leading-relaxed text-[var(--text-muted)]">
                 <span className="mt-0.5 shrink-0">
                   <Info size={14} strokeWidth={1.5} />
                 </span>
@@ -199,7 +199,7 @@ export function MortgageAdvisory() {
                       format={money}
                       className="figure mt-2 block text-[32px] font-bold leading-none text-[var(--accent)] sm:text-[40px]"
                     />
-                    <p className="mt-2.5 text-[11.5px] leading-relaxed text-[var(--text-muted)]">
+                    <p className="mt-2.5 text-[12.5px] leading-relaxed text-[var(--text-muted)]">
                       {t.mortgage.results.cashNote}
                     </p>
                   </div>
@@ -259,7 +259,7 @@ export function MortgageAdvisory() {
                 <Row label={t.mortgage.fees.valuation} value={result.fees.valuation} />
               </dl>
               <div className="mt-4 flex items-baseline justify-between gap-4 border-t border-[var(--hairline)] pt-4">
-                <span className="text-[13px] font-semibold text-[var(--text-primary)]">
+                <span className="text-[14px] font-semibold text-[var(--text-primary)]">
                   {t.mortgage.fees.total}
                 </span>
                 <CountUp
@@ -269,7 +269,7 @@ export function MortgageAdvisory() {
                   className="figure text-[17px] font-bold text-[var(--accent)]"
                 />
               </div>
-              <p className="figure mt-1.5 text-end text-[11px] text-[var(--text-muted)]">
+              <p className="figure mt-1.5 text-end text-[12px] text-[var(--text-muted)]">
                 {((result.fees.total / Math.max(1, price)) * 100).toFixed(1)}%
               </p>
             </GlassCard>
@@ -284,7 +284,7 @@ export function MortgageAdvisory() {
           </Button>
         </div>
 
-        <p className="mt-12 max-w-[92ch] border-t border-[var(--hairline)] pt-6 text-[11.5px] leading-[1.85] text-[var(--text-muted)]">
+        <p className="mt-12 max-w-[92ch] border-t border-[var(--hairline)] pt-6 text-[12.5px] leading-[1.85] text-[var(--text-muted)]">
           {t.mortgage.disclaimer}
         </p>
       </div>
@@ -364,13 +364,13 @@ function AffordabilityCard({
             <TriangleAlert size={18} strokeWidth={1.5} />
           )}
         </span>
-        <span className="text-[12.5px] leading-relaxed text-[var(--text-primary)]">
+        <span className="text-[13.5px] leading-relaxed text-[var(--text-primary)]">
           {a.passes ? t.mortgage.affordability.passes : t.mortgage.affordability.fails}
         </span>
       </div>
 
       <div className="mt-6 flex items-baseline justify-between gap-4 border-t border-[var(--hairline)] pt-5">
-        <span className="text-[12.5px] text-[var(--text-muted)]">
+        <span className="text-[13.5px] text-[var(--text-muted)]">
           {t.mortgage.affordability.maxPrice}
         </span>
         <CountUp
@@ -427,8 +427,8 @@ function OptionGroup<T extends string>({
                   className="absolute inset-0 rounded-xl bg-[var(--accent-wash)]"
                 />
               )}
-              <span className="relative block text-[13px] font-semibold">{option.label}</span>
-              <span className="relative mt-0.5 block text-[11px] text-[var(--text-muted)]">
+              <span className="relative block text-[14px] font-semibold">{option.label}</span>
+              <span className="relative mt-0.5 block text-[12px] text-[var(--text-muted)]">
                 {option.desc}
               </span>
             </button>
@@ -443,8 +443,8 @@ function Row({ label, value }: { label: string; value: number }) {
   const { currency } = useSite();
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-[12.5px] text-[var(--text-muted)]">{label}</dt>
-      <dd className="figure text-[12.5px] text-[var(--text-secondary)]">
+      <dt className="text-[13.5px] text-[var(--text-muted)]">{label}</dt>
+      <dd className="figure text-[13.5px] text-[var(--text-secondary)]">
         {formatCurrency(value, currency)}
       </dd>
     </div>

@@ -72,7 +72,7 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
       </Card>
 
       <AgentDocuments t={documents} onlyUserId={me.id} />
-      <MyRequests t={requests} listings={listings} />
+      <MyRequests t={requests} listings={listings} onlyUserId={me.id} />
     </div>
   );
 }

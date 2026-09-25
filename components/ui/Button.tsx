@@ -56,7 +56,7 @@ function classesFor({
        button becomes a large oval slab. A fixed 999px radius cannot know
        that, so the shape is pinned to the system's own near-square scale,
        which holds up at any number of lines. */
-    "relative inline-flex items-center justify-center rounded-xl text-center text-balance",
+    "relative inline-flex items-center justify-center rounded-[2px] text-center text-balance",
     "font-[family-name:var(--font-eyebrow)] font-semibold uppercase",
     "disabled:opacity-50 disabled:pointer-events-none",
     shimmer ? "shimmer-hover" : "",

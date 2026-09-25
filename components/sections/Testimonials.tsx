@@ -25,7 +25,7 @@ export function Testimonials() {
 
   return (
     <section className="relative border-t border-[var(--hairline)] bg-[var(--surface-sunken)] px-5 py-16 sm:py-20 sm:px-8 lg:py-24">
-      <div className="mx-auto max-w-[1440px]">
+      <div className="mx-auto max-w-[1320px]">
         <SectionHeader
           eyebrow={t.testimonials.eyebrow}
           title={t.testimonials.title}
@@ -46,10 +46,10 @@ export function Testimonials() {
               >
                 <GlassCard tilt={false} className="flex h-full flex-col p-7">
                   <Quote size={22} strokeWidth={1.5} className="text-[var(--accent)] opacity-60" />
-                  <p className="mt-5 flex-1 text-[13.5px] italic leading-[1.8] text-[var(--text-secondary)]">
+                  <p className="mt-5 flex-1 text-[14.5px] italic leading-[1.8] text-[var(--text-secondary)]">
                     {item.quote}
                   </p>
-                  <p className="mt-5 border-t border-[var(--hairline)] pt-4 text-[12px] font-medium text-[var(--text-muted)]">
+                  <p className="mt-5 border-t border-[var(--hairline)] pt-4 text-[13px] font-medium text-[var(--text-muted)]">
                     {item.attribution}
                   </p>
                 </GlassCard>

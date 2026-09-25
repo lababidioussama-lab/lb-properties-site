@@ -1,8 +1,8 @@
 export const en = {
   meta: {
-    title: "Dubai Estate Concierge & Advisory — Investment, Interiors & Villa Construction",
+    title: "Lababidi Properties — Dubai Real Estate Advisory, Off-Plan & Investment",
     description:
-      "End-to-end luxury asset management in Dubai: off-plan developer deals, Golden Visa advisory, relocation concierge, turnkey renovations and annual villa care.",
+      "End-to-end luxury asset management in Dubai: off-plan developer deals, Golden Visa advisory, relocation, interiors and villa construction.",
   },
 
   nav: {
@@ -33,6 +33,16 @@ export const en = {
     constructionShort: "Construction",
     relocationShort: "Relocation",
     maintenanceShort: "Maintenance",
+
+    home: "Home",
+    projects: "Projects",
+    projectsDesc: "Current off-plan allocations from Dubai's leading developers",
+    investors: "Investors",
+    investorsDesc: "Yield, net ROI, mortgage and market data tools",
+    services: "Services",
+    servicesDesc: "Relocation, fit-out and construction",
+    contact: "Contact",
+    contactDesc: "Book a private consultation",
   },
 
   utility: {
@@ -101,7 +111,7 @@ export const en = {
       goldenVisaDesc: "Residency from AED 2M",
     },
     results: {
-      title: "Indicative return profile",
+      title: "Approximate return profile",
       grossYield: "Gross yield",
       netYield: "Net yield",
       netAnnual: "Est. net rental return",
@@ -265,10 +275,10 @@ export const en = {
     title: "Concierge assistant",
     subtitle: "Answers instantly · advisor within the hour",
     greeting:
-      "Hello — I can answer questions about our off-plan projects, Golden Visa eligibility, maintenance plans and fit-out. What are you looking into?",
+      "Hello — I can answer questions about our off-plan projects, Golden Visa eligibility, fit-out and construction. What are you looking into?",
     prompts: [
       "Which projects suit a Golden Visa?",
-      "What do you charge for villa maintenance?",
+      "Can you handle a villa renovation?",
       "What does the net ROI tool show me?",
     ],
     placeholder: "Ask about a project or service",
@@ -757,6 +767,141 @@ export const en = {
     errorGeneric: "Something went wrong saving that — but you can still reach us on WhatsApp.",
     close: "Close",
     privacy: "We use your details only to respond to this enquiry.",
+  },
+
+  home: {
+    developers: "Current projects from",
+    hero: {
+      kicker: "Dubai · Private Real Estate Office",
+      title: "Dubai property, [[privately advised]]",
+      subtitle:
+        "Off-plan allocations from Dubai's leading developers, honest yield analysis, and one team for everything after the keys: fit-out, construction and care.",
+      primary: "Explore projects",
+      secondary: "Book a consultation",
+      caption: "Palace Beach Residence · Emaar Beachfront",
+      scroll: "Scroll",
+    },
+    facts: {
+      licensed: "DET licensed",
+      licensedValue: "Licence No. {licence}",
+      languages: "We advise in",
+      languagesValue: "English · العربية · Русский · 中文",
+      reply: "Response time",
+      replyValue: "Within one hour",
+      projects: "Current allocations",
+      projectsValue: "{count} projects · {devs} developers",
+    },
+    intro: {
+      kicker: "The practice",
+      title: "One private office for [[every stage]] of owning in Dubai",
+      body1:
+        "Most buyers deal with a broker to buy, a bank to borrow, a contractor to fit out and a facilities company to maintain. Each one sees a fragment, and nobody owns the outcome.",
+      body2:
+        "We run the whole life of the asset from one desk: the acquisition, the numbers behind it, the handover, the interiors and the upkeep. You deal with one advisor who knows your property, whether you are in Dubai or on the other side of the world.",
+      pillars: {
+        honest: "Figures labelled honestly",
+        honestDesc: "Net yields after every fee, not the gross number on the brochure.",
+        remote: "Built for remote buyers",
+        remoteDesc: "Reserve, sign and hand over without flying in.",
+        after: "Beyond the transaction",
+        afterDesc: "Fit-out, construction and care from the same team.",
+      },
+    },
+    featured: {
+      kicker: "Featured projects",
+      title: "Developer allocations we can [[place you in]]",
+      subtitle:
+        "A curated selection from Emaar, Sobha, Nakheel, DAMAC and more. Every detail is taken from the developer's own brochure.",
+      viewAll: "View all projects",
+      view: "View project",
+    },
+    services: {
+      kicker: "What we do",
+      title: "Advice first, then [[everything after]]",
+      items: {
+        acquisition: {
+          title: "Acquisition & off-plan",
+          desc: "Curated developer allocations, Golden Visa structuring and remote purchase by power of attorney.",
+        },
+        investors: {
+          title: "Investment analysis",
+          desc: "Gross and net yield, service charges, mortgage capacity and the real cash you need on day one.",
+        },
+        interiors: {
+          title: "Interiors & fit-out",
+          desc: "Furnishing packages and custom joinery that turn a handover shell into a home, or a rental that lets.",
+        },
+        construction: {
+          title: "Construction & renovation",
+          desc: "Villa extensions, pools and full renovations, with every permit handled in your name.",
+        },
+      },
+      explore: "Explore",
+    },
+    figures: {
+      kicker: "Why Dubai",
+      title: "The case, in [[four numbers]]",
+      items: {
+        tax: { value: "0%", label: "Personal income tax on rental income" },
+        yield: { value: "~5.5–8.5%", label: "Approximate gross residential yields, citywide" },
+        visa: { value: "AED 2M", label: "Property value that qualifies for a 10-year Golden Visa" },
+        freehold: { value: "100%", label: "Foreign freehold ownership in designated areas" },
+      },
+      note: "Indicative ranges only. Yields vary widely by community and unit, and tax treatment depends on your own residency. Take independent advice.",
+    },
+    tools: {
+      kicker: "Investor tools",
+      title: "Run the numbers [[before]] the call",
+      subtitle: "The same models our advisors use, open to you. Every result is an approximate estimate, not a quote.",
+      approx: "All figures are approximate",
+      items: {
+        roi: { title: "Return profile", desc: "Budget and objective in, indicative yield and Golden Visa eligibility out." },
+        netRoi: { title: "Net ROI & service charges", desc: "What a unit really earns after DLD, agency, Mollak and management fees." },
+        mortgage: { title: "Mortgage capacity", desc: "Loan-to-value caps, affordability and the cash required at transfer." },
+        market: { title: "Market data", desc: "Transaction volumes and price trends as the registry records them." },
+      },
+      cta: "Open investor tools",
+    },
+    contact: {
+      kicker: "Private consultation",
+      title: "Tell us what you are [[looking for]]",
+      body: "A short conversation about your budget, timeline and goals. No scripted pitch. You will speak to a senior advisor, not a call centre.",
+      whatsapp: "WhatsApp us",
+      call: "Call {phone}",
+      form: "Request a call back",
+      hours: "Sunday–Friday, 9:00–20:00 GST · replies within one hour",
+    },
+  },
+
+  pages: {
+    projects: {
+      kicker: "Off-plan allocations",
+      title: "Current [[projects]]",
+      subtitle:
+        "Developer stock we hold brochures and allocation access for. Filter by developer, open any project for the full brief, and ask us for the live price list.",
+      count: "{count} projects",
+    },
+    invest: {
+      kicker: "For investors",
+      title: "The numbers, [[honestly labelled]]",
+      subtitle:
+        "Model a return, see the net yield after every fee, check what you can borrow and read the market as the registry records it.",
+      approxTitle: "All calculations are approximate",
+      approxBody:
+        "Every figure these tools produce is an estimate based on typical market ranges. Actual prices, fees, service charges and returns vary by building and unit — we confirm the real numbers with you before any decision.",
+      jump: {
+        roi: "Return profile",
+        netRoi: "Net ROI",
+        mortgage: "Mortgage",
+        market: "Market data",
+      },
+    },
+    services: {
+      kicker: "After the keys",
+      title: "Services for [[owners]]",
+      subtitle:
+        "Relocation, interiors and construction, run by the same team that advised on the purchase.",
+    },
   },
 
   footer: {

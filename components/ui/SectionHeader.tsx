@@ -53,7 +53,7 @@ export function SectionHeader({
       className={`flex items-baseline gap-3 ${centered ? "justify-center" : ""}`}
     >
       {index && (
-        <span className="font-[family-name:var(--font-numeric)] text-[11px] font-medium tabular-nums text-[var(--accent)]">
+        <span className="font-[family-name:var(--font-numeric)] text-[12px] font-medium tabular-nums text-[var(--accent)]">
           {index}
         </span>
       )}
@@ -78,8 +78,8 @@ export function SectionHeader({
       transition={{ duration: 0.35 }}
       className={
         split
-          ? "text-[15px] leading-[1.8] text-[var(--text-secondary)]"
-          : `mt-6 text-[15px] leading-[1.8] text-[var(--text-secondary)] ${
+          ? "text-[16px] leading-[1.8] text-[var(--text-secondary)]"
+          : `mt-6 text-[16px] leading-[1.8] text-[var(--text-secondary)] ${
               centered ? "mx-auto max-w-2xl" : "max-w-[58ch]"
             }`
       }

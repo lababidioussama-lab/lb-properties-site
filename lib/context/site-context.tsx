@@ -56,8 +56,8 @@ export function SiteProvider({
   children: ReactNode;
 }) {
   const [currency, setCurrencyState] = useState<CurrencyCode>("AED");
-  // Matches THEME_BOOTSTRAP in the layout: dark unless chosen otherwise.
-  const [theme, setTheme] = useState<Theme>("dark");
+  // Matches THEME_BOOTSTRAP in the layout: light unless chosen otherwise.
+  const [theme, setTheme] = useState<Theme>("light");
   const [activeService, setActiveService] = useState<ServiceKey>("advisory");
   const [selections, setSelections] = useState<LeadSelections>({});
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -79,7 +79,7 @@ export function SiteProvider({
         /* No stored choice means the house default, which the bootstrap
            script has already stamped on <html>. Reading the OS preference
            here instead would disagree with what is actually painted. */
-        setTheme("dark");
+        setTheme("light");
       }
     } catch {
       // Private browsing with storage disabled — defaults are fine.

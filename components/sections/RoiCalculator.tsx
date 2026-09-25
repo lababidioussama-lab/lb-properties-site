@@ -47,7 +47,7 @@ export function RoiCalculator() {
       id={SECTION_IDS.advisory}
       className="relative scroll-mt-24 border-t border-[var(--hairline)] bg-[var(--surface)] px-5 py-16 sm:py-20 sm:px-8 lg:py-24"
     >
-      <div className="mx-auto max-w-[1440px]">
+      <div className="mx-auto max-w-[1320px]">
         <SectionHeader eyebrow={t.roi.eyebrow} title={t.roi.title} subtitle={t.roi.subtitle} />
 
         <div className="mt-16 grid gap-8 lg:grid-cols-[1.05fr_1fr] lg:gap-10">
@@ -97,7 +97,7 @@ export function RoiCalculator() {
                         <span className="block text-[14px] font-medium text-[var(--text-primary)]">
                           {t.roi.goals[option]}
                         </span>
-                        <span className="mt-0.5 block text-[12px] text-[var(--text-muted)]">
+                        <span className="mt-0.5 block text-[13px] text-[var(--text-muted)]">
                           {t.roi.goals[`${option}Desc` as keyof typeof t.roi.goals]}
                         </span>
                       </span>
@@ -193,10 +193,10 @@ export function RoiCalculator() {
                       transition={{ duration: 0.75 }}
                       className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-lg border border-[var(--hairline)] px-4 py-3"
                     >
-                      <span className="text-[13.5px] font-medium text-[var(--text-primary)]">
+                      <span className="text-[14.5px] font-medium text-[var(--text-primary)]">
                         {t.hubs[hub.id as keyof typeof t.hubs]}
                       </span>
-                      <span className="figure flex items-center gap-3 text-[11.5px] text-[var(--text-muted)]">
+                      <span className="figure flex items-center gap-3 text-[12.5px] text-[var(--text-muted)]">
                         <span className="text-[var(--accent)]">
                           {hub.grossYield[0]}–{hub.grossYield[1]}% {t.roi.hubYield}
                         </span>
@@ -219,12 +219,12 @@ export function RoiCalculator() {
             {t.roi.cta}
             <ArrowRight size={16} strokeWidth={1.5} className="rtl:rotate-180" />
           </Button>
-          <span className="text-[12px] text-[var(--text-muted)]">{t.roi.ctaHint}</span>
+          <span className="text-[13px] text-[var(--text-muted)]">{t.roi.ctaHint}</span>
         </div>
 
         {/* The disclaimer sits with the numbers it qualifies, not buried in
             a footer nobody reads. */}
-        <p className="mt-12 max-w-[92ch] border-t border-[var(--hairline)] pt-6 text-[11.5px] leading-[1.85] text-[var(--text-muted)]">
+        <p className="mt-12 max-w-[92ch] border-t border-[var(--hairline)] pt-6 text-[12.5px] leading-[1.85] text-[var(--text-muted)]">
           {t.roi.disclaimer}
         </p>
       </div>
@@ -245,7 +245,7 @@ function Figure({
     <div className="min-w-0">
       <div className="eyebrow">{label}</div>
       <div className="mt-2">{value}</div>
-      {note && <div className="figure mt-1.5 text-[11.5px] text-[var(--text-muted)]">{note}</div>}
+      {note && <div className="figure mt-1.5 text-[12.5px] text-[var(--text-muted)]">{note}</div>}
     </div>
   );
 }
@@ -298,13 +298,13 @@ function VisaBadge({
       </span>
       <div className="min-w-0">
         <p
-          className={`text-[13.5px] font-semibold ${
+          className={`text-[14.5px] font-semibold ${
             state === "golden" ? "text-[var(--accent)]" : "text-[var(--text-primary)]"
           }`}
         >
           {copy.title}
         </p>
-        <p className="figure mt-1.5 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+        <p className="figure mt-1.5 text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
           {copy.body}
         </p>
         {/* Statutory thresholds stay in AED at every currency setting.
@@ -314,7 +314,7 @@ function VisaBadge({
             qualifies at that figure, which only holds while the rate holds.
             The visitor's own budget and returns convert; the legal
             thresholds they are measured against do not. */}
-        <p className="figure mt-2 text-[11px] text-[var(--text-muted)]">
+        <p className="figure mt-2 text-[12px] text-[var(--text-muted)]">
           {formatCurrency(VISA_THRESHOLDS.golden, "AED")} ·{" "}
           {formatCurrency(VISA_THRESHOLDS.investor, "AED")}
           {currency !== "AED" && (

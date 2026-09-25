@@ -1,7 +1,8 @@
 import {
   Cormorant_Garamond,
-  Syne,
-  Plus_Jakarta_Sans,
+  Montserrat,
+  Manrope,
+  Cinzel,
   Amiri,
   JetBrains_Mono,
   Noto_Sans,
@@ -15,23 +16,34 @@ export const cormorant = Cormorant_Garamond({
   // Cormorant carries Cyrillic, so Russian headings keep the same display
   // voice as English rather than falling back to a system serif.
   subsets: ["latin", "cyrillic"],
-  weight: ["300", "400", "500"],
+  weight: ["400", "500", "600"],
   style: ["normal", "italic"],
   variable: "--font-cormorant",
   display: "swap",
 });
 
-export const syne = Syne({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-syne",
+/* The geometric sans set under the wordmark ("PROPERTIES") in the logo. */
+export const montserrat = Montserrat({
+  subsets: ["latin", "cyrillic"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-montserrat",
   display: "swap",
 });
 
-export const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
+/* Body and figures. Manrope's tabular lining numerals replace the old
+   monospace, so prices read as print rather than as code. */
+export const jakarta = Manrope({
+  subsets: ["latin", "cyrillic"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-jakarta",
+  display: "swap",
+});
+
+/* Roman inscriptional capitals, the letterform of the LABABIDI wordmark. */
+export const cinzel = Cinzel({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-cinzel",
   display: "swap",
 });
 
@@ -82,8 +94,9 @@ export const notoSC = Noto_Sans_SC({
 
 export const fontVariables = [
   cormorant.variable,
-  syne.variable,
+  montserrat.variable,
   jakarta.variable,
+  cinzel.variable,
   amiri.variable,
   mono.variable,
   notoCyrillic.variable,

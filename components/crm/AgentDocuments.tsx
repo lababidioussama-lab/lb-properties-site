@@ -40,9 +40,9 @@ export function AgentDocuments({ t, onlyUserId }: { t: Table<CrmAgentDocument>; 
 
       {t.error && <p className="mb-2 text-[12px] text-[#e0645f]">{t.error === "url_and_title_required" ? "Enter a title and a valid link." : t.error}</p>}
 
-      {t.rows.length === 0 ? <Empty>No documents uploaded yet.</Empty> : (
+      {rows.length === 0 ? <Empty>No documents uploaded yet.</Empty> : (
         <ul className="space-y-1.5">
-          {t.rows.map((d) => (
+          {rows.map((d) => (
             <li key={d.id} className="flex items-center gap-2.5 rounded-lg border border-[var(--hairline)] px-3 py-2">
               <FileText size={14} className="shrink-0 text-[var(--text-muted)]" />
               <a href={d.url} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 truncate text-[12.5px] text-[var(--accent)] hover:underline">{d.title}</a>

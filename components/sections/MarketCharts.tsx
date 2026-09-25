@@ -87,7 +87,7 @@ export function MarketCharts() {
       id="market-data"
       className="relative scroll-mt-24 border-t border-[var(--hairline)] bg-[var(--surface-sunken)] px-5 py-16 sm:py-20 sm:px-8 lg:py-24"
     >
-      <div className="mx-auto max-w-[1440px]">
+      <div className="mx-auto max-w-[1320px]">
         <SectionHeader
           eyebrow={t.market.eyebrow}
           title={t.market.title}
@@ -111,7 +111,7 @@ export function MarketCharts() {
                     aria-selected={active}
                     onClick={() => setBedroom(key)}
                     className={[
-                      "rounded-full border px-3.5 py-1.5 text-[11.5px] font-medium transition-colors duration-300",
+                      "rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-colors duration-300",
                       active
                         ? "border-[var(--glass-border-lit)] bg-[var(--accent-wash)] text-[var(--text-primary)]"
                         : "border-[var(--hairline)] text-[var(--text-muted)] hover:border-[var(--hairline-strong)]",
@@ -134,7 +134,7 @@ export function MarketCharts() {
                   aria-selected={active}
                   onClick={() => setView(option)}
                   className={[
-                    "rounded-full border px-3.5 py-1.5 text-[11.5px] font-medium transition-colors duration-300",
+                    "rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-colors duration-300",
                     active
                       ? "border-[var(--glass-border-lit)] bg-[var(--accent-wash)] text-[var(--text-primary)]"
                       : "border-[var(--hairline)] text-[var(--text-muted)] hover:border-[var(--hairline-strong)]",
@@ -153,7 +153,7 @@ export function MarketCharts() {
             {priceRows.length === 0 ? (
               <Empty label={t.market.price.empty} />
             ) : view === "table" ? (
-              <table className="w-full text-[12px]">
+              <table className="w-full text-[13px]">
                 <thead>
                   <tr className="border-b border-[var(--hairline)]">
                     <th className="py-2 text-start font-medium text-[var(--text-muted)]">
@@ -189,7 +189,7 @@ export function MarketCharts() {
                          full width beneath; from `sm` up it is one row again. */
                       className="group grid grid-cols-[1fr_auto] items-center gap-x-2.5 gap-y-1 sm:grid-cols-[9.5rem_1fr_3.6rem] sm:gap-y-0"
                     >
-                      <span className="order-1 truncate text-[11.5px] text-[var(--text-secondary)]">
+                      <span className="order-1 truncate text-[12.5px] text-[var(--text-secondary)]">
                         {areaLabel(row.id)}
                       </span>
                       <span className="order-3 col-span-2 relative block h-3.5 sm:order-2 sm:col-span-1">
@@ -198,7 +198,7 @@ export function MarketCharts() {
                           style={{ width: `${(row.value / priceMax) * 100}%` }}
                         />
                       </span>
-                      <span className="order-2 figure text-end text-[11px] text-[var(--text-muted)] sm:order-3">
+                      <span className="order-2 figure text-end text-[12px] text-[var(--text-muted)] sm:order-3">
                         {Math.round(row.value).toLocaleString("en-US")}
                       </span>
                     </li>
@@ -219,7 +219,7 @@ export function MarketCharts() {
             {yieldRows.length === 0 ? (
               <Empty label={t.market.yieldChart.empty} />
             ) : view === "table" ? (
-              <table className="w-full text-[12px]">
+              <table className="w-full text-[13px]">
                 <thead>
                   <tr className="border-b border-[var(--hairline)]">
                     <th className="py-2 text-start font-medium text-[var(--text-muted)]">
@@ -289,7 +289,7 @@ export function MarketCharts() {
                         key={row.id}
                         className="group grid grid-cols-[1fr_auto] items-center gap-x-2.5 gap-y-1 sm:grid-cols-[9.5rem_1fr_3.6rem] sm:gap-y-0"
                       >
-                        <span className="order-1 truncate text-[11.5px] text-[var(--text-secondary)]">
+                        <span className="order-1 truncate text-[12.5px] text-[var(--text-secondary)]">
                           {areaLabel(row.id)}
                         </span>
                         <span className="order-3 col-span-2 relative block h-3.5 sm:order-2 sm:col-span-1">
@@ -315,7 +315,7 @@ export function MarketCharts() {
                             />
                           )}
                         </span>
-                        <span className="order-2 figure text-end text-[11px] text-[var(--text-muted)] sm:order-3">
+                        <span className="order-2 figure text-end text-[12px] text-[var(--text-muted)] sm:order-3">
                           {low.toFixed(1)}–{high.toFixed(1)}
                         </span>
                       </li>
@@ -400,7 +400,7 @@ function GrowthTiles() {
   return (
     <div className="mt-12">
       <h3 className="display-3 text-[var(--text-primary)]">{t.market.growth.title}</h3>
-      <p className="mt-4 max-w-[70ch] text-[13px] leading-[1.8] text-[var(--text-secondary)]">
+      <p className="mt-4 max-w-[70ch] text-[14px] leading-[1.8] text-[var(--text-secondary)]">
         {t.market.growth.subtitle}
       </p>
 
@@ -422,13 +422,13 @@ function GrowthTiles() {
                   {tile.value.replace("-", "")}
                 </span>
                 {tile.unit && (
-                  <span className="text-[11px] text-[var(--text-muted)]">{tile.unit}</span>
+                  <span className="text-[12px] text-[var(--text-muted)]">{tile.unit}</span>
                 )}
                 <span className="ms-auto shrink-0 text-[var(--text-muted)]">
                   <Arrow size={16} strokeWidth={1.5} aria-hidden="true" />
                 </span>
               </div>
-              <p className="mt-3 text-[11.5px] leading-relaxed text-[var(--text-muted)]">
+              <p className="mt-3 text-[12.5px] leading-relaxed text-[var(--text-muted)]">
                 {tile.note}
               </p>
             </div>
@@ -455,7 +455,7 @@ function ChartCard({
   return (
     <GlassCard tilt={false} glow={false} className="p-6 sm:p-8">
       <h3 className="display-3 text-[var(--text-primary)]">{title}</h3>
-      <p className="mt-3 text-[12px] leading-[1.75] text-[var(--text-muted)]">{subtitle}</p>
+      <p className="mt-3 text-[13px] leading-[1.75] text-[var(--text-muted)]">{subtitle}</p>
       <div className="mt-7">{children}</div>
     </GlassCard>
   );
@@ -483,7 +483,7 @@ function Axis({ label, ticks }: { label: string; ticks: string[] }) {
 function YieldBenchmarkKey() {
   const { t } = useSite();
   return (
-    <p className="mb-4 flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
+    <p className="mb-4 flex items-center gap-2 text-[12px] text-[var(--text-muted)]">
       <span aria-hidden="true" className="h-3 w-px bg-[var(--text-muted)] opacity-45" />
       {t.market.yieldChart.benchmark}: {DUBAI_YIELD_BENCHMARK.allResidentialPct}%
     </p>
@@ -492,7 +492,7 @@ function YieldBenchmarkKey() {
 
 function Empty({ label }: { label: string }) {
   return (
-    <p className="py-10 text-center text-[12.5px] text-[var(--text-muted)]">{label}</p>
+    <p className="py-10 text-center text-[13.5px] text-[var(--text-muted)]">{label}</p>
   );
 }
 
@@ -501,7 +501,7 @@ function ProvenanceNotes() {
   return (
     <div className="mt-12 border-t border-[var(--hairline)] pt-6">
       <h4 className="eyebrow">{t.market.notes.title}</h4>
-      <div className="mt-4 grid gap-5 text-[11.5px] leading-[1.85] text-[var(--text-muted)] lg:grid-cols-2">
+      <div className="mt-4 grid gap-5 text-[12.5px] leading-[1.85] text-[var(--text-muted)] lg:grid-cols-2">
         <p>
           {interpolate(t.market.notes.prices, {
             from: PRICE_DATA.registrationsFrom,
@@ -513,7 +513,7 @@ function ProvenanceNotes() {
         </p>
         <p>{t.market.notes.rents}</p>
       </div>
-      <p className="mt-5 text-[11.5px] leading-[1.85] text-[var(--text-muted)]">
+      <p className="mt-5 text-[12.5px] leading-[1.85] text-[var(--text-muted)]">
         {interpolate(t.market.notes.reference, {
           source: MARKET_REFERENCE.source,
           asOf: MARKET_REFERENCE.asOf,

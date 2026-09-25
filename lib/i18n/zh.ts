@@ -14,9 +14,9 @@ import type { Dictionary } from "./types";
  */
 export const zh: Dictionary = {
   meta: {
-    title: "迪拜房产顾问与管家服务 — 投资、室内设计与别墅建造",
+    title: "Lababidi Properties — 迪拜房产顾问、期房与投资",
     description:
-      "迪拜高端资产的全流程管理：楼花开发商房源、黄金签证顾问、搬迁管家服务、精装修与别墅年度养护。",
+      "迪拜高端资产的全流程管理：楼花开发商房源、黄金签证顾问、搬迁管家服务、室内设计与别墅建造。",
   },
 
   nav: {
@@ -45,6 +45,16 @@ export const zh: Dictionary = {
     constructionShort: "建造",
     relocationShort: "搬迁",
     maintenanceShort: "维护",
+
+    home: "首页",
+    projects: "项目",
+    projectsDesc: "迪拜知名开发商的期房配额",
+    investors: "投资者",
+    investorsDesc: "收益、净回报、按揭与市场数据工具",
+    services: "服务",
+    servicesDesc: "搬迁、装修与建造",
+    contact: "联系我们",
+    contactDesc: "预约私人咨询",
   },
 
   utility: {
@@ -254,10 +264,10 @@ export const zh: Dictionary = {
     title: "管家助理",
     subtitle: "即时答复 · 顾问一小时内跟进",
     greeting:
-      "您好，我可以解答关于楼花项目、黄金签证资格、维护套餐与精装修的问题。您想了解什么？",
+      "您好，我可以解答关于楼花项目、黄金签证资格、精装修与建造的问题。您想了解什么？",
     prompts: [
       "哪些项目适合申请黄金签证？",
-      "别墅维护的费用是多少？",
+      "你们可以做别墅翻新吗？",
       "净回报工具能看到什么？",
     ],
     placeholder: "咨询项目或服务",
@@ -742,6 +752,116 @@ export const zh: Dictionary = {
     errorGeneric: "保存时出了点问题 — 但您仍然可以通过 WhatsApp 联系我们。",
     close: "关闭",
     privacy: "我们仅将您的信息用于回复本次咨询。",
+  },
+
+  home: {
+    developers: "当前项目来自",
+    hero: {
+      kicker: "迪拜 · 私人房地产办公室",
+      title: "迪拜房产，[[私人顾问服务]]",
+      subtitle: "迪拜知名开发商的期房配额、诚实的收益分析，以及交房之后的一站式团队：装修、建造与维护。",
+      primary: "浏览项目",
+      secondary: "预约咨询",
+      caption: "Palace Beach Residence · Emaar Beachfront",
+      scroll: "向下",
+    },
+    facts: {
+      licensed: "DET 持牌",
+      licensedValue: "执照编号 {licence}",
+      languages: "咨询语言",
+      languagesValue: "English · العربية · Русский · 中文",
+      reply: "回复时间",
+      replyValue: "一小时内",
+      projects: "当前配额",
+      projectsValue: "{count} 个项目 · {devs} 家开发商",
+    },
+    intro: {
+      kicker: "关于我们",
+      title: "一个私人办公室，覆盖在迪拜置业的[[每个阶段]]",
+      body1: "多数买家要分别对接购房经纪、贷款银行、装修承包商和物业公司。每一方只看到局部，没有人对最终结果负责。",
+      body2: "我们在同一个团队内管理资产的整个生命周期：购买、背后的数据、交房、室内设计和维护。无论您身在迪拜还是世界另一端，都由一位了解您房产的顾问全程对接。",
+      pillars: {
+        honest: "数字如实标注",
+        honestDesc: "扣除所有费用后的净收益，而非宣传册上的毛收益。",
+        remote: "为远程买家设计",
+        remoteDesc: "无需飞来即可预订、签约和交房。",
+        after: "不止于交易",
+        afterDesc: "装修、建造与维护由同一团队完成。",
+      },
+    },
+    featured: {
+      kicker: "精选项目",
+      title: "我们可为您[[争取的开发商配额]]",
+      subtitle: "精选自 Emaar、Sobha、Nakheel、DAMAC 等开发商。所有信息均摘自开发商官方宣传册。",
+      viewAll: "查看全部项目",
+      view: "查看项目",
+    },
+    services: {
+      kicker: "我们的服务",
+      title: "先提供建议，再负责[[之后的一切]]",
+      items: {
+        acquisition: { title: "购房与期房", desc: "精选开发商配额、黄金签证规划，以及通过授权书远程购房。" },
+        investors: { title: "投资分析", desc: "毛收益与净收益、服务费、按揭能力，以及首日实际所需现金。" },
+        interiors: { title: "室内设计与装修", desc: "家具套餐与定制木作，让交付的毛坯变成家，或变成好租的房源。" },
+        construction: { title: "建造与翻新", desc: "别墅扩建、泳池与整体翻新，并以您的名义代办所有许可。" },
+      },
+      explore: "了解更多",
+    },
+    figures: {
+      kicker: "为何选择迪拜",
+      title: "用[[四个数字]]说明",
+      items: {
+        tax: { value: "0%", label: "租金收入的个人所得税" },
+        yield: { value: "~5.5–8.5%", label: "全市住宅大致毛租金收益率" },
+        visa: { value: "AED 2M", label: "可申请 10 年黄金签证的房产价值" },
+        freehold: { value: "100%", label: "指定区域内外国人永久产权" },
+      },
+      note: "仅为大致范围。收益因社区和单位差异很大，税务处理取决于您的居住身份。请咨询独立专业人士。",
+    },
+    tools: {
+      kicker: "投资者工具",
+      title: "在通话[[之前]]先算一算",
+      subtitle: "与我们顾问使用的模型相同，向您开放。所有结果均为大致估算，并非报价。",
+      approx: "所有数字均为大致估算",
+      items: {
+        roi: { title: "回报概况", desc: "输入预算和目标，获得大致收益及黄金签证资格。" },
+        netRoi: { title: "净回报与服务费", desc: "扣除 DLD、中介、Mollak 及管理费后，房产的实际收益。" },
+        mortgage: { title: "按揭能力", desc: "贷款成数上限、还款能力，以及过户时所需现金。" },
+        market: { title: "市场数据", desc: "按登记处记录的成交量与价格走势。" },
+      },
+      cta: "打开投资者工具",
+    },
+    contact: {
+      kicker: "私人咨询",
+      title: "告诉我们您[[在寻找什么]]",
+      body: "一次简短的交流，了解您的预算、时间和目标，没有照本宣科的推销。与您对话的是资深顾问，而不是呼叫中心。",
+      whatsapp: "WhatsApp 联系",
+      call: "致电 {phone}",
+      form: "预约回电",
+      hours: "周日至周五 9:00–20:00（海湾时间）· 一小时内回复",
+    },
+  },
+
+  pages: {
+    projects: {
+      kicker: "期房配额",
+      title: "当前[[项目]]",
+      subtitle: "我们持有宣传册并可争取配额的开发商房源。可按开发商筛选，打开任一项目查看详情，并向我们索取最新价格表。",
+      count: "{count} 个项目",
+    },
+    invest: {
+      kicker: "投资者专区",
+      title: "数字，[[如实标注]]",
+      subtitle: "测算回报、查看扣除所有费用后的净收益、了解可贷金额，并按登记处数据解读市场。",
+      approxTitle: "所有计算均为大致估算",
+      approxBody: "这些工具给出的每个数字都是基于市场常见范围的估算。实际价格、费用、服务费和回报因楼宇和单位而异——在您做任何决定前，我们都会与您确认真实数字。",
+      jump: { roi: "回报概况", netRoi: "净回报", mortgage: "按揭", market: "市场数据" },
+    },
+    services: {
+      kicker: "交房之后",
+      title: "[[业主]]服务",
+      subtitle: "搬迁、室内设计与建造，由为您提供购房咨询的同一团队负责。",
+    },
   },
 
   footer: {

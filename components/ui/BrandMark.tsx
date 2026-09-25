@@ -4,31 +4,29 @@ import Image from "next/image";
 import { SITE } from "@/lib/site-config";
 import { useSite } from "@/lib/context/site-context";
 
+type Tone = "auto" | "light";
+
 /**
- * The real Lababidi Properties mark: an L/P monogram with the Burj Khalifa
- * skyline standing in its negative space. Shipped as two flat raster crops
- * (public/logo-icon.png, public/logo-icon-white.png) rather than a redraw,
- * so it renders exactly as designed.
- *
- * The header/footer sit on surfaces that flip between near-white and
- * near-black with the theme toggle (see app/globals.css), so the mark picks
- * whichever variant stays legible: white on dark, full colour on light.
+ * The real Lababidi Properties mark: the L/P monogram with the Burj Khalifa
+ * in its negative space, shipped as the original raster crops so it renders
+ * exactly as designed. "light" forces the white cut for use over photography.
  */
 export function BrandMark({
   size = 34,
-  idSuffix: _idSuffix = "hdr",
+  tone = "auto",
   className = "",
 }: {
   size?: number;
+  tone?: Tone;
   idSuffix?: string;
   className?: string;
 }) {
   const { theme } = useSite();
-  const src = theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png";
+  const white = tone === "light" || theme === "dark";
 
   return (
     <Image
-      src={src}
+      src={white ? "/logo-icon-white.png" : "/logo-icon.png"}
       alt=""
       aria-hidden="true"
       width={size}
@@ -40,16 +38,32 @@ export function BrandMark({
   );
 }
 
-export function BrandLockup({ idSuffix = "hdr" }: { idSuffix?: string }) {
+/** Monogram + wordmark, set the way the logo sets it: carved Roman caps over
+    "PROPERTIES" flanked by two swept rules. */
+export function BrandLockup({ tone = "auto", size = "md" }: { tone?: Tone; size?: "md" | "lg"; idSuffix?: string }) {
+  const light = tone === "light";
+  const lg = size === "lg";
   return (
-    <span className="flex items-center gap-3 text-[var(--accent)]">
-      <BrandMark idSuffix={idSuffix} size={32} />
-      <span className="flex flex-col leading-none">
-        <span className="font-[family-name:var(--font-display)] text-[19px] font-normal tracking-[0.24em] text-[var(--text-primary)]">
+    <span className="flex items-center gap-3">
+      <BrandMark tone={tone} size={lg ? 44 : 36} />
+      <span className="flex flex-col items-center leading-none">
+        <span
+          className={`font-[family-name:var(--font-wordmark)] font-medium tracking-[0.16em] ${lg ? "text-[24px]" : "text-[17px]"} ${
+            light ? "text-white" : "text-[var(--text-primary)]"
+          }`}
+        >
           {SITE.nameMark.toUpperCase()}
         </span>
-        <span className="mt-1.5 font-[family-name:var(--font-eyebrow)] text-[8px] font-medium uppercase tracking-[0.34em] text-[var(--text-muted)]">
-          {SITE.nameSuffix}
+        <span className="mt-1 flex w-full items-center gap-1.5">
+          <span className={`h-px flex-1 ${light ? "bg-white/50" : "bg-[var(--metal)]/60"}`} />
+          <span
+            className={`font-[family-name:var(--font-eyebrow)] font-semibold uppercase tracking-[0.3em] ${lg ? "text-[9px]" : "text-[7.5px]"} ${
+              light ? "text-white/85" : "text-[var(--metal)]"
+            }`}
+          >
+            {SITE.nameSuffix}
+          </span>
+          <span className={`h-px flex-1 ${light ? "bg-white/50" : "bg-[var(--metal)]/60"}`} />
         </span>
       </span>
     </span>

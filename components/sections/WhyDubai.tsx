@@ -27,7 +27,7 @@ export function WhyDubai() {
 
   return (
     <section className="relative border-t border-[var(--hairline)] bg-[var(--surface-sunken)] px-5 py-16 sm:py-20 sm:px-8 lg:py-24">
-      <div className="mx-auto max-w-[1440px]">
+      <div className="mx-auto max-w-[1320px]">
         <SectionHeader
           eyebrow={t.whyDubai.eyebrow}
           title={t.whyDubai.title}
@@ -93,7 +93,7 @@ export function WhyDubai() {
                     </td>
                     <td className="py-4 pe-3 text-end">
                       <span
-                        className={`inline-flex items-center gap-1.5 text-[12.5px] ${
+                        className={`inline-flex items-center gap-1.5 text-[13.5px] ${
                           row.freehold === "yes"
                             ? "text-[var(--text-secondary)]"
                             : "text-[var(--text-muted)]"
@@ -114,7 +114,7 @@ export function WhyDubai() {
           </table>
         </div>
 
-        <p className="mt-6 max-w-[92ch] text-[11.5px] leading-[1.85] text-[var(--text-muted)]">
+        <p className="mt-6 max-w-[92ch] text-[12.5px] leading-[1.85] text-[var(--text-muted)]">
           {t.whyDubai.note}
         </p>
       </div>

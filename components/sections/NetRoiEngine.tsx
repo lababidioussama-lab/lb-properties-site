@@ -97,7 +97,7 @@ export function NetRoiEngine() {
       id={SECTION_IDS.netRoi}
       className="relative scroll-mt-24 border-t border-[var(--hairline)] bg-[var(--surface)] px-5 py-16 sm:py-20 sm:px-8 lg:py-24"
     >
-      <div className="mx-auto max-w-[1440px]">
+      <div className="mx-auto max-w-[1320px]">
         <SectionHeader
           eyebrow={t.netRoi.eyebrow}
           title={t.netRoi.title}
@@ -130,10 +130,10 @@ export function NetRoiEngine() {
                       className="absolute inset-0 rounded-xl bg-[var(--accent-wash)]"
                     />
                   )}
-                  <span className="relative block text-[13.5px] font-semibold">
+                  <span className="relative block text-[14.5px] font-semibold">
                     {t.netRoi.modes[option]}
                   </span>
-                  <span className="relative mt-0.5 block text-[11.5px] text-[var(--text-muted)]">
+                  <span className="relative mt-0.5 block text-[12.5px] text-[var(--text-muted)]">
                     {t.netRoi.modes[`${option}Desc` as keyof typeof t.netRoi.modes]}
                   </span>
                 </button>
@@ -198,7 +198,7 @@ export function NetRoiEngine() {
                     unit="AED"
                     min={0}
                   />
-                  <p className="figure mt-2 text-[11px] text-[var(--text-muted)]">
+                  <p className="figure mt-2 text-[12px] text-[var(--text-muted)]">
                     {t.netRoi.inputs.occupancy}: {Math.round(occupancy * 100)}%
                   </p>
                 </div>
@@ -221,7 +221,7 @@ export function NetRoiEngine() {
                 <Row label={t.netRoi.outlay.titleDeed} value={result.costs.titleDeed} negative />
               </dl>
               <div className="mt-4 flex items-baseline justify-between gap-4 border-t border-[var(--hairline)] pt-4">
-                <span className="text-[13px] font-semibold text-[var(--text-primary)]">
+                <span className="text-[14px] font-semibold text-[var(--text-primary)]">
                   {t.netRoi.outlay.total}
                 </span>
                 <CountUp formatKey={currency}
@@ -230,7 +230,7 @@ export function NetRoiEngine() {
                   className="figure text-[17px] font-bold text-[var(--accent)]"
                 />
               </div>
-              <p className="figure mt-1.5 text-end text-[11px] text-[var(--text-muted)]">
+              <p className="figure mt-1.5 text-end text-[12px] text-[var(--text-muted)]">
                 {interpolate(t.netRoi.outlay.pctNote, {
                   pct: result.costs.feePctOfPrice.toFixed(1),
                 })}
@@ -249,7 +249,7 @@ export function NetRoiEngine() {
                     format={(v) => `${v.toFixed(2)}%`}
                     className="figure mt-2.5 block text-[38px] font-bold leading-none text-[var(--accent)] sm:text-[46px]"
                   />
-                  <span className="mt-2 block text-[11.5px] text-[var(--text-muted)]">
+                  <span className="mt-2 block text-[12.5px] text-[var(--text-muted)]">
                     {t.netRoi.results.netOnOutlayNote}
                   </span>
                 </div>
@@ -260,7 +260,7 @@ export function NetRoiEngine() {
                     format={(v) => `${v.toFixed(2)}%`}
                     className="figure mt-2.5 block text-[24px] font-semibold leading-none text-[var(--text-secondary)]"
                   />
-                  <span className="mt-2 block text-[11.5px] text-[var(--text-muted)]">
+                  <span className="mt-2 block text-[12.5px] text-[var(--text-muted)]">
                     {t.netRoi.results.grossOnPriceNote}
                   </span>
                 </div>
@@ -273,10 +273,10 @@ export function NetRoiEngine() {
                   <TrendingDown size={20} strokeWidth={1.5} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[12.5px] font-medium text-[var(--text-primary)]">
+                  <span className="text-[13.5px] font-medium text-[var(--text-primary)]">
                     {t.netRoi.results.gap}
                   </span>
-                  <p className="mt-0.5 text-[11.5px] text-[var(--text-muted)]">
+                  <p className="mt-0.5 text-[12.5px] text-[var(--text-muted)]">
                     {t.netRoi.results.gapNote}
                   </p>
                 </div>
@@ -309,7 +309,7 @@ export function NetRoiEngine() {
                   )}
                 </dl>
                 <div className="mt-4 flex items-baseline justify-between gap-4 border-t border-[var(--hairline)] pt-4">
-                  <span className="text-[13px] font-semibold text-[var(--text-primary)]">
+                  <span className="text-[14px] font-semibold text-[var(--text-primary)]">
                     {t.netRoi.income.net}
                   </span>
                   <CountUp formatKey={currency}
@@ -319,7 +319,7 @@ export function NetRoiEngine() {
                   />
                 </div>
                 {result.paybackYears !== null && (
-                  <p className="figure mt-2 text-end text-[11px] text-[var(--text-muted)]">
+                  <p className="figure mt-2 text-end text-[12px] text-[var(--text-muted)]">
                     {t.netRoi.results.payback} {result.paybackYears.toFixed(1)}{" "}
                     {t.netRoi.results.years}
                   </p>
@@ -341,10 +341,10 @@ export function NetRoiEngine() {
             <Download size={16} strokeWidth={1.5} />
             {t.netRoi.cta}
           </Button>
-          <span className="text-[12px] text-[var(--text-muted)]">{t.netRoi.ctaHint}</span>
+          <span className="text-[13px] text-[var(--text-muted)]">{t.netRoi.ctaHint}</span>
         </div>
 
-        <p className="mt-12 max-w-[92ch] border-t border-[var(--hairline)] pt-6 text-[11.5px] leading-[1.85] text-[var(--text-muted)]">
+        <p className="mt-12 max-w-[92ch] border-t border-[var(--hairline)] pt-6 text-[12.5px] leading-[1.85] text-[var(--text-muted)]">
           {t.netRoi.disclaimer}
         </p>
       </div>
@@ -379,7 +379,7 @@ function MollakLookup({
   return (
     <GlassCard tilt={false} className="p-7 sm:p-9">
       <h3 className="display-3 text-[var(--text-primary)]">{t.netRoi.mollak.title}</h3>
-      <p className="mt-3 text-[12.5px] leading-relaxed text-[var(--text-muted)]">
+      <p className="mt-3 text-[13.5px] leading-relaxed text-[var(--text-muted)]">
         {t.netRoi.mollak.subtitle}
       </p>
 
@@ -407,7 +407,7 @@ function MollakLookup({
       <div className="mt-7">
         <div className="flex items-baseline justify-between">
           <span className="eyebrow">{t.netRoi.mollak.perSqft}</span>
-          <span className="figure text-[13px] font-semibold text-[var(--accent)]">
+          <span className="figure text-[14px] font-semibold text-[var(--accent)]">
             {low}–{high}
           </span>
         </div>
@@ -434,7 +434,7 @@ function MollakLookup({
           format={(v) => formatCurrency(v, currency)}
           className="figure mt-2 block text-[28px] font-bold leading-none text-[var(--accent)]"
         />
-        <p className="mt-2 text-[11.5px] text-[var(--text-muted)]">
+        <p className="mt-2 text-[12.5px] text-[var(--text-muted)]">
           {interpolate(t.netRoi.mollak.forArea, {
             sqft: Math.round(sqft).toLocaleString("en-US"),
             area: areaLabel,
@@ -442,7 +442,7 @@ function MollakLookup({
         </p>
       </div>
 
-      <p className="mt-5 flex items-start gap-2.5 text-[11.5px] leading-relaxed text-[var(--text-muted)]">
+      <p className="mt-5 flex items-start gap-2.5 text-[12.5px] leading-relaxed text-[var(--text-muted)]">
         <span className="mt-0.5 shrink-0">
           <Info size={14} strokeWidth={1.5} />
         </span>
@@ -464,8 +464,8 @@ function Row({
   const { currency } = useSite();
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-[12.5px] text-[var(--text-muted)]">{label}</dt>
-      <dd className="figure text-[12.5px] text-[var(--text-secondary)]">
+      <dt className="text-[13.5px] text-[var(--text-muted)]">{label}</dt>
+      <dd className="figure text-[13.5px] text-[var(--text-secondary)]">
         {negative ? "−" : ""}
         {formatCurrency(value, currency)}
       </dd>

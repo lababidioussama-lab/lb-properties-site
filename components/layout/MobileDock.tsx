@@ -4,7 +4,7 @@ import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "motion/
 import { useState } from "react";
 import { Calculator } from "lucide-react";
 import { useSite } from "@/lib/context/site-context";
-import { SECTION_IDS, SITE } from "@/lib/site-config";
+import { SITE, serviceHref } from "@/lib/site-config";
 import { IconWhatsApp } from "@/components/ui/Icons";
 
 /**
@@ -13,7 +13,7 @@ import { IconWhatsApp } from "@/components/ui/Icons";
  * drawer is open (so it doesn't sit on top of the submit button).
  */
 export function MobileDock() {
-  const { t, drawerOpen } = useSite();
+  const { t, locale, drawerOpen } = useSite();
   const [past, setPast] = useState(false);
 
   const { scrollY } = useScroll();
@@ -34,8 +34,8 @@ export function MobileDock() {
         >
           <div className="grid grid-cols-2 gap-2.5 p-3">
             <a
-              href={`#${SECTION_IDS.netRoi}`}
-              className="accent-outline inline-flex items-center justify-center gap-2 rounded-full py-3.5 font-[family-name:var(--font-eyebrow)] text-[10px] font-semibold uppercase tracking-[0.12em]"
+              href={serviceHref(locale, "netRoi")}
+              className="btn btn-line bg-[var(--surface-raised)] !px-3 !tracking-[0.12em] py-3.5 font-[family-name:var(--font-eyebrow)] text-[10px] font-semibold uppercase tracking-[0.12em]"
             >
               <Calculator size={15} strokeWidth={1.5} />
               {t.utility.calcNetRoi}
@@ -44,7 +44,7 @@ export function MobileDock() {
               href={SITE.waLink("Hello — I would like to speak to an advisor.")}
               target="_blank"
               rel="noopener noreferrer"
-              className="cta-fill inline-flex items-center justify-center gap-2 rounded-full py-3.5 font-[family-name:var(--font-eyebrow)] text-[10px] font-semibold uppercase tracking-[0.12em]"
+              className="btn btn-wa !px-3 !tracking-[0.12em] py-3.5 font-[family-name:var(--font-eyebrow)] text-[10px] font-semibold uppercase tracking-[0.12em]"
             >
               <IconWhatsApp size={15} />
               {t.utility.directConcierge}

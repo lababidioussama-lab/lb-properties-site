@@ -1,5 +1,4 @@
 import { PROJECTS } from "./projects";
-import { PLANS, ANNUAL_DISCOUNT } from "./services";
 import { AREAS } from "./dubai-market";
 import { SITE } from "./site-config";
 
@@ -27,12 +26,6 @@ export function buildSystemPrompt(locale: string): string {
     return `- ${p.name} (${p.developer}, ${p.community}). Units: ${p.unitMix}. ${terms}. ${p.blurb}`;
   }).join("\n");
 
-  const plans = PLANS.map(
-    (p) => `- ${p.id}: AED ${p.monthlyAed}/month (annual billing saves ${Math.round(
-      ANNUAL_DISCOUNT * 100,
-    )}%)`,
-  ).join("\n");
-
   const areas = AREAS.slice(0, 14)
     .map((a) => a.id)
     .join(", ");
@@ -43,15 +36,11 @@ WHAT THE PRACTICE DOES
 1. Investor advisory — off-plan developer allocations, ROI analysis, Golden Visa eligibility (the property threshold is AED 2,000,000).
 2. Net ROI and service-charge analysis for the secondary market.
 3. Relocation and utilities — moving, DEWA, Empower cooling, Ejari, remote key handover and snagging.
-4. Annual home maintenance — three membership tiers.
-5. Interior fit-out and turnkey furnishing packages, custom joinery.
-6. Villa construction, extensions, pools and Dubai Municipality / DLD permit handling.
+4. Interior fit-out and turnkey furnishing packages, custom joinery.
+5. Villa construction, extensions, pools and Dubai Municipality / DLD permit handling.
 
 OFF-PLAN PROJECTS CURRENTLY HELD (${PROJECTS.length})
 ${projects}
-
-MAINTENANCE MEMBERSHIPS
-${plans}
 
 COMMUNITIES COVERED
 ${areas}

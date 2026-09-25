@@ -1,131 +1,128 @@
 @import "tailwindcss";
 
 /* ============================================================================
-   DESIGN TOKENS — "Architectural Precision Meets Arabian Modern Luxury"
-   Every colour lives here. Components consume tokens, never hex literals.
+   DESIGN TOKENS — "Limestone & Steel"
+   Every colour is sampled from the Lababidi Properties logo: the brushed
+   navy of the L and the tower (#0B2A4A), the graphite of the P and the
+   wordmark (#393939), the slate blue of "PROPERTIES", all set on the warm
+   limestone the mark is carved into. Components consume tokens, never hex.
    ========================================================================= */
 
 @theme {
-  /* ---- Sandstone & Ink ----
-     Warm desert neutrals on near-black. The accent is navy, drawn from the
-     brand monogram (LB-Logo/lb-monogram-ink-1024.png), not the inherited
-     "db search red" — this is the single most visible rebrand change. */
-  --color-ink: #050505;        /* canvas */
-  --color-umber: #161616;      /* card surface */
-  --color-sandstone: #f4f1f1;  /* headings & primary text */
-  --color-clay: #14304f;       /* the single accent — deep brand navy */
-  --color-dune: #a0a0a0;       /* muted labels & body */
+  --color-ink: #0b1522;
+  --color-umber: #16202d;
+  --color-sandstone: #f4f1ea;
+  --color-clay: #0b2a4a;       /* brand navy, sampled from the logo */
+  --color-dune: #8a8578;
 
-  /* Action stays emerald so it reads as a different KIND of thing than the
-     accent — on a warm ground, green is unmistakably "contact a human". */
+  --color-navy: #0b2a4a;
+  --color-navy-deep: #071a2e;
+  --color-steel: #4a6788;
+  --color-steel-light: #9fb2c8;
+  --color-graphite: #393939;
+  --color-limestone: #f3efe8;
+  --color-stone: #e7e1d6;
+
   --color-emerald-deep: #1b4d3e;
   --color-emerald-wa: #25d366;
 
-  /* Radius scale, retargeted globally.
-     Luxury reads as near-square: every rounded-lg/xl/2xl in the codebase
-     resolves through these, so the whole surface language changes here
-     rather than across forty components. Pills (rounded-full) stay round. */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 14px;
-  --radius-2xl: 16px;
-  --radius-3xl: 20px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
+  --radius-3xl: 16px;
 
-  /* Type families */
+  /* Cormorant carries the carved Roman caps of the wordmark; Montserrat is
+     the geometric sans of "PROPERTIES" under it. */
   --font-display: var(--font-cormorant), "Times New Roman", Georgia, serif;
-  --font-eyebrow: var(--font-syne), "Helvetica Neue", Arial, sans-serif;
+  --font-eyebrow: var(--font-montserrat), "Helvetica Neue", Arial, sans-serif;
   --font-body: var(--font-jakarta), "Helvetica Neue", Arial, sans-serif;
-  --font-numeric: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-numeric: var(--font-jakarta), "Helvetica Neue", Arial, sans-serif;
+  --font-wordmark: var(--font-cinzel), var(--font-cormorant), serif;
   --font-display-ar: var(--font-amiri), "Times New Roman", serif;
 
   --ease-lux: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* ---------------------------------------------------------------------------
-   SEMANTIC ROLES
-
-   Light-first. The warm ivory ground IS the design — the restraint of ink on
-   paper with a single navy accent is what carries the luxury, not darkness.
-   Dark is offered as a genuine alternative rather than the default, so it is
-   defined in the two places that can select it and nowhere else.
+   SEMANTIC ROLES — light (limestone) is the house default; dark is a deep
+   navy-graphite night mode, never pure black, so the brand navy stays alive.
    ------------------------------------------------------------------------ */
 
 :root {
   color-scheme: light;
 
-  --surface: #f7f4ef;          /* warm ivory paper */
-  --surface-raised: #fffdfa;   /* card */
-  --surface-sunken: #efeae2;   /* alternating band */
+  --surface: #f4f1ea;          /* limestone */
+  --surface-raised: #fbfaf6;   /* card */
+  --surface-sunken: #ebe6dc;   /* alternating band */
+  --surface-deep: #0b1a2b;     /* navy feature bands, both themes */
 
-  --glass-bg: rgb(255 253 250 / 0.72);
-  --glass-bg-strong: rgb(247 244 239 / 0.92);
-  --glass-border: rgb(23 18 14 / 0.10);
-  --glass-border-lit: rgb(20 48 79 / 0.32);
+  --glass-bg: rgb(251 250 246 / 0.74);
+  --glass-bg-strong: rgb(244 241 234 / 0.94);
+  --glass-border: rgb(11 42 74 / 0.10);
+  --glass-border-lit: rgb(11 42 74 / 0.30);
 
-  --text-primary: #17120e;     /* ink */
-  --text-secondary: #544b43;
-  --text-muted: #837769;
-  --text-inverse: #f7f4ef;
+  --text-primary: #1b1d21;     /* graphite ink */
+  --text-secondary: #3d4046;
+  --text-muted: #6a6a66;
+  --text-inverse: #f4f1ea;
 
-  --accent: #14304f;           /* brand navy */
-  --accent-bright: #1f4e7a;
-  --accent-dim: rgb(20 48 79 / 0.28);
-  --accent-wash: rgb(20 48 79 / 0.06);
-  --metal: #14304f;
-  --accent-solid: #14304f;
-  --accent-solid-hover: #1f4e7a;
+  --accent: #0b2a4a;           /* logo navy */
+  --accent-bright: #2c5480;
+  --accent-dim: rgb(11 42 74 / 0.26);
+  --accent-wash: rgb(11 42 74 / 0.06);
+  --metal: #4a6788;            /* steel — "PROPERTIES" */
+  --accent-solid: #0b2a4a;
+  --accent-solid-hover: #173f68;
 
-  --hairline: rgb(23 18 14 / 0.13);
-  --hairline-strong: rgb(23 18 14 / 0.24);
+  --hairline: rgb(27 29 33 / 0.12);
+  --hairline-strong: rgb(27 29 33 / 0.22);
 
-  /* WhatsApp green, taken deep enough that white type clears AA on it:
-     white on #0a6b38 is 6.6:1, where white on #25d366 is only 2.2:1. The
-     bright signal green stays in the gradient highlight and the glow. */
   --cta: #0a6b38;
   --cta-hover: #0d8043;
   --cta-text: #ffffff;
 
-  /* Luxury = restraint in shadow too: barely-there lift, not drop-shadows. */
-  --shadow-card: 0 1px 1px rgb(23 18 14 / 0.03), 0 10px 30px -18px rgb(23 18 14 / 0.16);
-  --shadow-lift: 0 1px 2px rgb(23 18 14 / 0.05), 0 26px 56px -28px rgb(23 18 14 / 0.24);
+  --shadow-card: 0 1px 1px rgb(11 26 43 / 0.03), 0 12px 32px -18px rgb(11 26 43 / 0.18);
+  --shadow-lift: 0 1px 2px rgb(11 26 43 / 0.05), 0 30px 60px -28px rgb(11 26 43 / 0.30);
 
-  --canvas-sky-top: #e9e2d7;
-  --canvas-sky-bottom: #f7f4ef;
-  --canvas-particle: rgb(20 48 79 / 0.42);
-  --canvas-structure: rgb(30 24 20 / 0.30);
-  --canvas-structure-far: rgb(30 24 20 / 0.11);
-  --canvas-sweep: rgb(20 48 79 / 0.13);
+  --canvas-sky-top: #e9e3d8;
+  --canvas-sky-bottom: #f4f1ea;
+  --canvas-particle: rgb(11 42 74 / 0.42);
+  --canvas-structure: rgb(27 29 33 / 0.30);
+  --canvas-structure-far: rgb(27 29 33 / 0.11);
+  --canvas-sweep: rgb(11 42 74 / 0.13);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-  --surface: #0a0708;
-  --surface-raised: #161213;
-  --surface-sunken: #050505;
+  --surface: #0c1622;
+  --surface-raised: #13202f;
+  --surface-sunken: #09111b;
+  --surface-deep: #07101a;
 
-  --glass-bg: rgb(20 16 17 / 0.72);
-  --glass-bg-strong: rgb(10 7 8 / 0.92);
-  --glass-border: rgb(244 241 241 / 0.10);
-  --glass-border-lit: rgb(90 140 190 / 0.34);
+  --glass-bg: rgb(19 32 47 / 0.74);
+  --glass-bg-strong: rgb(12 22 34 / 0.94);
+  --glass-border: rgb(244 241 234 / 0.10);
+  --glass-border-lit: rgb(159 178 200 / 0.34);
 
-  --text-primary: #f4f1f1;
-  --text-secondary: #c9bfb4;
-  --text-muted: #a0a0a0;
-  --text-inverse: #0a0708;
+  --text-primary: #f1eee7;
+  --text-secondary: #c3c6cb;
+  --text-muted: #8e959f;
+  --text-inverse: #0c1622;
 
-  --accent: #5a8cbe;
-  --accent-bright: #a8c8e6;
-  --accent-dim: rgb(90 140 190 / 0.34);
-  --accent-wash: rgb(90 140 190 / 0.08);
-  --metal: #5a8cbe;
-  --accent-solid: #2d5f8f;
-  --accent-solid-hover: #3d76ad;
+  --accent: #9fb2c8;
+  --accent-bright: #c9d6e4;
+  --accent-dim: rgb(159 178 200 / 0.32);
+  --accent-wash: rgb(159 178 200 / 0.08);
+  --metal: #9fb2c8;
+  --accent-solid: #2c5480;
+  --accent-solid-hover: #3a6696;
 
-  --hairline: rgb(244 241 241 / 0.11);
-  --hairline-strong: rgb(244 241 241 / 0.22);
+  --hairline: rgb(241 238 231 / 0.11);
+  --hairline-strong: rgb(241 238 231 / 0.22);
 
   --cta: #0d7d42;
   --cta-hover: #12924b;
@@ -134,43 +131,43 @@
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 14px 38px -18px rgb(0 0 0 / 0.7);
   --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.5), 0 32px 66px -28px rgb(0 0 0 / 0.85);
 
-  --canvas-sky-top: #050505;
-  --canvas-sky-bottom: #0a0708;
-  --canvas-particle: rgb(90 140 190 / 0.5);
-  --canvas-structure: rgb(244 241 241 / 0.22);
-  --canvas-structure-far: rgb(244 241 241 / 0.08);
-  --canvas-sweep: rgb(90 140 190 / 0.16);
+  --canvas-sky-top: #07101a;
+  --canvas-sky-bottom: #0c1622;
+  --canvas-particle: rgb(159 178 200 / 0.5);
+  --canvas-structure: rgb(241 238 231 / 0.22);
+  --canvas-structure-far: rgb(241 238 231 / 0.08);
+  --canvas-sweep: rgb(159 178 200 / 0.16);
   }
 }
 
-/* An explicit dark choice must also win on a light-preference OS. */
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --surface: #0a0708;
-  --surface-raised: #161213;
-  --surface-sunken: #050505;
+  --surface: #0c1622;
+  --surface-raised: #13202f;
+  --surface-sunken: #09111b;
+  --surface-deep: #07101a;
 
-  --glass-bg: rgb(20 16 17 / 0.72);
-  --glass-bg-strong: rgb(10 7 8 / 0.92);
-  --glass-border: rgb(244 241 241 / 0.10);
-  --glass-border-lit: rgb(90 140 190 / 0.34);
+  --glass-bg: rgb(19 32 47 / 0.74);
+  --glass-bg-strong: rgb(12 22 34 / 0.94);
+  --glass-border: rgb(244 241 234 / 0.10);
+  --glass-border-lit: rgb(159 178 200 / 0.34);
 
-  --text-primary: #f4f1f1;
-  --text-secondary: #c9bfb4;
-  --text-muted: #a0a0a0;
-  --text-inverse: #0a0708;
+  --text-primary: #f1eee7;
+  --text-secondary: #c3c6cb;
+  --text-muted: #8e959f;
+  --text-inverse: #0c1622;
 
-  --accent: #5a8cbe;
-  --accent-bright: #a8c8e6;
-  --accent-dim: rgb(90 140 190 / 0.34);
-  --accent-wash: rgb(90 140 190 / 0.08);
-  --metal: #5a8cbe;
-  --accent-solid: #2d5f8f;
-  --accent-solid-hover: #3d76ad;
+  --accent: #9fb2c8;
+  --accent-bright: #c9d6e4;
+  --accent-dim: rgb(159 178 200 / 0.32);
+  --accent-wash: rgb(159 178 200 / 0.08);
+  --metal: #9fb2c8;
+  --accent-solid: #2c5480;
+  --accent-solid-hover: #3a6696;
 
-  --hairline: rgb(244 241 241 / 0.11);
-  --hairline-strong: rgb(244 241 241 / 0.22);
+  --hairline: rgb(241 238 231 / 0.11);
+  --hairline-strong: rgb(241 238 231 / 0.22);
 
   --cta: #0d7d42;
   --cta-hover: #12924b;
@@ -179,12 +176,12 @@
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 14px 38px -18px rgb(0 0 0 / 0.7);
   --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.5), 0 32px 66px -28px rgb(0 0 0 / 0.85);
 
-  --canvas-sky-top: #050505;
-  --canvas-sky-bottom: #0a0708;
-  --canvas-particle: rgb(90 140 190 / 0.5);
-  --canvas-structure: rgb(244 241 241 / 0.22);
-  --canvas-structure-far: rgb(244 241 241 / 0.08);
-  --canvas-sweep: rgb(90 140 190 / 0.16);
+  --canvas-sky-top: #07101a;
+  --canvas-sky-bottom: #0c1622;
+  --canvas-particle: rgb(159 178 200 / 0.5);
+  --canvas-structure: rgb(241 238 231 / 0.22);
+  --canvas-structure-far: rgb(241 238 231 / 0.08);
+  --canvas-sweep: rgb(159 178 200 / 0.16);
 }
 
 /* Expose the semantic roles as Tailwind utilities (bg-surface, text-primary…) */
@@ -194,6 +191,7 @@
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
   --color-surface-sunken: var(--surface-sunken);
+  --color-surface-deep: var(--surface-deep);
   --color-glass: var(--glass-bg);
   --color-glass-strong: var(--glass-bg-strong);
   --color-hairline: var(--hairline);
@@ -232,7 +230,8 @@ body {
   color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 16px;
-  line-height: 1.65;
+  line-height: 1.7;
+  font-feature-settings: "ss01" 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* The page itself must never scroll sideways; wide children scroll
@@ -307,7 +306,7 @@ select {
    and both CTAs below the fold. */
 .display-1 {
   font-family: var(--font-display);
-  font-weight: 300;
+  font-weight: 500;
   line-height: 1.06;
   letter-spacing: -0.012em;
   /* The floor is what a phone actually gets: 4.6vw only overtakes 34px at
@@ -320,7 +319,7 @@ select {
 
 .display-2 {
   font-family: var(--font-display);
-  font-weight: 300;
+  font-weight: 500;
   line-height: 1.06;
   letter-spacing: -0.012em;
   /* Same correction as display-1 — the 36px floor held on every phone. */
@@ -334,11 +333,11 @@ select {
    headings feel like headings. 700 is the heaviest weight actually loaded —
    the previous 800/900 were synthesised by the browser. */
 .display-3 {
-  font-family: var(--font-body);
-  font-weight: 700;
-  line-height: 1.16;
-  letter-spacing: -0.02em;
-  font-size: clamp(18px, 3.4vw, 30px);
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.005em;
+  font-size: clamp(22px, 3.2vw, 32px);
 }
 
 /* True italic, not a slant: Cormorant ships a drawn italic with entirely
@@ -348,7 +347,7 @@ select {
 .display-1 em,
 .display-2 em {
   font-style: italic;
-  font-weight: 400;
+  font-weight: 500;
   color: var(--accent);
 }
 
@@ -401,8 +400,7 @@ select {
 /* ---- Russian ----
    Cormorant covers Cyrillic, so the display voice carries over unchanged.
    Only the body face has to be swapped, because Plus Jakarta Sans does not. */
-[lang="ru"] body,
-[lang="ru"] .display-3 {
+[lang="ru"] body {
   font-family: var(--font-cyrillic), "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -460,7 +458,7 @@ select {
   background-color: var(--accent-solid-hover);
   box-shadow:
     0 1px 0 rgb(255 255 255 / 0.18) inset,
-    0 12px 30px -14px rgb(204 17 17 / 0.5);
+    0 12px 30px -14px rgb(11 42 74 / 0.5);
 }
 
 /* The conversation action — WhatsApp green, but built rather than filled.
@@ -587,9 +585,10 @@ select {
 /* Every monetary and percentage figure on the site. */
 .figure {
   font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  letter-spacing: -0.01em;
 }
 
 /* ============================================================================
@@ -784,3 +783,97 @@ html[data-theme="dark"].crm-shell {
   --text-secondary: #b7bcc4;
   --text-muted: #82868f;
 }
+
+/* ============================================================================
+   LIMESTONE & STEEL — editorial building blocks
+   ========================================================================= */
+
+/* Wide-tracked caps, the voice of "PROPERTIES" in the logo. */
+.kicker {
+  font-family: var(--font-eyebrow);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--metal);
+}
+[lang="ar"] .kicker { letter-spacing: 0.06em; font-size: 12.5px; }
+[lang="zh"] .kicker { letter-spacing: 0.14em; }
+
+/* The swept line under the logo monogram, as a divider. */
+.steel-rule {
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--metal) 18%, var(--metal) 82%, transparent);
+  opacity: 0.55;
+}
+
+/* Primary and secondary actions. Square-shouldered, not pills: carved, not blown. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 48px;
+  padding: 0 1.6rem;
+  border-radius: 2px;
+  font-family: var(--font-eyebrow);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: background-color 0.35s var(--ease-lux), color 0.35s var(--ease-lux),
+    border-color 0.35s var(--ease-lux), transform 0.35s var(--ease-lux);
+}
+[lang="ar"] .btn { letter-spacing: 0.04em; font-size: 13px; }
+.btn:active { transform: translateY(1px); }
+.btn-navy { background: var(--accent-solid); color: #fff; }
+.btn-navy:hover { background: var(--accent-solid-hover); }
+.btn-line { border: 1px solid var(--hairline-strong); color: var(--text-primary); }
+.btn-line:hover { border-color: var(--accent); color: var(--accent); }
+.btn-light { background: #f4f1ea; color: #0b2a4a; }
+.btn-light:hover { background: #ffffff; }
+.btn-ghost-light { border: 1px solid rgb(255 255 255 / 0.45); color: #fff; }
+.btn-ghost-light:hover { border-color: #fff; background: rgb(255 255 255 / 0.08); }
+.btn-wa { background: var(--cta); color: #fff; }
+.btn-wa:hover { background: var(--cta-hover); }
+
+/* Photo scrims: navy, not black, so imagery sits in the brand's light. */
+.photo-scrim {
+  background:
+    linear-gradient(180deg, rgb(7 26 46 / 0.55) 0%, rgb(7 26 46 / 0.08) 28%, rgb(7 26 46 / 0.12) 55%, rgb(7 26 46 / 0.88) 100%),
+    linear-gradient(90deg, rgb(7 26 46 / 0.78) 0%, rgb(7 26 46 / 0.45) 38%, rgb(7 26 46 / 0) 70%);
+}
+[dir="rtl"] .photo-scrim {
+  background:
+    linear-gradient(180deg, rgb(7 26 46 / 0.55) 0%, rgb(7 26 46 / 0.08) 28%, rgb(7 26 46 / 0.12) 55%, rgb(7 26 46 / 0.88) 100%),
+    linear-gradient(270deg, rgb(7 26 46 / 0.78) 0%, rgb(7 26 46 / 0.45) 38%, rgb(7 26 46 / 0) 70%);
+}
+.card-scrim {
+  background: linear-gradient(180deg, rgb(7 26 46 / 0) 35%, rgb(7 26 46 / 0.82) 100%);
+}
+
+/* Slow drift on hero photography. */
+@keyframes kenburns {
+  from { transform: scale(1.08) translate3d(0, 0, 0); }
+  to { transform: scale(1.0) translate3d(0, -1%, 0); }
+}
+.kenburns { animation: kenburns 18s var(--ease-lux) both; }
+
+/* Image zoom on card hover. */
+.zoom-media img { transition: transform 1.2s var(--ease-lux); }
+.zoom-media:hover img { transform: scale(1.045); }
+
+/* Stone texture: a whisper of grain so limestone bands aren't flat fills. */
+.stone-grain {
+  background-image:
+    radial-gradient(circle at 20% 10%, rgb(255 255 255 / 0.35), transparent 40%),
+    radial-gradient(circle at 80% 90%, rgb(11 42 74 / 0.04), transparent 45%);
+}
+
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.marquee { animation: marquee 40s linear infinite; }
+@keyframes marquee-rtl { from { transform: translateX(0); } to { transform: translateX(50%); } }
+[dir="rtl"] .marquee { animation-name: marquee-rtl; }
+.marquee:hover { animation-play-state: paused; }

@@ -48,7 +48,7 @@ export function RenovationSlider() {
       id={SECTION_IDS.fitout}
       className="relative scroll-mt-24 border-t border-[var(--hairline)] bg-[var(--surface-sunken)] px-5 py-16 sm:py-20 sm:px-8 lg:py-24"
     >
-      <div className="mx-auto max-w-[1440px]">
+      <div className="mx-auto max-w-[1320px]">
         <SectionHeader
           eyebrow={t.fitout.eyebrow}
           title={t.fitout.title}
@@ -121,7 +121,7 @@ export function RenovationSlider() {
         <div className="mt-10">
           <div className="flex flex-wrap items-baseline justify-between gap-3">
             <h3 className="eyebrow">{t.fitout.materials.title}</h3>
-            <p className="max-w-[54ch] text-[12px] text-[var(--text-muted)]">
+            <p className="max-w-[54ch] text-[13px] text-[var(--text-muted)]">
               {t.fitout.materials.subtitle}
             </p>
           </div>
@@ -154,13 +154,13 @@ export function RenovationSlider() {
                   />
                   <span className="min-w-0">
                     <span
-                      className={`block text-[13px] font-semibold ${
+                      className={`block text-[14px] font-semibold ${
                         active ? "text-[var(--accent)]" : "text-[var(--text-primary)]"
                       }`}
                     >
                       {copy.name}
                     </span>
-                    <span className="mt-1 block text-[11.5px] leading-snug text-[var(--text-muted)]">
+                    <span className="mt-1 block text-[12.5px] leading-snug text-[var(--text-muted)]">
                       {copy.desc}
                     </span>
                   </span>
@@ -185,7 +185,7 @@ export function RenovationSlider() {
                 <GlassCard className="flex h-full flex-col p-7 sm:p-9">
                   <span className="eyebrow">{copy.for}</span>
                   <h3 className="display-3 mt-3 text-[var(--text-primary)]">{copy.title}</h3>
-                  <p className="mt-3.5 text-[13.5px] leading-[1.8] text-[var(--text-secondary)]">
+                  <p className="mt-3.5 text-[14.5px] leading-[1.8] text-[var(--text-secondary)]">
                     {copy.desc}
                   </p>
                   <ul className="mt-6 space-y-2.5">
@@ -194,7 +194,7 @@ export function RenovationSlider() {
                         <span className="mt-0.5 shrink-0 text-[var(--accent)]">
                           <Check size={15} strokeWidth={1.5} />
                         </span>
-                        <span className="text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+                        <span className="text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
                           {item}
                         </span>
                       </li>
@@ -221,7 +221,7 @@ export function RenovationSlider() {
             <Upload size={16} strokeWidth={1.5} />
             {t.fitout.upload.cta}
           </Button>
-          <span className="text-[12px] text-[var(--text-muted)]">{t.fitout.upload.hint}</span>
+          <span className="text-[13px] text-[var(--text-muted)]">{t.fitout.upload.hint}</span>
         </div>
       </div>
     </section>

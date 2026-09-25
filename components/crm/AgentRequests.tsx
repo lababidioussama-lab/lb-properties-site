@@ -10,9 +10,10 @@ const ICON: Record<string, typeof Smartphone> = { sim_esim: Smartphone, video_sh
 const BLANK = { kind: "sim_esim", title: "", details: "", listing_id: "" };
 
 /** An agent's own requests — new SIM/eSIM, a property video shoot, a document. */
-export function MyRequests({ t, listings }: { t: Table<CrmAgentRequest>; listings: CrmListing[] }) {
+export function MyRequests({ t, listings, onlyUserId }: { t: Table<CrmAgentRequest>; listings: CrmListing[]; onlyUserId?: string }) {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState(BLANK);
+  const rows = onlyUserId ? t.rows.filter((r) => r.user_id === onlyUserId) : t.rows;
 
   async function create() {
     const title = form.title.trim() || REQUEST_KIND_LABEL[form.kind];
@@ -44,9 +45,9 @@ export function MyRequests({ t, listings }: { t: Table<CrmAgentRequest>; listing
         </div>
       )}
 
-      {t.rows.length === 0 ? <Empty>No requests yet.</Empty> : (
+      {rows.length === 0 ? <Empty>No requests yet.</Empty> : (
         <ul className="space-y-2">
-          {t.rows.map((r) => {
+          {rows.map((r) => {
             const Icon = ICON[r.kind];
             return (
               <li key={r.id} className="flex items-start gap-2.5 rounded-lg border border-[var(--hairline)] p-3">
