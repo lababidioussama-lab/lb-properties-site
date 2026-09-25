@@ -2,14 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, Trash2, MessageCircle, Phone, Download } from "lucide-react";
-import { CONTACT_KINDS, CONTACT_ROLES, CONTACT_STATUSES, CONTACT_STATUS_LABEL, CONTACT_STATUS_TONE, type CrmListing, type CrmContact, type CrmLead, type CrmProperty, type CrmTask, type CrmUser } from "@/lib/crm";
+import { CONTACT_KINDS, CONTACT_ROLES, CONTACT_STATUSES, CONTACT_STATUS_LABEL, CONTACT_STATUS_TONE, type CrmListing, type CrmContact, type CrmKyc, type CrmLead, type CrmProperty, type CrmTask, type CrmUser } from "@/lib/crm";
 import { api, money, shortDate, whatsapp, downloadCsv, STAGE_STYLE, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
 import { Timeline } from "./Timeline";
 import { NewTask, TaskRow } from "./TaskList";
 import { serviceLabel } from "./LeadPanel";
+import { KycBadge, KycSection } from "./Kyc";
+import type { Table } from "./useTable";
 
-export function ContactsView({ contacts, isAdmin, users, userName, onContact, onOpen }: {
+export function ContactsView({ contacts, kyc, isAdmin, users, userName, onContact, onOpen }: {
   contacts: CrmContact[];
+  kyc: CrmKyc[];
   isAdmin: boolean;
   users: CrmUser[];
   userName: (id: string | null) => string;
@@ -79,7 +82,7 @@ export function ContactsView({ contacts, isAdmin, users, userName, onContact, on
         <table className="w-full text-[13px]">
           <thead>
             <tr className="border-b border-[var(--hairline)] text-start text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
-              {["Name", "Type", "Status", "Phone", "Email", "Agent", "Added"].map((h) => <th key={h} className="px-4 py-3 text-start font-semibold">{h}</th>)}
+              {["Name", "Type", "Status", "KYC", "Phone", "Email", "Agent", "Added"].map((h) => <th key={h} className="px-4 py-3 text-start font-semibold">{h}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -88,6 +91,7 @@ export function ContactsView({ contacts, isAdmin, users, userName, onContact, on
                 <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{c.full_name}</td>
                 <td className="px-4 py-3 capitalize text-[var(--text-secondary)]">{c.kind}</td>
                 <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-[10.5px] font-medium ${CONTACT_STATUS_TONE[c.status]}`}>{CONTACT_STATUS_LABEL[c.status]}</span></td>
+                <td className="px-4 py-3"><KycBadge file={kyc.find((k) => k.contact_id === c.id)} /></td>
                 <td className="figure px-4 py-3 text-[var(--text-secondary)]">{c.phone ?? "—"}</td>
                 <td className="px-4 py-3 text-[var(--text-secondary)]">{c.email ?? "—"}</td>
                 <td className="px-4 py-3 text-[var(--text-secondary)]">{userName(c.owner_id)}</td>
@@ -102,8 +106,9 @@ export function ContactsView({ contacts, isAdmin, users, userName, onContact, on
   );
 }
 
-export function ContactPanel({ contact, listings, leads, tasks, users, isAdmin, userName, onContact, onTask, onRemoveTask, onOpenLead, onClose }: {
+export function ContactPanel({ contact, kyc, listings, leads, tasks, users, isAdmin, userName, onContact, onTask, onRemoveTask, onOpenLead, onClose }: {
   contact: CrmContact;
+  kyc: Table<CrmKyc>;
   listings: CrmListing[];
   leads: CrmLead[];
   tasks: CrmTask[];
@@ -219,6 +224,8 @@ export function ContactPanel({ contact, listings, leads, tasks, users, isAdmin, 
           })}
         </div>
       </div>
+
+      <KycSection contact={contact} t={kyc} isAdmin={isAdmin} userName={userName} />
 
       <label className="block"><Label>Notes</Label>
         <textarea rows={3} defaultValue={contact.notes ?? ""} onBlur={(e) => save("notes", e.target.value)} className={`${INPUT} resize-none`} />

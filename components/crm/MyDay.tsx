@@ -1,8 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { CalendarClock, PhoneIncoming, AlarmClock, Hand, MapPin, Hourglass } from "lucide-react";
-import { type CrmEvent, type CrmLead, type CrmTask, type CrmUser } from "@/lib/crm";
+import { CalendarClock, PhoneIncoming, AlarmClock, Hand, MapPin, Hourglass, KeyRound, IdCard } from "lucide-react";
+import { licenceAlerts, type CrmEvent, type CrmLead, type CrmTask, type CrmTenancy, type CrmUser } from "@/lib/crm";
+import { renewalState } from "./Rentals";
 import { money, Card, Empty } from "./shared";
 import { TaskGroup } from "./TaskList";
 import { useTable } from "./useTable";
@@ -38,8 +39,10 @@ function LeadRow({ lead, meta, onOpen }: { lead: CrmLead; meta: ReactNode; onOpe
 }
 
 /** An agent's day on one screen: what to do first, in order. */
-export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask, onRemoveTask, loaded = true }: {
+export function MyDay({ me, isAdmin, leads, tasks, tenancies = [], userName, onOpenLead, onOpenRentals, onTask, onRemoveTask, loaded = true }: {
   loaded?: boolean;
+  tenancies?: CrmTenancy[];
+  onOpenRentals?: () => void;
   me: CrmUser | undefined;
   isAdmin: boolean;
   leads: CrmLead[];
@@ -66,6 +69,10 @@ export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask,
   const today = events.rows
     .filter((e) => (isAdmin || e.agent_id === meId) && e.status !== "cancelled" && new Date(e.starts_at).toDateString() === new Date().toDateString())
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const renewals = tenancies
+    .filter((t) => (isAdmin || t.agent_id === meId) && (t.status === "active" || t.status === "renewing") && renewalState(t).d <= 120)
+    .sort((a, b) => a.end_date.localeCompare(b.end_date));
+  const myAlerts = me && me.role === "agent" ? licenceAlerts(me) : [];
   const myTasks = tasks.filter((t) => !t.done_at && (isAdmin || t.assignee_id === meId) && t.due_at && new Date(t.due_at).getTime() <= endOfDay.getTime());
 
   if (!loaded) {
@@ -100,6 +107,18 @@ export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask,
           </div>
         ))}
       </div>
+
+      {myAlerts.length > 0 && (
+        <Card className={`flex items-start gap-3 px-5 py-4 ${myAlerts.some((a) => a.level !== "soon") ? "border-red-200 bg-red-50/60" : "border-amber-200 bg-amber-50/60"}`}>
+          <IdCard size={18} className={myAlerts.some((a) => a.level !== "soon") ? "text-red-600" : "text-amber-600"} />
+          <div className="text-[13px]">
+            <div className="font-semibold">{myAlerts.map((a) => a.text).join(" · ")}</div>
+            <div className="text-[12.5px] text-[var(--text-secondary)]">
+              {myAlerts.some((a) => a.level !== "soon" && /BRN/.test(a.text)) ? "Without a valid RERA broker card you cannot claim or receive new leads. " : ""}Send your renewed card or visa to the admin.
+            </div>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Panel icon={PhoneIncoming} title="New leads waiting for a first reply" count={waiting.length} tone="text-[#c0392b]">
@@ -157,6 +176,23 @@ export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask,
             );
           })}
         </Panel>
+
+        {renewals.length > 0 && (
+          <Panel icon={KeyRound} title="Tenancy renewals coming up" count={renewals.length} tone="text-amber-600">
+            {renewals.slice(0, 6).map((t) => {
+              const r = renewalState(t);
+              return (
+                <button key={t.id} onClick={onOpenRentals} className="flex w-full items-center gap-3 border-b border-[var(--hairline)] px-5 py-3 text-start last:border-0 hover:bg-[rgb(11_42_74/0.025)]">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13.5px] font-medium">{t.property_label}</div>
+                    <div className="text-[12px] text-[var(--text-muted)]">Ends {new Date(t.end_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}{t.renewal_notice_sent_at ? " · notice sent" : ""}</div>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${r.tone}`}>{r.label}</span>
+                </button>
+              );
+            })}
+          </Panel>
+        )}
 
         <Panel icon={Hand} title="Open pool — claim a lead" count={pool.length}>
           {pool.length === 0 ? <Empty>The pool is empty.</Empty> : pool.slice(0, 6).map((l) => (

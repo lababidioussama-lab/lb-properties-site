@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LEAD_SOURCES, SOURCE_LABEL, type CrmLead, type CrmUser } from "@/lib/crm";
+import { LEAD_SOURCES, SOURCE_LABEL, licenceValid, type CrmLead, type CrmUser } from "@/lib/crm";
 import { api, INPUT, BTN, Label, SidePanel } from "./shared";
 
 /** Parse pasted rows: "name, phone, email, note" per line (comma or tab separated). */
@@ -93,8 +93,8 @@ export function ImportLeads({ isAdmin, users, onImported, onClose }: {
 
 /** Round-robin: hand every unassigned open lead to active agents in turn. */
 export async function autoAssign(leads: CrmLead[], users: CrmUser[], onLead: (l: CrmLead) => void) {
-  const agents = users.filter((u) => u.active && u.role === "agent");
-  const pool = agents.length ? agents : users.filter((u) => u.active);
+  // Only agents with a current RERA broker card may receive leads.
+  const pool = users.filter((u) => u.active && u.role === "agent" && licenceValid(u));
   const queue = leads.filter((l) => !l.owner_id && l.stage !== "won" && l.stage !== "lost");
   if (!pool.length || !queue.length) return 0;
 

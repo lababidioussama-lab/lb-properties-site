@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Phone, Mail, MessageCircle, UserPlus, ExternalLink, AlertTriangle, Hand, Undo2 } from "lucide-react";
-import { STAGES, STAGE_LABEL, SOURCE_LABEL, sourceKey, fillTemplate, type CrmListing, type CrmTemplate, type CrmContact, type CrmLead, type CrmTask, type CrmUser, type Stage } from "@/lib/crm";
+import { STAGES, STAGE_LABEL, licenceValid, SOURCE_LABEL, sourceKey, fillTemplate, type CrmListing, type CrmTemplate, type CrmContact, type CrmKyc, type CrmLead, type CrmTask, type CrmUser, type Stage } from "@/lib/crm";
 import { api, stamp, toInputDate, whatsapp, INPUT, BTN, BTN_GHOST, Label, SidePanel } from "./shared";
 import { WhatNext, Clock, StarButton, Requirements, Matches, ReasonForm, QuickUpdate } from "./LeadLifecycle";
 import { CloseDealForm } from "./CloseDeal";
@@ -21,8 +21,9 @@ const SERVICE_LABEL: Record<string, string> = {
 };
 export const serviceLabel = (s: string) => SERVICE_LABEL[s] ?? s;
 
-export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, users, contact, tasks, userName, onLead, onContact, onTask, onRemoveTask, onOpenContact, onClose, onDeal }: {
+export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, users, contact, kyc, tasks, userName, onLead, onContact, onTask, onRemoveTask, onOpenContact, onClose, onDeal }: {
   lead: CrmLead;
+  kyc: CrmKyc | null;
   onDeal?: () => void;
   listings: CrmListing[];
   templates: CrmTemplate[];
@@ -52,6 +53,8 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
   const MESSAGES: Record<string, string> = {
     star_limit: "You can star at most 10 leads. Unstar one first.",
     already_claimed: "Another agent claimed this lead first.",
+    licence_expired: "Your RERA broker card (BRN) is missing or expired. Ask the admin to update it before claiming leads.",
+    agent_licence_expired: "That agent's BRN is missing or expired, so they cannot receive leads.",
     reason_and_note_required: "A reason and a note are required.",
   };
 
@@ -155,6 +158,9 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
           lead={lead}
           listings={listings}
           agentSplitPct={agentSplitPct}
+          kyc={kyc}
+          isAdmin={isAdmin}
+          onOpenContact={onOpenContact}
           onSkip={() => { setClosingDeal(false); save({ stage: "won" }); }}
           onDone={() => { setClosingDeal(false); save({ stage: "won" }); onDeal?.(); }}
         />
@@ -207,7 +213,10 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
           {isAdmin ? (
             <select value={lead.owner_id ?? ""} onChange={(e) => save({ owner_id: e.target.value || null })} className={INPUT}>
               <option value="">Unassigned</option>
-              {users.filter((u) => u.active).map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+              {users.filter((u) => u.active).map((u) => {
+                const blocked = u.role === "agent" && !licenceValid(u);
+                return <option key={u.id} value={u.id} disabled={blocked}>{u.full_name}{blocked ? " — licence expired" : ""}</option>;
+              })}
             </select>
           ) : <div className={INPUT}>{userName(lead.owner_id)}</div>}
         </label>

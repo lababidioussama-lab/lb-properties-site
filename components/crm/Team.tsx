@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import type { CrmUser } from "@/lib/crm";
-import { api, INPUT, BTN, BTN_GHOST, Card } from "./shared";
+import { licenceAlerts, licenceValid, type CrmUser } from "@/lib/crm";
+import { api, INPUT, BTN, BTN_GHOST, Card, Label } from "./shared";
 import { Avatar } from "./Avatar";
 
 export function TeamView({ users, meId, onUser }: {
@@ -84,6 +84,24 @@ export function TeamView({ users, meId, onUser }: {
               {u.active ? "Active" : "Disabled"}
             </button>
             <button onClick={() => resetPassword(u)} className={BTN_GHOST}>Reset password</button>
+            <div className="basis-full ps-12">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${licenceValid(u) ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                  {licenceValid(u) ? "Licensed" : u.role === "admin" ? "No BRN" : "No valid BRN — gets no leads"}
+                </span>
+                {licenceAlerts(u).filter((a) => a.level !== "missing").map((a) => (
+                  <span key={a.text} className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${a.level === "expired" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{a.text}</span>
+                ))}
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                <label><Label>BRN (broker card)</Label><input defaultValue={u.brn_no ?? ""} onBlur={(e) => e.target.value !== (u.brn_no ?? "") && patch(u.id, { brn_no: e.target.value })} className={INPUT} /></label>
+                {([["brn_expiry", "BRN expiry"], ["visa_expiry", "Visa expiry"], ["emirates_id_expiry", "Emirates ID expiry"], ["rera_cert_date", "RERA exam passed"]] as const).map(([k, label]) => (
+                  <label key={k}><Label>{label}</Label>
+                    <input type="date" defaultValue={u[k] ?? ""} onBlur={(e) => e.target.value !== (u[k] ?? "") && patch(u.id, { [k]: e.target.value || null })} className={INPUT} />
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
         ))}
       </Card>

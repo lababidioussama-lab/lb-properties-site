@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin, LEADS_TABLE } from "@/lib/supabase";
 import { hashPassword, liveUser, sameOrigin, sessionFromRequest, type SessionUser } from "@/lib/crm-auth";
 import { PORTALS, PORTAL_LABEL, ingestPortalLead, portalSecret, type Portal } from "@/lib/portal-intake";
-import { ACTIVITY_KINDS, CONTACT_KINDS, CONTACT_STATUSES, LEAD_SLA_HOURS, LOST_REASONS, STAGES, STAGE_LABEL, STAR_LIMIT, complianceIssues, type Stage } from "@/lib/crm";
+import { licenceValid, ACTIVITY_KINDS, CONTACT_KINDS, CONTACT_STATUSES, LEAD_SLA_HOURS, LOST_REASONS, STAGES, STAGE_LABEL, STAR_LIMIT, complianceIssues, type Stage } from "@/lib/crm";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,6 +53,15 @@ async function canAccess(
   if (user.role === "admin") return true;
   const { data } = await db.from(table).select(ownerColumn).eq("id", id).maybeSingle();
   return !!data && (data as unknown as Record<string, unknown>)[ownerColumn] === user.id;
+}
+
+/** RERA: an agent can only deal with a current BRN. */
+async function hasLicence(db: SupabaseClient, userId: string | null | undefined) {
+  if (!userId) return false;
+  const { data } = await db.from("crm_users").select("role, brn_no, brn_expiry").eq("id", userId).maybeSingle();
+  if (!data) return false;
+  if (data.role === "admin" && !data.brn_no) return true;
+  return licenceValid(data as { brn_no: string | null; brn_expiry: string | null });
 }
 
 async function logActivity(db: SupabaseClient, row: Body) {
@@ -197,7 +206,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
       return error ? fail(error.message, 502) : ok({ tasks: data });
     }
     case "users": {
-      const cols: string = "id, full_name, role, active, phone, languages, specialties, bio, avatar_url";
+      const cols: string = "id, full_name, role, active, phone, languages, specialties, bio, avatar_url, brn_no, brn_expiry, visa_expiry, emirates_id_expiry, rera_cert_date";
       // Pay (slab) and targets are admin-only, except an agent's own.
       const selection: string = user.role === "admin" ? `email, slab_pct, quarterly_target_aed, ${cols}` : cols;
       const { data } = await db
@@ -286,6 +295,9 @@ export async function POST(request: NextRequest, { params }: Ctx) {
         .insert({ kind, body, lead_id: leadId, contact_id: contactId, user_id: user.id })
         .select()
         .single();
+      if (!error && leadId && ["call", "whatsapp", "email", "meeting"].includes(kind)) {
+        await db.from(LEADS_TABLE).update({ first_response_at: new Date().toISOString() }).eq("id", leadId).is("first_response_at", null);
+      }
       if (!error && leadId) {
         await db.from(LEADS_TABLE).update({ expires_at: slaDeadline() }).eq("id", leadId)
           .not("owner_id", "is", null).in("stage", OPEN_STAGES);
@@ -335,11 +347,12 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
   switch (resource) {
     case "leads": {
-      const { data: current } = await db.from(LEADS_TABLE).select("owner_id, stage, starred").eq("id", id).maybeSingle();
+      const { data: current } = await db.from(LEADS_TABLE).select("owner_id, stage, starred, first_response_at").eq("id", id).maybeSingle();
       if (!current) return fail("not_found", 404);
 
       // Claim an unassigned lead from the open pool.
       if (b.claim) {
+        if (user.role !== "admin" && !(await hasLicence(db, user.id))) return fail("licence_expired", 403);
         const { data, error } = await db
           .from(LEADS_TABLE)
           .update({ owner_id: user.id, expires_at: slaDeadline() })
@@ -380,6 +393,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       if ("owner_id" in b) {
         if (user.role !== "admin") return fail("forbidden", 403);
         patch.owner_id = str(b.owner_id, 60);
+        if (patch.owner_id && !(await hasLicence(db, patch.owner_id as string))) return fail("agent_licence_expired", 422);
       }
       if ("starred" in b) {
         patch.starred = !!b.starred;
@@ -408,6 +422,8 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       }
       if ("internal_notes" in b) patch.internal_notes = str(b.internal_notes, 4000);
       if (!Object.keys(patch).length) return fail("empty_patch");
+
+      if (current.stage === "new" && patch.stage && patch.stage !== "new") patch.first_response_at = new Date().toISOString();
 
       // Any real update restarts the clock; closed leads have none.
       const stageAfter = (patch.stage as string | undefined) ?? current.stage;
@@ -464,6 +480,10 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
         if ("full_name" in b) patch.full_name = str(b.full_name, 200);
         if ("slab_pct" in b) patch.slab_pct = num(b.slab_pct) ?? 50;
         if ("quarterly_target_aed" in b) patch.quarterly_target_aed = num(b.quarterly_target_aed);
+        if ("brn_no" in b) patch.brn_no = str(b.brn_no, 40);
+        for (const k of ["brn_expiry", "visa_expiry", "emirates_id_expiry", "rera_cert_date"] as const) {
+          if (k in b) patch[k] = typeof b[k] === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b[k] as string) ? b[k] : null;
+        }
         if (typeof b.password === "string") {
           if (b.password.length < 10) return fail("password_too_short");
           patch.password_hash = hashPassword(b.password);
@@ -472,7 +492,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       }
       if (!Object.keys(patch).length) return fail("empty_patch");
       const { data, error } = await db.from("crm_users").update(patch).eq("id", id)
-        .select("id, email, full_name, role, active, slab_pct, quarterly_target_aed, phone, languages, specialties, bio, avatar_url").single();
+        .select("id, email, full_name, role, active, slab_pct, quarterly_target_aed, phone, languages, specialties, bio, avatar_url, brn_no, brn_expiry, visa_expiry, emirates_id_expiry, rera_cert_date").single();
       return error ? fail(error.message, 502) : ok({ user: data });
     }
   }

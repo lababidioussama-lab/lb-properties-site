@@ -4,16 +4,17 @@ import { useCallback, useEffect, useState } from "react";
 import { api, type Json } from "./shared";
 
 /** Load + create/update/delete for one /api/crm/data/<table> resource. */
-export function useTable<T extends { id: string }>(table: string) {
+export function useTable<T extends { id: string }>(table: string, enabled = true) {
   const [rows, setRows] = useState<T[]>([]);
   const [error, setError] = useState<string | null>(null);
   const resource = `data/${table}`;
 
   const reload = useCallback(async () => {
+    if (!enabled) return;
     const r = await api<{ rows: T[] }>("GET", resource);
     if (r.ok) setRows(r.rows ?? []);
     else setError(r.error ?? "load_failed");
-  }, [resource]);
+  }, [resource, enabled]);
 
   useEffect(() => { void reload(); }, [reload]);
 

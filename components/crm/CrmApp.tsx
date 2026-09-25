@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { Activity, Calculator, Menu, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList } from "lucide-react";
+import { Activity, ShieldCheck, Receipt, KeyRound, Calculator, Menu, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList } from "lucide-react";
 
-import type { CrmContact, CrmDeal, CrmLead, CrmListing, CrmTask, CrmTemplate, CrmUser } from "@/lib/crm";
+import type { CrmContact, CrmDeal, CrmInvoice, CrmKyc, CrmSourceSpend, CrmTenancy, CrmLead, CrmListing, CrmTask, CrmTemplate, CrmUser } from "@/lib/crm";
 import type { SessionUser } from "@/lib/crm-auth";
 import { api, Card } from "./shared";
 import { Pipeline } from "./Pipeline";
@@ -30,9 +30,12 @@ import { TeamMonitor, TeamDocuments } from "./TeamMonitor";
 import { MyDay } from "./MyDay";
 import { ToolsView } from "./Tools";
 import { IntegrationsView } from "./Integrations";
+import { InvoicesView } from "./Invoices";
+import { RentalsView } from "./Rentals";
+import { ComplianceView } from "./Compliance";
 import type { CrmAgentRequest } from "@/lib/crm";
 
-type View = "integrations" | "today" | "tools" | "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
+type View = "compliance" | "invoices" | "rentals" | "integrations" | "today" | "tools" | "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
 
 function upsert<T extends { id: string }>(list: T[], item: T, prepend = false): T[] {
   if (list.some((x) => x.id === item.id)) return list.map((x) => (x.id === item.id ? item : x));
@@ -56,6 +59,10 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   const [loaded, setLoaded] = useState(false);
   const deals = useTable<CrmDeal>("deals");
   const templates = useTable<CrmTemplate & { created_at?: string }>("templates");
+  const kyc = useTable<CrmKyc>("kyc");
+  const tenancies = useTable<CrmTenancy>("tenancies");
+  const invoices = useTable<CrmInvoice>("invoices", isAdmin);
+  const spend = useTable<CrmSourceSpend>("source_spend", isAdmin);
 
   const load = useCallback(async () => {
     const [l, c, t, u] = await Promise.all([
@@ -104,6 +111,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     { id: "temp_leads", label: "Temp leads", icon: PhoneCall, group: "Sales", desc: "Raw calling list, promoted to Leads once qualified." },
     { id: "contacts", label: "Contacts", icon: Users, group: "Sales", desc: "Clients, owners and their properties." },
     { id: "deals", label: "Deals", icon: HandCoins, group: "Sales", desc: "Closed transactions, commission and payouts." },
+    { id: "rentals", label: "Rentals", icon: KeyRound, group: "Sales", desc: "Tenancies, Ejari, cheque schedules and renewals." },
     { id: "listings", label: "Listings", icon: Building2, group: "Properties", desc: "Stock for sale and rent, with permit compliance." },
     { id: "owner_requests", label: "Owner requests", icon: KeySquare, group: "Properties", desc: "Owners who want to sell or let through us." },
     { id: "calendar", label: "Calendar", icon: CalendarDays, group: "Workspace", desc: "Viewings, meetings and handovers." },
@@ -112,6 +120,8 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     { id: "templates", label: "WhatsApp templates", icon: MessageSquareText, group: "WhatsApp", desc: "Reusable messages for one-click replies." },
     { id: "quick_wa", label: "Quick WhatsApp", icon: Send, group: "WhatsApp", desc: "Send one message to a list of leads." },
     ...(isAdmin ? [
+      { id: "compliance" as View, label: "Compliance", icon: ShieldCheck, group: "Admin", desc: "KYC, goAML, licences, permits and rentals — everything that could lead to a fine." },
+      { id: "invoices" as View, label: "Invoices", icon: Receipt, group: "Admin", desc: "VAT tax invoices for commission, and who still owes us." },
       { id: "monitor" as View, label: "Agent performance", icon: Activity, group: "Admin", desc: "Who is using the CRM, and how each agent is performing." },
       { id: "team" as View, label: "Team", icon: UserCog, group: "Admin", desc: "Agents, roles, commission slabs and targets." },
       { id: "integrations" as View, label: "Integrations", icon: PlugZap, group: "Admin", desc: "Bayut, Dubizzle and Property Finder leads, straight to your agents." },
@@ -247,11 +257,11 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           )}
 
           {view === "today" && (
-            <MyDay loaded={loaded} me={me_} isAdmin={isAdmin} leads={leads} tasks={tasks} userName={userName}
+            <MyDay loaded={loaded} me={me_} isAdmin={isAdmin} leads={leads} tasks={tasks} tenancies={tenancies.rows} onOpenRentals={() => setView("rentals")} userName={userName}
               onOpenLead={setLeadId} onTask={onTask} onRemoveTask={onRemoveTask} />
           )}
           {view === "tools" && <ToolsView />}
-          {view === "reports" && <ReportsView leads={leads} deals={deals.rows} users={users} userName={userName} />}
+          {view === "reports" && <ReportsView leads={leads} deals={deals.rows} users={users} userName={userName} spend={isAdmin ? spend : null} />}
           {view === "listings" && (
             <ListingsView t={listings} isAdmin={isAdmin} users={users} contacts={contacts} userName={userName}
               prefill={listingPrefill} onPrefillUsed={() => setListingPrefill(null)} />
@@ -287,7 +297,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             />
           )}
           {view === "calendar" && <CalendarView isAdmin={isAdmin} users={users} leads={leads} listings={listings.rows} userName={userName} />}
-          {view === "deals" && <DealsView t={deals} isAdmin={isAdmin} users={users} listings={listings.rows} userName={userName} />}
+          {view === "deals" && <DealsView t={deals} isAdmin={isAdmin} users={users} listings={listings.rows} contacts={contacts} kyc={kyc.rows} userName={userName} onInvoiceCreated={() => void invoices.reload()} />}
           {view === "templates" && (
             <TemplatesView templates={templates.rows} isAdmin={isAdmin} onCreate={templates.create} onUpdate={templates.update} onRemove={templates.remove} />
           )}
@@ -295,7 +305,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             <Pipeline leads={leads} tasks={tasks} users={users} isAdmin={isAdmin} userName={userName} onLead={onLead} onOpen={setLeadId} />
           )}
           {view === "contacts" && (
-            <ContactsView contacts={contacts} isAdmin={isAdmin} users={users} userName={userName} onContact={onContact} onOpen={setContactId} />
+            <ContactsView contacts={contacts} kyc={kyc.rows} isAdmin={isAdmin} users={users} userName={userName} onContact={onContact} onOpen={setContactId} />
           )}
           {view === "tasks" && (
             <TasksView tasks={tasks} users={users} isAdmin={isAdmin} userName={userName} onTask={onTask} onRemoveTask={onRemoveTask} />
@@ -304,6 +314,14 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           {view === "audit" && isAdmin && <AuditView userName={userName} />}
           {view === "monitor" && isAdmin && <TeamMonitor users={users} leads={leads} tasks={tasks} deals={deals.rows} />}
           {view === "team_docs" && isAdmin && <TeamDocuments users={users} />}
+          {view === "rentals" && (
+            <RentalsView t={tenancies} isAdmin={isAdmin} users={users} contacts={contacts} listings={listings.rows} deals={deals.rows} userName={userName} />
+          )}
+          {view === "invoices" && isAdmin && <InvoicesView t={invoices} deals={deals.rows} contacts={contacts} />}
+          {view === "compliance" && isAdmin && (
+            <ComplianceView users={users} contacts={contacts} listings={listings.rows} deals={deals} kyc={kyc} tenancies={tenancies.rows}
+              onOpenContact={setContactId} onGo={setView} />
+          )}
           {view === "integrations" && isAdmin && <IntegrationsView onLeadsChanged={() => void load()} />}
         </main>
       </div>
@@ -345,6 +363,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           isAdmin={isAdmin}
           users={users}
           contact={contacts.find((c) => c.id === lead.contact_id) ?? null}
+          kyc={kyc.rows.find((k) => k.contact_id === lead.contact_id) ?? null}
           tasks={tasks.filter((t) => t.lead_id === lead.id)}
           userName={userName}
           onLead={onLead}
@@ -360,6 +379,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
         <ContactPanel
           key={contact.id}
           contact={contact}
+          kyc={kyc}
           listings={listings.rows}
           leads={leads.filter((l) => l.contact_id === contact.id)}
           tasks={tasks.filter((t) => t.contact_id === contact.id)}

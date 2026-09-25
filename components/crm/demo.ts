@@ -1,3 +1,4 @@
+import { goamlRequired, kycMissing, type CrmInvoice, type CrmKyc, type CrmSourceSpend, type CrmTenancy } from "@/lib/crm";
 import type { CrmActivity, CrmAgentDocument, CrmAgentRequest, CrmContact, CrmDeal, CrmEvent, CrmLead, CrmListing, CrmOwnerRequest, CrmProperty, CrmTask, CrmTempLead, CrmTemplate, CrmUser } from "@/lib/crm";
 
 /* In-browser fake backend for /admin?demo (development only). Nothing is saved. */
@@ -11,10 +12,11 @@ const iso = (daysFromNow: number, hour = 10) => {
 let n = 100;
 const id = () => `demo-${n++}`;
 
+const inDays = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10);
 const users: CrmUser[] = [
   { id: "u1", email: "lababidioussama@gmail.com", full_name: "Oussama Lababidi", role: "admin", active: true, phone: "+971 54 704 4047", languages: "English, Arabic", specialties: "Company-wide", bio: "Founder and principal broker." },
-  { id: "u2", email: "sara@lababidi.ae", full_name: "Sara Haddad", role: "agent", active: true, slab_pct: 55, quarterly_target_aed: 3000000, phone: "+971 50 111 2233", languages: "English, Arabic", specialties: "Dubai Marina, JVC", bio: "7 years in Dubai secondary sales.", avatar_url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=70" },
-  { id: "u3", email: "omar@lababidi.ae", full_name: "Omar Nasser", role: "agent", active: true, slab_pct: 45, quarterly_target_aed: 8000000, phone: "+971 50 444 5566", languages: "English, Arabic, Russian", specialties: "Downtown, Business Bay", bio: "Off-plan specialist.", avatar_url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=70" },
+  { id: "u2", email: "sara@lababidi.ae", full_name: "Sara Haddad", role: "agent", active: true, slab_pct: 55, quarterly_target_aed: 3000000, brn_no: "45121", brn_expiry: inDays(260), visa_expiry: inDays(400), emirates_id_expiry: inDays(400), rera_cert_date: "2025-03-10", phone: "+971 50 111 2233", languages: "English, Arabic", specialties: "Dubai Marina, JVC", bio: "7 years in Dubai secondary sales.", avatar_url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=70" },
+  { id: "u3", email: "omar@lababidi.ae", full_name: "Omar Nasser", role: "agent", active: true, slab_pct: 45, quarterly_target_aed: 8000000, brn_no: "38874", brn_expiry: inDays(18), visa_expiry: inDays(90), emirates_id_expiry: inDays(-5), rera_cert_date: "2023-11-02", phone: "+971 50 444 5566", languages: "English, Arabic, Russian", specialties: "Downtown, Business Bay", bio: "Off-plan specialist.", avatar_url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=70" },
 ];
 
 const lead = (p: Partial<CrmLead> & Pick<CrmLead, "full_name" | "service" | "stage">): CrmLead => ({
@@ -33,7 +35,7 @@ const contacts: CrmContact[] = [
 const leads: CrmLead[] = [
   lead({ full_name: "Ahmed Al Mansoori", service: "advisory", stage: "new", created_at: iso(0, 9), notes: "Looking for off-plan in Dubai Hills, budget around 3M.", payload: { budgetAed: 3000000, goal: "appreciation" } }),
   lead({ full_name: "Priya Sharma", service: "mortgage", stage: "new", created_at: iso(-1), source: "bayut" }),
-  lead({ full_name: "Li Wei", service: "advisory", stage: "contacted", locale: "zh", source: "property_finder", owner_id: "u2", next_follow_up_at: iso(-1), deal_value_aed: 1850000, deal_kind: "sale", medium: "Portal", expires_at: iso(0, 21), starred: true }),
+  lead({ full_name: "Li Wei", service: "advisory", stage: "contacted", locale: "zh", source: "property_finder", first_response_at: iso(-3, 10.5), owner_id: "u2", next_follow_up_at: iso(-1), deal_value_aed: 1850000, deal_kind: "sale", medium: "Portal", expires_at: iso(0, 21), starred: true }),
   lead({ full_name: "James Whitmore", service: "netRoi", stage: "viewing", owner_id: "u1", contact_id: "c1", next_follow_up_at: iso(1), deal_value_aed: 2400000, deal_kind: "sale", property_type: "apartment", beds: "1BR", budget_aed: 1200000, location: "Jumeirah Village Circle", ready_status: "any", medium: "WhatsApp", expires_at: iso(1, 15) }),
   lead({ full_name: "Elena Petrova", service: "advisory", stage: "offer", locale: "ru", owner_id: "u3", contact_id: "c2", next_follow_up_at: iso(0, 16), deal_value_aed: 4200000 }),
   lead({ full_name: "Khalid Rahman", service: "fitout", stage: "won", source: "instagram", owner_id: "u3", deal_value_aed: 320000 }),
@@ -61,14 +63,19 @@ const activities: CrmActivity[] = [
 const PHOTO = (q: string) => `https://images.unsplash.com/${q}?w=800&q=70`;
 const month = (m: number, d = 12) => { const x = new Date(); x.setMonth(x.getMonth() - m, d); return x.toISOString().slice(0, 10); };
 const listings: CrmListing[] = [
-  { id: "l1", created_at: iso(-10), title: "Upgraded 2BR with full Marina view", purpose: "sale", property_type: "apartment", community: "Dubai Marina", building: "Marina Gate 1", unit: "2304", bedrooms: "2BR", size_sqft: 1310, price_aed: 2600000, permit_no: "7117223344", status: "available", owner_contact_id: "c1", agent_id: "u2", description: null, photos: [PHOTO("photo-1512917774080-9991f1c4c750")], ref_code: "AS-000101", form_a_start: month(1), form_a_end: month(-5), permit_status: "approved", approval: "approved", approval_note: null, key_status: "With security", exclusive: true, off_market: false, low_performing: false, price_reduced_at: null, price_was_aed: null },
-  { id: "l2", created_at: iso(-8), title: "Brand new 1BR, handover Q4", purpose: "sale", property_type: "apartment", community: "Jumeirah Village Circle", building: "Binghatti Phantom", unit: null, bedrooms: "1BR", size_sqft: 720, price_aed: 1150000, permit_no: "7117225566", status: "available", owner_contact_id: null, agent_id: "u2", description: null, photos: [PHOTO("photo-1600585154340-be6161a56a0c")], ref_code: "AS-000102", form_a_start: month(2), form_a_end: month(-4), permit_status: "approved", approval: "approved", approval_note: null, key_status: "No key (off-plan)", exclusive: false, off_market: false, low_performing: false, price_reduced_at: null, price_was_aed: null },
+  { id: "l1", created_at: iso(-10), title: "Upgraded 2BR with full Marina view", purpose: "sale", property_type: "apartment", community: "Dubai Marina", building: "Marina Gate 1", unit: "2304", bedrooms: "2BR", size_sqft: 1310, price_aed: 2600000, permit_no: "7117223344", status: "available", owner_contact_id: "c1", agent_id: "u2", description: null, photos: [PHOTO("photo-1512917774080-9991f1c4c750")], ref_code: "AS-000101", form_a_start: month(1), form_a_end: month(-5), permit_status: "approved", permit_expiry: inDays(120), permit_price_aed: 2600000, permit_agent_id: "u2", approval: "approved", approval_note: null, key_status: "With security", exclusive: true, off_market: false, low_performing: false, price_reduced_at: null, price_was_aed: null },
+  { id: "l2", created_at: iso(-8), title: "Brand new 1BR, handover Q4", purpose: "sale", property_type: "apartment", community: "Jumeirah Village Circle", building: "Binghatti Phantom", unit: null, bedrooms: "1BR", size_sqft: 720, price_aed: 1150000, permit_no: "7117225566", status: "available", owner_contact_id: null, agent_id: "u2", description: null, photos: [PHOTO("photo-1600585154340-be6161a56a0c")], ref_code: "AS-000102", form_a_start: month(2), form_a_end: month(-4), permit_status: "approved", permit_expiry: inDays(-3), permit_price_aed: 1100000, permit_agent_id: "u2", approval: "approved", approval_note: null, key_status: "No key (off-plan)", exclusive: false, off_market: false, low_performing: false, price_reduced_at: null, price_was_aed: null },
   { id: "l3", created_at: iso(-6), title: "4BR family villa, Maple cluster", purpose: "rent", property_type: "villa", community: "Dubai Hills Estate", building: "Maple 2", unit: "V-41", bedrooms: "4BR", size_sqft: 3200, price_aed: 420000, permit_no: null, status: "reserved", owner_contact_id: null, agent_id: "u3", description: null, photos: [PHOTO("photo-1613490493576-7fde63acd811")], ref_code: "VR-000103", form_a_start: month(0, 20), form_a_end: month(-11, 20), permit_status: "under_process", approval: "pending", approval_note: null, key_status: "With the client", exclusive: false, off_market: false, low_performing: false, price_reduced_at: null, price_was_aed: null },
   { id: "l4", created_at: iso(-30), title: "Downtown studio, Burj view", purpose: "sale", property_type: "apartment", community: "Downtown Dubai", building: "Burj Royale", unit: "1805", bedrooms: "Studio", size_sqft: 460, price_aed: 1250000, permit_no: "7117220011", status: "sold", owner_contact_id: null, agent_id: "u3", description: null, photos: [PHOTO("photo-1502672260266-1c1ef2d93688")], ref_code: "AS-000104", form_a_start: month(4), form_a_end: month(-2), permit_status: "approved", approval: "approved", approval_note: null, key_status: "Available", exclusive: false, off_market: false, low_performing: false, price_reduced_at: null, price_was_aed: null },
 ];
 const deals: CrmDeal[] = [
-  { id: "d1", created_at: iso(-5), title: "Burj Royale 1805 sale", deal_type: "sale", lead_id: null, listing_id: "l4", contact_id: null, agent_id: "u3", price_aed: 1250000, commission_pct: 2, agent_split_pct: 50, closed_at: month(0, 3), paid_at: month(0, 10), notes: null },
-  { id: "d2", created_at: iso(-40), title: "Emaar Beachfront off-plan 2BR", deal_type: "offplan", lead_id: null, listing_id: null, contact_id: null, agent_id: "u2", price_aed: 3400000, commission_pct: 4, agent_split_pct: 50, closed_at: month(1), paid_at: null, notes: null },
+  { id: "d1", created_at: iso(-5), title: "Burj Royale 1805 sale", deal_type: "sale", lead_id: null, listing_id: "l4", contact_id: "c2", agent_id: "u3", price_aed: 1250000, commission_pct: 2, agent_split_pct: 50, closed_at: month(0, 3), paid_at: month(0, 10), notes: null, payment_method: "cash", cash_amount_aed: 250000, goaml_required: true, goaml_ref: null, goaml_reported_at: null, noc_expiry: inDays(9), transfer_at: iso(12, 11), milestones: { form_b: month(0, 1), form_f: month(0, 2), deposit: month(0, 2), noc_applied: month(0, 5) } },
+  { id: "d2", created_at: iso(-40), title: "Emaar Beachfront off-plan 2BR", deal_type: "offplan", lead_id: null, listing_id: null, contact_id: "c1", agent_id: "u2", price_aed: 3400000, commission_pct: 4, agent_split_pct: 50, closed_at: month(1), paid_at: null, notes: null, payment_method: "transfer", developer: "Emaar", project: "Beachfront — Seapoint", unit_no: "T2-1804", spa_signed_at: month(0, 28), oqood_no: null, commission_trigger_pct: 20, developer_invoice_status: "not_due", milestones: { eoi: month(1), spa: month(0, 28) }, payment_plan: [
+    { label: "Booking", pct: 10, due: month(1), paid_at: month(1) },
+    { label: "Within 30 days", pct: 10, due: month(0, 1), paid_at: null },
+    { label: "Construction milestones", pct: 40, due: inDays(300), paid_at: null },
+    { label: "On handover", pct: 40, due: inDays(900), paid_at: null },
+  ] },
   { id: "d3", created_at: iso(-70), title: "JLT 1BR annual lease", deal_type: "rent", lead_id: null, listing_id: null, contact_id: null, agent_id: "u2", price_aed: 95000, commission_pct: 5, agent_split_pct: 50, closed_at: month(2), paid_at: month(2, 20), notes: null },
   { id: "d4", created_at: iso(-100), title: "Arabian Ranches villa sale", deal_type: "sale", lead_id: null, listing_id: null, contact_id: null, agent_id: "u3", price_aed: 5200000, commission_pct: 2, agent_split_pct: 40, closed_at: month(3), paid_at: month(3, 25), notes: null },
 ];
@@ -105,6 +112,32 @@ const templates: CrmTemplate[] = [
   { id: "w3", name: "Viewing confirmation", body: "Hi {name}, your viewing is confirmed. I'll share the location pin shortly. See you there, {agent} - Lababidi Properties" },
 ];
 
+const kyc: CrmKyc[] = [
+  { id: "k1", created_at: iso(-15), updated_at: iso(-10), contact_id: "c1", owner_id: "u2", party_type: "individual", legal_name: "James Robert Whitmore", nationality: "British", date_of_birth: "1981-04-22", emirates_id_no: null, emirates_id_expiry: null, passport_no: "553129874", passport_expiry: inDays(20), trade_license_no: null, trade_license_expiry: null, ubo_details: null, id_doc_url: null, passport_doc_url: "https://example.com/passport-jw.pdf", is_pep: false, pep_details: null, sanctions_result: "clear", sanctions_checked_at: iso(-10), screened_by: "u2", source_of_funds: "Salary and savings; UK bank transfer", payment_method: "transfer", risk_rating: "low", status: "approved", approved_by: "u1", approved_at: iso(-9), notes: null },
+  { id: "k2", created_at: iso(-6), updated_at: iso(-6), contact_id: "c2", owner_id: "u3", party_type: "individual", legal_name: "Elena Petrova", nationality: "Russian", date_of_birth: null, emirates_id_no: null, emirates_id_expiry: null, passport_no: "75 1234567", passport_expiry: inDays(700), trade_license_no: null, trade_license_expiry: null, ubo_details: null, id_doc_url: null, passport_doc_url: null, is_pep: null, pep_details: null, sanctions_result: "pending", sanctions_checked_at: null, screened_by: null, source_of_funds: null, payment_method: "cash", risk_rating: null, status: "incomplete", approved_by: null, approved_at: null, notes: null },
+];
+const tenancies: CrmTenancy[] = [
+  { id: "t1", created_at: iso(-290), deal_id: "d3", listing_id: null, landlord_contact_id: null, tenant_contact_id: null, agent_id: "u2", property_label: "JLT Cluster D, 1BR 1407", start_date: inDays(-290), end_date: inDays(75), annual_rent_aed: 95000, cheques_count: 4, security_deposit_aed: 5000, ejari_no: "0120240098761", ejari_expiry: inDays(75), status: "active", renewal_notice_sent_at: null, notes: null, cheques: [
+    { no: "000211", bank: "Emirates NBD", date: inDays(-290), amount: 23750, status: "cleared" },
+    { no: "000212", bank: "Emirates NBD", date: inDays(-199), amount: 23750, status: "cleared" },
+    { no: "000213", bank: "Emirates NBD", date: inDays(-108), amount: 23750, status: "bounced" },
+    { no: "000214", bank: "Emirates NBD", date: inDays(-17), amount: 23750, status: "deposited" },
+  ] },
+  { id: "t2", created_at: iso(-40), deal_id: null, listing_id: "l3", landlord_contact_id: null, tenant_contact_id: null, agent_id: "u3", property_label: "Maple 2, Villa V-41", start_date: inDays(-40), end_date: inDays(325), annual_rent_aed: 420000, cheques_count: 2, security_deposit_aed: 21000, ejari_no: null, ejari_expiry: null, status: "active", renewal_notice_sent_at: null, notes: "Ejari pending landlord's title deed copy.", cheques: [
+    { no: "104501", bank: "ADCB", date: inDays(-40), amount: 210000, status: "cleared" },
+    { no: "104502", bank: "ADCB", date: inDays(142), amount: 210000, status: "pending" },
+  ] },
+];
+const invoices: CrmInvoice[] = [
+  { id: "i1", created_at: iso(-4), number: "LP-2026-0001", deal_id: "d1", bill_to_name: "Elena Petrova", bill_to_trn: null, bill_to_address: "Dubai, UAE", description: "Brokerage commission — Burj Royale 1805 sale (2%)", net_aed: 25000, vat_pct: 5, vat_aed: 1250, total_aed: 26250, issue_date: month(0, 4), due_date: month(0, 18), status: "paid", paid_aed: 26250, paid_at: month(0, 10), notes: null },
+  { id: "i2", created_at: iso(-35), number: "LP-2026-0002", deal_id: "d2", bill_to_name: "Emaar Properties PJSC", bill_to_trn: "100067501500003", bill_to_address: "Emaar Square, Downtown Dubai", description: "Agency commission — Beachfront Seapoint T2-1804 (4%)", net_aed: 136000, vat_pct: 5, vat_aed: 6800, total_aed: 142800, issue_date: inDays(-35), due_date: inDays(-21), status: "sent", paid_aed: 0, paid_at: null, notes: null },
+];
+const spend: CrmSourceSpend[] = [
+  { id: "s1", created_at: iso(-20), month: month(0, 1), source: "bayut", amount_aed: 12000, notes: "Standard package" },
+  { id: "s2", created_at: iso(-20), month: month(0, 1), source: "property_finder", amount_aed: 9500, notes: null },
+  { id: "s3", created_at: iso(-20), month: month(0, 1), source: "dubizzle", amount_aed: 4000, notes: null },
+];
+
 type Row = Record<string, unknown>;
 const tables: Record<string, Row[]> = {
   leads: leads as unknown as Row[],
@@ -123,6 +156,10 @@ const tables: Record<string, Row[]> = {
   "data/deals": deals as unknown as Row[],
   "data/events": events as unknown as Row[],
   "data/templates": templates as unknown as Row[],
+  "data/kyc": kyc as unknown as Row[],
+  "data/tenancies": tenancies as unknown as Row[],
+  "data/invoices": invoices as unknown as Row[],
+  "data/source_spend": spend as unknown as Row[],
 };
 const single: Record<string, string> = {
   leads: "lead", contacts: "contact", tasks: "task", users: "user", properties: "property", activities: "activity",
@@ -193,7 +230,33 @@ export async function demoApi(method: string, resource: string, body?: Row, quer
   if (method === "POST") {
     const row: Row = { id: id(), created_at: new Date().toISOString(), active: true, role: "agent", ...body };
     if (resource === "tasks") row.done_at = null;
-    if (resource === "activities") row.user_id = "u1";
+    if (resource === "activities") {
+      row.user_id = "u1";
+      const l = tables.leads.find((r) => r.id === body?.lead_id);
+      if (l && !l.first_response_at && ["call", "whatsapp", "email", "meeting"].includes(String(body?.kind))) l.first_response_at = new Date().toISOString();
+    }
+    if (resource === "data/deals") {
+      if (!body?.kyc_override_reason) {
+        if (!body?.contact_id) return { ok: false, error: "kyc_contact_required" };
+        const file = tables["data/kyc"].find((k) => k.contact_id === body.contact_id);
+        if (kycMissing(file as never).length) return { ok: false, error: "kyc_incomplete" };
+      }
+      row.goaml_required = goamlRequired(row as never);
+      row.milestones ??= {};
+      row.payment_plan ??= [];
+    }
+    if (resource === "data/kyc") {
+      row.status = kycMissing(row as never).length ? "incomplete" : "complete";
+      row.updated_at = row.created_at;
+      row.sanctions_result ??= "pending";
+    }
+    if (resource === "data/invoices") {
+      const year = String(row.issue_date ?? new Date().toISOString()).slice(0, 4);
+      const count = tables["data/invoices"].filter((r) => String(r.number).startsWith(`LP-${year}-`)).length;
+      row.number = `LP-${year}-${String(count + 1).padStart(4, "0")}`;
+      const net = Number(row.net_aed ?? 0); const vat = Math.round(net * Number(row.vat_pct ?? 5)) / 100;
+      Object.assign(row, { vat_pct: row.vat_pct ?? 5, vat_aed: vat, total_aed: net + vat, status: row.status ?? "draft", paid_aed: row.paid_aed ?? 0 });
+    }
     if (resource === "contacts" && body?.lead_id) {
       const l = tables.leads.find((r) => r.id === body.lead_id);
       if (l) l.contact_id = row.id;
@@ -228,6 +291,17 @@ export async function demoApi(method: string, resource: string, body?: Row, quer
     Object.assign(row, rest);
     if (resource === "leads") row.expires_at = row.owner_id && !["won", "lost"].includes(String(row.stage)) ? soon() : null;
     if (done !== undefined) row.done_at = done ? new Date().toISOString() : null;
+    if (resource === "data/kyc") {
+      const missing = kycMissing(row as never).length;
+      row.status = missing ? "incomplete" : rest.status === "approved" || row.status === "approved" ? "approved" : "complete";
+      row.updated_at = new Date().toISOString();
+    }
+    if (resource === "data/deals") row.goaml_required = goamlRequired(row as never);
+    if (resource === "data/invoices") {
+      const net = Number(row.net_aed ?? 0); const vat = Math.round(net * Number(row.vat_pct ?? 5)) / 100;
+      Object.assign(row, { vat_aed: vat, total_aed: net + vat });
+    }
+    if (resource === "leads" && rest.stage && rest.stage !== "new" && !row.first_response_at) row.first_response_at = new Date().toISOString();
     if (resource === "leads" && rest.stage) {
       tables.activities.unshift({ id: id(), created_at: new Date().toISOString(), lead_id: row.id, contact_id: null, user_id: "u1", kind: "stage", body: `Moved to ${String(rest.stage)}` });
     }

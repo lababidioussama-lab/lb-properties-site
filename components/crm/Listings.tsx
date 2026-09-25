@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, BedDouble, Ruler, BadgeCheck, ShieldAlert, ShieldCheck, Key } from "lucide-react";
-import { LISTING_STATUSES, PROPERTY_TYPES, KEY_STATUSES, complianceIssues, adTitleIssues, type CrmContact, type CrmListing, type CrmUser } from "@/lib/crm";
+import { LISTING_STATUSES, PROPERTY_TYPES, KEY_STATUSES, complianceIssues, daysLeft, adTitleIssues, type CrmContact, type CrmListing, type CrmUser } from "@/lib/crm";
 import { money, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
 import type { Table } from "./useTable";
 
@@ -20,6 +20,7 @@ const BLANK = {
   photo: "", agent_id: "", owner_contact_id: "",
   form_a_start: "", form_a_end: "", permit_status: "none", key_status: "", exclusive: "",
   off_market: "", low_performing: "",
+  permit_expiry: "", permit_price_aed: "", permit_agent_id: "", dld_unit_no: "",
 };
 
 const APPROVAL_STYLE: Record<string, string> = {
@@ -111,8 +112,8 @@ export function ListingsView({ t, isAdmin, users, contacts, userName, prefill, o
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-[var(--hairline)] pt-2 text-[11px] text-[var(--text-muted)]">
                   <span>{l.ref_code ?? "Agent:"} {!l.ref_code && userName(l.agent_id)}</span>
-                  {complianceIssues(l).length > 0
-                    ? <span className="flex items-center gap-1 text-amber-700"><ShieldAlert size={12} /> {complianceIssues(l).length} to fix</span>
+                  {complianceIssues(l, users.find((u) => u.id === l.agent_id) ?? null).length > 0
+                    ? <span className="flex items-center gap-1 text-amber-700"><ShieldAlert size={12} /> {complianceIssues(l, users.find((u) => u.id === l.agent_id) ?? null).length} to fix</span>
                     : <span className="flex items-center gap-1 text-emerald-700"><ShieldCheck size={12} /> Compliant</span>}
                 </div>
                 {(l.low_performing || l.price_reduced_at) && (
@@ -179,7 +180,9 @@ function ListingForm({ listing, prefill, isAdmin, users, contacts, error, onClos
     onSave({ ...rest, photos: photo.split(/\s+/).filter(Boolean), exclusive, off_market: offMarket, low_performing: lowPerforming, ...priceExtras });
   }
 
-  const issues = listing ? complianceIssues(listing) : [];
+  const issues = listing ? complianceIssues(listing, users.find((u) => u.id === listing.agent_id) ?? null) : [];
+  const permitDays = f.permit_expiry ? daysLeft(f.permit_expiry) : null;
+  const priceMismatch = !!f.permit_price_aed && !!f.price_aed && Number(f.permit_price_aed) !== Number(f.price_aed);
   const titleIssues = f.title ? adTitleIssues(f.title, f.building, f.community) : [];
 
   return (
@@ -219,6 +222,21 @@ function ListingForm({ listing, prefill, isAdmin, users, contacts, error, onClos
             <option value="none">None</option><option value="under_process">Under process</option><option value="approved">Approved</option><option value="expired">Expired</option>
           </select>
         </label>
+        <label><Label>Permit expiry</Label>
+          <input type="date" value={f.permit_expiry} onChange={set("permit_expiry")} className={INPUT} />
+          {permitDays !== null && permitDays <= 14 && <span className={`mt-1 block text-[11px] font-medium ${permitDays < 0 ? "text-red-700" : "text-amber-700"}`}>{permitDays < 0 ? "Permit expired — take the ad down" : `Expires in ${permitDays} days`}</span>}
+        </label>
+        <label><Label>Price on the permit (AED)</Label>
+          <input type="number" value={f.permit_price_aed} onChange={set("permit_price_aed")} className={`${INPUT} figure`} />
+          {priceMismatch && <span className="mt-1 block text-[11px] font-medium text-red-700">Ad price differs from the permit — apply for a new permit</span>}
+        </label>
+        <label><Label>Agent on the permit</Label>
+          <select value={f.permit_agent_id} onChange={set("permit_agent_id")} className={INPUT}>
+            <option value="">—</option>
+            {users.map((u) => <option key={u.id} value={u.id}>{u.full_name}{u.brn_no ? ` · BRN ${u.brn_no}` : ""}</option>)}
+          </select>
+        </label>
+        <label><Label>DLD unit no.</Label><input value={f.dld_unit_no} onChange={set("dld_unit_no")} className={INPUT} /></label>
         <label><Label>Key status</Label>
           <select value={f.key_status} onChange={set("key_status")} className={INPUT}>
             <option value="">—</option>

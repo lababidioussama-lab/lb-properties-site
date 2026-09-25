@@ -95,6 +95,15 @@ Property portal leads (optional until you connect them):
   `PROPERTY_FINDER_WEBHOOK_SECRET`). The CRM's *Integrations* page shows the
   exact address to give each portal and has a "Send test lead" button.
 
+Tax invoices (not secrets — they print on every invoice):
+
+- `NEXT_PUBLIC_COMPANY_TRN` — your 15-digit VAT TRN (required on a UAE tax invoice)
+- `NEXT_PUBLIC_COMPANY_ORN` — your RERA office registration number
+- `NEXT_PUBLIC_COMPANY_ADDRESS` — the office address
+
+Set `RESEND_API_KEY` as a **secret** variable (Netlify: tick "Contains secret
+values") scoped to Functions/Runtime. Never paste it into a file in this repo.
+
 Never set `CRM_OTP_DISABLED` on the live site — it turns off the emailed code
 and exists only for local testing.
 

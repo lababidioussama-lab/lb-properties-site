@@ -44,6 +44,11 @@ export interface CrmUser {
   specialties?: string | null;
   bio?: string | null;
   avatar_url?: string | null;
+  brn_no?: string | null;
+  brn_expiry?: string | null;
+  visa_expiry?: string | null;
+  emirates_id_expiry?: string | null;
+  rera_cert_date?: string | null;
 }
 
 export interface CrmLead {
@@ -72,6 +77,7 @@ export interface CrmLead {
   medium: string | null;
   starred: boolean;
   expires_at: string | null;
+  first_response_at?: string | null;
   lost_reason: string | null;
   partner_agency: string | null;
   partner_split_pct: number | null;
@@ -157,6 +163,10 @@ export interface CrmListing {
   form_a_start: string | null;
   form_a_end: string | null;
   permit_status: "none" | "under_process" | "approved" | "expired";
+  permit_expiry?: string | null;
+  permit_price_aed?: number | null;
+  permit_agent_id?: string | null;
+  dld_unit_no?: string | null;
   approval: "pending" | "approved" | "rejected";
   approval_note: string | null;
   key_status: string | null;
@@ -182,6 +192,23 @@ export interface CrmDeal {
   closed_at: string;
   paid_at: string | null;
   notes: string | null;
+  milestones?: Record<string, string | null>;
+  noc_expiry?: string | null;
+  transfer_at?: string | null;
+  developer?: string | null;
+  project?: string | null;
+  unit_no?: string | null;
+  spa_signed_at?: string | null;
+  oqood_no?: string | null;
+  payment_plan?: PlanInstalment[];
+  commission_trigger_pct?: number | null;
+  developer_invoice_status?: "not_due" | "sent" | "paid" | null;
+  payment_method?: PaymentMethod | null;
+  cash_amount_aed?: number | null;
+  goaml_required?: boolean;
+  goaml_ref?: string | null;
+  goaml_reported_at?: string | null;
+  kyc_override_reason?: string | null;
 }
 
 export const commissionOf = (d: Pick<CrmDeal, "price_aed" | "commission_pct">) =>
@@ -259,13 +286,22 @@ export function whatNext(l: Pick<CrmLead, "stage" | "deal_kind" | "budget_aed" |
 export const KEY_STATUSES = ["Available", "With security", "With the client", "Door is open", "Sales center", "No key (off-plan)"] as const;
 
 /** What stops a listing from being approved and advertised (fäm: "Pending DOCs"). */
-export function complianceIssues(l: Pick<CrmListing, "permit_no" | "permit_status" | "form_a_end" | "photos" | "price_aed">): string[] {
+export function complianceIssues(
+  l: Pick<CrmListing, "permit_no" | "permit_status" | "form_a_end" | "photos" | "price_aed"> &
+    Partial<Pick<CrmListing, "permit_expiry" | "permit_price_aed" | "permit_agent_id" | "agent_id">>,
+  agent?: Pick<CrmUser, "brn_no" | "brn_expiry"> | null,
+): string[] {
   const out: string[] = [];
   const today = new Date().toISOString().slice(0, 10);
   if (!l.form_a_end) out.push("Form A missing");
   else if (l.form_a_end < today) out.push("Form A expired");
   if (!l.permit_no) out.push(l.permit_status === "under_process" ? "Permit under process" : "Trakheesi permit missing");
-  else if (l.permit_status === "expired") out.push("Permit expired");
+  else if (l.permit_status === "expired" || (l.permit_expiry && l.permit_expiry < today)) out.push("Trakheesi permit expired");
+  if (l.permit_no && l.permit_price_aed && l.price_aed && Number(l.permit_price_aed) !== Number(l.price_aed)) {
+    out.push(`Price differs from the permit (AED ${Number(l.permit_price_aed).toLocaleString()}) — renew the permit`);
+  }
+  if (l.permit_no && l.permit_agent_id && l.agent_id && l.permit_agent_id !== l.agent_id) out.push("Listing agent is not the agent on the permit");
+  if (agent !== undefined && l.agent_id && !licenceValid(agent)) out.push("Listing agent's BRN is missing or expired");
   if (!l.photos?.length) out.push("No photos");
   if (!l.price_aed) out.push("No price");
   return out;
@@ -404,3 +440,194 @@ export interface CrmAgentDocument {
   url: string;
   kind: (typeof DOC_KINDS)[number];
 }
+
+
+/* ---------------------------------------------------------------- licences */
+
+const todayIso = () => new Date().toISOString().slice(0, 10);
+const daysUntil = (d: string) => Math.ceil((new Date(d).getTime() - Date.now()) / 86_400_000);
+
+/** An agent may deal only with a current RERA broker card (BRN). */
+export function licenceValid(u: Pick<CrmUser, "brn_no" | "brn_expiry"> | null | undefined): boolean {
+  return !!u?.brn_no && !!u.brn_expiry && u.brn_expiry >= todayIso();
+}
+
+export function licenceAlerts(u: CrmUser): { level: "expired" | "soon" | "missing"; text: string }[] {
+  const out: { level: "expired" | "soon" | "missing"; text: string }[] = [];
+  if (!u.brn_no || !u.brn_expiry) out.push({ level: "missing", text: "BRN not recorded" });
+  const checks: [string, string | null | undefined][] = [["BRN", u.brn_expiry], ["Visa", u.visa_expiry], ["Emirates ID", u.emirates_id_expiry]];
+  for (const [label, date] of checks) {
+    if (!date) continue;
+    const d = daysUntil(date);
+    if (d < 0) out.push({ level: "expired", text: `${label} expired ${-d} days ago` });
+    else if (d <= 30) out.push({ level: "soon", text: `${label} expires in ${d} days` });
+  }
+  return out;
+}
+
+/* ---------------------------------------------------------------- KYC / AML */
+
+export type PaymentMethod = "transfer" | "cheque" | "mortgage" | "cash" | "crypto" | "mixed";
+export const PAYMENT_METHODS: PaymentMethod[] = ["transfer", "cheque", "mortgage", "cash", "crypto", "mixed"];
+export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  transfer: "Bank transfer", cheque: "Cheque", mortgage: "Mortgage", cash: "Cash", crypto: "Virtual assets (crypto)", mixed: "Mixed",
+};
+
+/** UAE AML rules: real-estate deals paid in cash or virtual assets at or above this need a goAML (REAR) report. */
+export const GOAML_CASH_THRESHOLD_AED = 55_000;
+
+export function goamlRequired(d: { payment_method?: string | null; cash_amount_aed?: number | null; price_aed?: number | null }): boolean {
+  if (d.payment_method === "crypto") return true;
+  if (d.payment_method === "cash") return Number(d.cash_amount_aed ?? d.price_aed ?? 0) >= GOAML_CASH_THRESHOLD_AED;
+  return Number(d.cash_amount_aed ?? 0) >= GOAML_CASH_THRESHOLD_AED;
+}
+
+export interface CrmKyc {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  contact_id: string;
+  owner_id: string | null;
+  party_type: "individual" | "company";
+  legal_name: string | null;
+  nationality: string | null;
+  date_of_birth: string | null;
+  emirates_id_no: string | null;
+  emirates_id_expiry: string | null;
+  passport_no: string | null;
+  passport_expiry: string | null;
+  trade_license_no: string | null;
+  trade_license_expiry: string | null;
+  ubo_details: string | null;
+  id_doc_url: string | null;
+  passport_doc_url: string | null;
+  is_pep: boolean | null;
+  pep_details: string | null;
+  sanctions_result: "pending" | "clear" | "match";
+  sanctions_checked_at: string | null;
+  screened_by: string | null;
+  source_of_funds: string | null;
+  payment_method: PaymentMethod | null;
+  risk_rating: "low" | "medium" | "high" | null;
+  status: "incomplete" | "complete" | "approved";
+  approved_by: string | null;
+  approved_at: string | null;
+  notes: string | null;
+}
+
+/** What still stops this client file from being complete. Empty list = complete. */
+export function kycMissing(k: Partial<CrmKyc> | null | undefined): string[] {
+  if (!k) return ["No KYC file"];
+  const out: string[] = [];
+  const today = todayIso();
+  if (!k.legal_name) out.push("Legal name");
+  if (k.party_type === "company") {
+    if (!k.trade_license_no) out.push("Trade licence number");
+    if (!k.trade_license_expiry) out.push("Trade licence expiry");
+    else if (k.trade_license_expiry < today) out.push("Trade licence expired");
+    if (!k.ubo_details) out.push("Beneficial owners (UBO)");
+  } else {
+    if (!k.nationality) out.push("Nationality");
+    if (!k.date_of_birth) out.push("Date of birth");
+    if (!k.emirates_id_no && !k.passport_no) out.push("Emirates ID or passport number");
+    if (k.emirates_id_no && !k.emirates_id_expiry) out.push("Emirates ID expiry");
+    if (k.passport_no && !k.passport_expiry) out.push("Passport expiry");
+    if (k.emirates_id_expiry && k.emirates_id_expiry < today) out.push("Emirates ID expired");
+    if (k.passport_expiry && k.passport_expiry < today) out.push("Passport expired");
+  }
+  if (!k.id_doc_url && !k.passport_doc_url) out.push("Copy of ID / passport");
+  if (k.is_pep === null || k.is_pep === undefined) out.push("PEP check");
+  if (k.sanctions_result !== "clear") out.push(k.sanctions_result === "match" ? "Sanctions match — escalate" : "Sanctions screening");
+  if (!k.source_of_funds) out.push("Source of funds");
+  if (!k.payment_method) out.push("Payment method");
+  if (!k.risk_rating) out.push("Risk rating");
+  return out;
+}
+
+export function kycStatusOf(k: Partial<CrmKyc> | null | undefined): "missing" | "incomplete" | "complete" | "approved" {
+  if (!k) return "missing";
+  if (kycMissing(k).length) return "incomplete";
+  return k.status === "approved" ? "approved" : "complete";
+}
+
+/* ---------------------------------------------------------------- deals */
+
+export interface PlanInstalment { label: string; pct: number; due: string | null; paid_at: string | null }
+
+export const DEAL_MILESTONES: Record<"sale" | "offplan" | "rent", { key: string; label: string }[]> = {
+  sale: [
+    { key: "form_b", label: "Form B signed (buyer agreement)" },
+    { key: "form_f", label: "Form F / MOU signed" },
+    { key: "deposit", label: "10% security deposit received" },
+    { key: "noc_applied", label: "Developer NOC applied" },
+    { key: "noc_received", label: "Developer NOC received" },
+    { key: "mortgage", label: "Mortgage approval / bank clearance" },
+    { key: "transfer_booked", label: "Transfer appointment booked" },
+    { key: "title_deed", label: "Title deed issued" },
+  ],
+  offplan: [
+    { key: "eoi", label: "EOI / booking paid" },
+    { key: "spa", label: "SPA signed" },
+    { key: "oqood", label: "Oqood registered" },
+    { key: "commission_trigger", label: "Commission trigger payment reached" },
+    { key: "developer_invoice", label: "Developer invoiced" },
+  ],
+  rent: [
+    { key: "offer_accepted", label: "Offer accepted by landlord" },
+    { key: "contract", label: "Tenancy contract signed" },
+    { key: "cheques", label: "Cheques and deposit collected" },
+    { key: "ejari", label: "Ejari registered" },
+    { key: "keys", label: "Keys handed over" },
+  ],
+};
+
+/* ---------------------------------------------------------------- invoices & rentals */
+
+export interface CrmInvoice {
+  id: string;
+  created_at: string;
+  number: string;
+  deal_id: string | null;
+  bill_to_name: string;
+  bill_to_trn: string | null;
+  bill_to_address: string | null;
+  description: string;
+  net_aed: number;
+  vat_pct: number;
+  vat_aed: number;
+  total_aed: number;
+  issue_date: string;
+  due_date: string | null;
+  status: "draft" | "sent" | "paid" | "void";
+  paid_aed: number;
+  paid_at: string | null;
+  notes: string | null;
+}
+
+export interface Cheque { no: string; bank: string; date: string; amount: number; status: "pending" | "deposited" | "cleared" | "bounced" }
+
+export interface CrmTenancy {
+  id: string;
+  created_at: string;
+  deal_id: string | null;
+  listing_id: string | null;
+  landlord_contact_id: string | null;
+  tenant_contact_id: string | null;
+  agent_id: string | null;
+  property_label: string;
+  start_date: string;
+  end_date: string;
+  annual_rent_aed: number;
+  cheques_count: number | null;
+  security_deposit_aed: number | null;
+  ejari_no: string | null;
+  ejari_expiry: string | null;
+  cheques: Cheque[];
+  status: "active" | "renewing" | "renewed" | "ended";
+  renewal_notice_sent_at: string | null;
+  notes: string | null;
+}
+
+export interface CrmSourceSpend { id: string; created_at: string; month: string; source: string; amount_aed: number; notes: string | null }
+
+export const daysLeft = daysUntil;

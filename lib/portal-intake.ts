@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { LEADS_TABLE } from "./supabase";
-import { LEAD_SLA_HOURS } from "./crm";
+import { LEAD_SLA_HOURS, licenceValid } from "./crm";
 
 export const PORTALS = ["bayut", "dubizzle", "property_finder"] as const;
 export type Portal = (typeof PORTALS)[number];
@@ -77,13 +77,19 @@ export async function ingestPortalLead(db: SupabaseClient, portal: Portal, raw: 
   if (reference) {
     const { data: listing } = await db.from("crm_listings").select("agent_id").eq("ref_code", reference).maybeSingle();
     owner = (listing?.agent_id as string | null) ?? null;
+    if (owner) {
+      const { data: agent } = await db.from("crm_users").select("brn_no, brn_expiry, active").eq("id", owner).maybeSingle();
+      if (!agent?.active || !licenceValid(agent as { brn_no: string | null; brn_expiry: string | null })) owner = null;
+    }
   }
   if (!owner) {
     const [{ data: agents }, { data: open }] = await Promise.all([
-      db.from("crm_users").select("id").eq("role", "agent").eq("active", true),
+      db.from("crm_users").select("id, brn_no, brn_expiry").eq("role", "agent").eq("active", true),
       db.from(LEADS_TABLE).select("owner_id").in("stage", OPEN).not("owner_id", "is", null).limit(5000),
     ]);
-    const load = new Map<string, number>((agents ?? []).map((a) => [a.id as string, 0]));
+    // Only agents with a current BRN may receive leads.
+    const eligible = (agents ?? []).filter((a) => licenceValid(a as { brn_no: string | null; brn_expiry: string | null }));
+    const load = new Map<string, number>(eligible.map((a) => [a.id as string, 0]));
     open?.forEach((l) => load.has(l.owner_id as string) && load.set(l.owner_id as string, (load.get(l.owner_id as string) ?? 0) + 1));
     owner = [...load.entries()].sort((a, b) => a[1] - b[1])[0]?.[0] ?? null;
   }
