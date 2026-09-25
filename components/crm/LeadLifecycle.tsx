@@ -150,3 +150,54 @@ export function ReasonForm({ mode, onSubmit, onCancel }: {
     </div>
   );
 }
+
+const HOUR = 3_600_000;
+const OUTCOMES = [
+  { key: "spoke", label: "Spoke to client", kind: "call", body: "Called — spoke with the client", followUpH: 48, stage: null },
+  { key: "no_answer", label: "No answer", kind: "call", body: "Called — no answer", followUpH: 3, stage: null },
+  { key: "whatsapp", label: "WhatsApp sent", kind: "whatsapp", body: "Sent a WhatsApp message", followUpH: 24, stage: null },
+  { key: "viewing", label: "Viewing booked", kind: "meeting", body: "Viewing booked", followUpH: 24, stage: "viewing" },
+] as const;
+
+/** One-tap lead update: logs the outcome, moves New → Contacted, sets the next follow-up, restarts the 48h clock. */
+export function QuickUpdate({ lead, onLog, onSave, onLost }: {
+  lead: CrmLead;
+  onLog: (kind: string, body: string) => Promise<void>;
+  onSave: (patch: Record<string, unknown>) => Promise<void>;
+  onLost: () => void;
+}) {
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+
+  async function record(o: (typeof OUTCOMES)[number]) {
+    setBusy(o.key);
+    await onLog(o.kind, note.trim() ? `${o.body}: ${note.trim()}` : o.body);
+    const stage = o.stage ?? (lead.stage === "new" ? "contacted" : null);
+    const next = new Date(Date.now() + o.followUpH * HOUR).toISOString();
+    await onSave({ next_follow_up_at: next, ...(stage && stage !== lead.stage ? { stage } : {}) });
+    setBusy(null);
+    setNote("");
+    setDone(`Logged. Next follow-up ${new Date(next).toLocaleString("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit" })}.`);
+    setTimeout(() => setDone(null), 4000);
+  }
+
+  return (
+    <section className="rounded-xl border border-[var(--accent-dim)] bg-white p-4 shadow-[var(--shadow-card)]">
+      <div className="mb-2.5 flex items-center justify-between">
+        <span className="text-[13px] font-semibold text-[var(--text-primary)]">Update this lead</span>
+        <span className="text-[11.5px] text-[var(--text-muted)]">Each update keeps the lead yours for 48h</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        {OUTCOMES.map((o) => (
+          <button key={o.key} disabled={!!busy} onClick={() => record(o)} className={`${BTN_GHOST} !h-10 !justify-center !px-2 text-[12.5px] ${busy === o.key ? "opacity-60" : ""}`}>
+            {busy === o.key ? "Saving…" : o.label}
+          </button>
+        ))}
+        <button disabled={!!busy} onClick={onLost} className={`${BTN_GHOST} !h-10 !px-2 text-[12.5px] hover:!border-red-300 hover:!text-red-700`}>Not interested</button>
+      </div>
+      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional note, e.g. wants 2BR in Marina, budget 2M" className={`${INPUT} mt-2.5`} />
+      {done && <p className="mt-2 text-[12px] font-medium text-emerald-700">{done}</p>}
+    </section>
+  );
+}

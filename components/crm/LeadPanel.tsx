@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Phone, Mail, MessageCircle, UserPlus, ExternalLink, AlertTriangle, Hand, Undo2 } from "lucide-react";
 import { STAGES, STAGE_LABEL, fillTemplate, type CrmListing, type CrmTemplate, type CrmContact, type CrmLead, type CrmTask, type CrmUser, type Stage } from "@/lib/crm";
 import { api, stamp, toInputDate, whatsapp, INPUT, BTN, BTN_GHOST, Label, SidePanel } from "./shared";
-import { WhatNext, Clock, StarButton, Requirements, Matches, ReasonForm } from "./LeadLifecycle";
+import { WhatNext, Clock, StarButton, Requirements, Matches, ReasonForm, QuickUpdate } from "./LeadLifecycle";
 import { CloseDealForm } from "./CloseDeal";
 import { Timeline } from "./Timeline";
 import { NewTask, TaskRow } from "./TaskList";
@@ -108,6 +108,14 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
       </div>
 
       <WhatNext lead={lead} />
+      {!closed && lead.owner_id && (
+        <QuickUpdate
+          lead={lead}
+          onLog={async (kind, body) => { await api("POST", "activities", { kind, body, lead_id: lead.id }); setRefresh((n) => n + 1); }}
+          onSave={save}
+          onLost={() => setAsk("lost")}
+        />
+      )}
       {ask && (
         <ReasonForm
           mode={ask}
@@ -177,7 +185,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
           ) : <div className={INPUT}>{userName(lead.owner_id)}</div>}
         </label>
         <label><Label>Next follow-up</Label>
-          <input type="datetime-local" defaultValue={toInputDate(lead.next_follow_up_at)}
+          <input key={lead.next_follow_up_at ?? "none"} type="datetime-local" defaultValue={toInputDate(lead.next_follow_up_at)}
             onBlur={(e) => save({ next_follow_up_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
             className={INPUT} />
         </label>

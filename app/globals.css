@@ -802,6 +802,10 @@ html.crm-shell main table thead tr { background: var(--surface-sunken); }
 html.crm-shell main table thead th { color: var(--text-muted); font-weight: 600; font-size: 10.5px; letter-spacing: 0.08em; }
 html.crm-shell main table tbody tr { transition: background-color 0.15s; }
 html.crm-shell main table tbody tr:hover { background: rgb(11 42 74 / 0.025); }
+@media (max-width: 767px) {
+  html.crm-shell main table th,
+  html.crm-shell main table td { white-space: nowrap; }
+}
 
 /* ============================================================================
    LIMESTONE & STEEL — editorial building blocks

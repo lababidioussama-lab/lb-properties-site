@@ -24,9 +24,9 @@ function CopyButton({ text }: { text: string }) {
 function Tool({ icon: Icon, title, desc, children, copy }: { icon: typeof Copy; title: string; desc: string; children: ReactNode; copy: string }) {
   return (
     <Card className="flex flex-col">
-      <div className="flex items-start gap-3 border-b border-[var(--hairline)] px-5 py-4">
+      <div className="flex flex-wrap items-start gap-3 border-b border-[var(--hairline)] px-5 py-4">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--accent-wash)] text-[var(--accent)]"><Icon size={17} /></span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[160px] flex-1">
           <h3 className="text-[14.5px] font-semibold">{title}</h3>
           <p className="text-[12.5px] text-[var(--text-muted)]">{desc}</p>
         </div>

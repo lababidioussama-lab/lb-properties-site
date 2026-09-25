@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { CalendarClock, PhoneIncoming, AlarmClock, Hand, MapPin } from "lucide-react";
+import { CalendarClock, PhoneIncoming, AlarmClock, Hand, MapPin, Hourglass } from "lucide-react";
 import { type CrmEvent, type CrmLead, type CrmTask, type CrmUser } from "@/lib/crm";
 import { money, Card, Empty } from "./shared";
 import { TaskGroup } from "./TaskList";
@@ -14,7 +14,7 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: 
 
 function Panel({ icon: Icon, title, count, tone = "", children }: { icon: typeof Hand; title: string; count: number; tone?: string; children: ReactNode }) {
   return (
-    <Card className="flex flex-col">
+    <Card className="flex min-w-0 flex-col">
       <div className="flex items-center gap-2.5 border-b border-[var(--hairline)] px-5 py-3.5">
         <Icon size={16} className={tone || "text-[var(--accent)]"} />
         <h3 className="text-[14px] font-semibold">{title}</h3>
@@ -59,6 +59,9 @@ export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask,
     .filter((l) => mine(l) && OPEN.includes(l.stage) && l.next_follow_up_at && new Date(l.next_follow_up_at).getTime() <= endOfDay.getTime())
     .sort((a, b) => (a.next_follow_up_at ?? "").localeCompare(b.next_follow_up_at ?? ""));
   const pool = leads.filter((l) => !l.owner_id && OPEN.includes(l.stage));
+  const expiring = leads
+    .filter((l) => mine(l) && l.owner_id && OPEN.includes(l.stage) && l.expires_at && new Date(l.expires_at).getTime() - now < 12 * 3_600_000)
+    .sort((a, b) => (a.expires_at ?? "").localeCompare(b.expires_at ?? ""));
   const today = events.rows
     .filter((e) => (isAdmin || e.agent_id === meId) && e.status !== "cancelled" && new Date(e.starts_at).toDateString() === new Date().toDateString())
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
@@ -80,6 +83,7 @@ export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask,
           ["Follow-ups due", followUps.length],
           ["On the calendar today", today.length],
           ["Tasks due", myTasks.length],
+          ["Need an update", expiring.length],
         ].map(([k, v]) => (
           <div key={k as string} className="border-s border-white/15 ps-5">
             <div className="figure text-[24px] font-semibold leading-none text-[#e3cc9f]">{v}</div>
@@ -88,7 +92,7 @@ export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask,
         ))}
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Panel icon={PhoneIncoming} title="New leads waiting for a first reply" count={waiting.length} tone="text-[#c0392b]">
           {waiting.length === 0 ? <Empty>Everyone has been contacted.</Empty> : waiting.slice(0, 8).map((l) => (
             <LeadRow key={l.id} lead={l} onOpen={() => onOpenLead(l.id)} meta={
@@ -128,6 +132,20 @@ export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask,
               {e.lead_id && <button onClick={() => onOpenLead(e.lead_id!)} className="text-[12px] font-medium text-[var(--accent)] hover:underline">Open lead</button>}
             </div>
           ))}
+        </Panel>
+
+        <Panel icon={Hourglass} title="Needs an update — about to return to the pool" count={expiring.length} tone="text-amber-600">
+          {expiring.length === 0 ? <Empty>All your leads are up to date.</Empty> : expiring.slice(0, 8).map((l) => {
+            const left = Math.max(0, Math.round((new Date(l.expires_at!).getTime() - now) / 3_600_000));
+            return (
+              <LeadRow key={l.id} lead={l} onOpen={() => onOpenLead(l.id)} meta={
+                <span className={left <= 3 ? "font-semibold text-[#c0392b]" : "font-medium text-amber-700"}>
+                  {left === 0 ? "Due now" : `${left}h left`}
+                  {isAdmin && <span className="block text-[11px] font-normal text-[var(--text-muted)]">{userName(l.owner_id)}</span>}
+                </span>
+              } />
+            );
+          })}
         </Panel>
 
         <Panel icon={Hand} title="Open pool — claim a lead" count={pool.length}>

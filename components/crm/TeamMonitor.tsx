@@ -114,7 +114,7 @@ export function TeamMonitor({ users, leads, tasks, deals }: { users: CrmUser[]; 
         {kpis.map((k) => (
           <Card key={k.label} className="px-5 py-4">
             <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{k.label}</div>
-            <div className={`figure mt-2 text-[24px] font-semibold leading-none ${k.alert ? "text-[#c0392b]" : "text-[var(--accent)]"}`}>{k.value}</div>
+            <div className={`figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] ${k.alert ? "text-[#c0392b]" : "text-[var(--accent)]"}`}>{k.value}</div>
           </Card>
         ))}
       </div>
