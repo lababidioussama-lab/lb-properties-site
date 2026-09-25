@@ -23,7 +23,7 @@ export async function api<T = Json>(
     body: body ? JSON.stringify(body) : undefined,
   });
   if (res.status === 401) window.location.reload();
-  return (await res.json().catch(() => ({ ok: false, error: "bad_response" }))) as ApiResult<Partial<T>>;
+  return (await res.json().catch(() => ({ ok: false, error: `Server error ${res.status}. Try again, or tell the admin.` }))) as ApiResult<Partial<T>>;
 }
 
 export const money = (v: number | null | undefined) =>
