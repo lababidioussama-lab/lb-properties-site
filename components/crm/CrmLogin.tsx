@@ -7,11 +7,14 @@ const MESSAGES: Record<string, string> = {
   rate_limited: "Too many attempts. Wait fifteen minutes.",
   not_configured: "The CRM is not configured on the server yet.",
   otp_not_configured: "Email codes are not set up on the server yet (RESEND_API_KEY).",
-  email_failed: "We could not send the code email. Try again in a minute.",
+  email_failed: "Your password is right, but we could not email your code. Ask the admin: the sending domain may not be verified in Resend yet.",
   code_wrong: "That code is not right.",
   code_locked: "Too many wrong codes. Sign in again to get a new one.",
   code_expired: "That code has expired. Sign in again.",
   wait: "Wait 30 seconds before asking for another code.",
+  invalid_credentials: "Email or password is not right.",
+  invalid: "Enter your email and password.",
+  bad_origin: "Blocked as a cross-site request. Open the CRM from its own address.",
 };
 
 export function CrmLogin({ configured }: { configured: boolean }) {
@@ -53,7 +56,7 @@ export function CrmLogin({ configured }: { configured: boolean }) {
     }
     if (r.ok) return window.location.reload();
     if (r.error === "code_locked" || r.error === "code_expired") { setStep("password"); setPassword(""); }
-    setError(r.error === "network" ? "Could not reach the server." : MESSAGES[r.error ?? ""] ?? "Email or password is not right.");
+    setError(r.error === "network" ? "Could not reach the server." : MESSAGES[r.error ?? ""] ?? `Could not sign in (${r.error ?? "unknown error"}).`);
   }
 
   async function resend() {

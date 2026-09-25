@@ -14,13 +14,26 @@ export function TeamView({ users, meId, onUser }: {
   const [form, setForm] = useState({ full_name: "", email: "", password: "", role: "agent" });
   const [error, setError] = useState<string | null>(null);
 
+  const [done, setDone] = useState<string | null>(null);
+
   async function create() {
     setError(null);
-    const r = await api<{ user: CrmUser }>("POST", "users", form);
+    setDone(null);
+    if (!form.full_name.trim() || !form.email.trim()) return setError("Enter the agent's full name and email.");
+    if (form.password.length < 10) return setError(`The temporary password must be at least 10 characters (this one has ${form.password.length}).`);
+    const r = await api<{ user: CrmUser }>("POST", "users", { ...form, email: form.email.trim() });
     if (r.user) {
       onUser(r.user as CrmUser);
+      setDone(`${form.full_name} added. Give them their email and this temporary password: ${form.password}`);
       setForm({ full_name: "", email: "", password: "", role: "agent" });
-    } else setError(r.error === "email_exists" ? "That email already has an account." : "Name, email and a password of 10+ characters are required.");
+    } else {
+      setError(
+        r.error === "email_exists" ? "That email already has an account. Use \"Reset password\" on it below instead."
+        : r.error === "email_name_and_10char_password_required" ? "Name, email and a password of 10+ characters are required."
+        : r.error === "bad_origin" ? "The request was blocked as cross-site. Open the CRM from its own address and try again."
+        : `Could not add the agent (${r.error ?? "unknown error"}).`,
+      );
+    }
   }
 
   async function patch(id: string, change: Record<string, unknown>) {
@@ -41,8 +54,8 @@ export function TeamView({ users, meId, onUser }: {
         <h3 className="mb-3 text-[13px] font-semibold text-[var(--text-primary)]">Add a team member</h3>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           <input placeholder="Full name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className={INPUT} />
-          <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={INPUT} />
-          <input placeholder="Temporary password" type="password" autoComplete="new-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={INPUT} />
+          <input placeholder="Agent's email" type="email" autoComplete="off" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={INPUT} />
+          <input placeholder="Temporary password (10+ characters)" type="text" autoComplete="off" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={INPUT} />
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className={INPUT}>
             <option value="agent">Agent: own leads only</option>
             <option value="admin">Admin: everything</option>
@@ -50,6 +63,7 @@ export function TeamView({ users, meId, onUser }: {
           <button onClick={create} className={BTN}><Plus size={14} /> Add</button>
         </div>
         {error && <p className="mt-2 text-[12px] text-[#c0392b]">{error}</p>}
+        {done && <p className="mt-2 text-[12px] font-medium text-emerald-700">{done}</p>}
       </Card>
 
       <Card className="divide-y divide-[var(--hairline)]">
