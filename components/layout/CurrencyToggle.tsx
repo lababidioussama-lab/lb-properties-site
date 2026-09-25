@@ -22,7 +22,7 @@ export function CurrencyToggle() {
             aria-pressed={active}
             className={[
               "relative rounded-full px-2.5 py-1.5 font-[family-name:var(--font-eyebrow)] text-[10px] font-semibold tracking-[0.1em] transition-colors duration-300",
-              active ? "text-[#0e1117]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]",
+              active ? "!text-white" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]",
             ].join(" ")}
           >
             {active && (
