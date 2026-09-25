@@ -38,7 +38,7 @@ export function MobileDock() {
               className="btn btn-line bg-[var(--surface-raised)] !px-3 !tracking-[0.12em] py-3.5 font-[family-name:var(--font-eyebrow)] text-[10px] font-semibold uppercase tracking-[0.12em]"
             >
               <Calculator size={15} strokeWidth={1.5} />
-              {t.utility.calcNetRoi}
+              {t.nav.netRoiShort}
             </a>
             <a
               href={SITE.waLink("Hello — I would like to speak to an advisor.")}
@@ -47,7 +47,7 @@ export function MobileDock() {
               className="btn btn-wa !px-3 !tracking-[0.12em] py-3.5 font-[family-name:var(--font-eyebrow)] text-[10px] font-semibold uppercase tracking-[0.12em]"
             >
               <IconWhatsApp size={15} />
-              {t.utility.directConcierge}
+              {t.utility.conciergeShort}
             </a>
           </div>
         </motion.div>

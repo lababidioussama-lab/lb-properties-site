@@ -394,3 +394,46 @@ export function DeveloperStrip() {
     </section>
   );
 }
+
+/* ---------------------------------------------------------- founder */
+
+export function FounderStory() {
+  const { t } = useSite();
+  const c = t.home.story;
+  return (
+    <section className="py-24 sm:py-32">
+      <div className="mx-auto grid max-w-[1320px] items-center gap-14 px-5 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-20">
+        <Reveal className="relative">
+          <div className="relative aspect-[922/538] overflow-hidden shadow-[var(--shadow-lift)]">
+            <Image src="/brand/founder.jpg" alt={c.name} fill sizes="(min-width:1024px) 55vw, 100vw" className="object-cover" />
+          </div>
+          <span className="absolute -bottom-5 -end-5 -z-10 hidden h-full w-full border border-[#c8a96e]/60 sm:block" />
+        </Reveal>
+
+        <div>
+          <Heading kicker={c.kicker} title={c.title} />
+          <Reveal delay={0.1}>
+            <p className="mt-8 max-w-[58ch] text-[16px] leading-[1.85] text-[var(--text-secondary)]">{c.body}</p>
+          </Reveal>
+          <Reveal delay={0.2}>
+            <figure className="mt-10 border-s-2 border-[#c8a96e] ps-7">
+              <blockquote className="font-[family-name:var(--font-display)] text-[clamp(24px,2.6vw,32px)] font-medium italic leading-[1.3] text-[var(--text-primary)] rtl:not-italic rtl:font-[family-name:var(--font-display-ar)]">
+                “{c.quote}”
+              </blockquote>
+              <figcaption className="mt-6">
+                <span className="block font-[family-name:var(--font-wordmark)] text-[17px] tracking-[0.12em] text-[var(--text-primary)] rtl:font-[family-name:var(--font-display-ar)] rtl:tracking-normal">{c.name}</span>
+                <span className="kicker mt-1.5 block">{c.role}</span>
+              </figcaption>
+            </figure>
+          </Reveal>
+          <Reveal delay={0.3} className="mt-10">
+            <a href={SITE.waLink("Hello Oussama — I would like to discuss a Dubai property.")} target="_blank" rel="noopener noreferrer" className="btn btn-navy">
+              <IconWhatsApp size={15} />
+              {c.cta}
+            </a>
+          </Reveal>
+        </div>
+      </div>
+    </section>
+  );
+}

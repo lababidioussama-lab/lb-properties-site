@@ -1,8 +1,13 @@
+import { pageMetadata } from "@/lib/page-metadata";
 import { SubpageHero } from "@/components/ui/SubpageHero";
 import { RelocationConcierge } from "@/components/sections/RelocationConcierge";
 import { RenovationSlider } from "@/components/sections/RenovationSlider";
 import { ConstructionPermits } from "@/components/sections/ConstructionPermits";
 import { ContactBand } from "@/components/home/HomeSections";
+
+export function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  return pageMetadata(params, "services");
+}
 
 export default function ServicesPage() {
   return (

@@ -8,6 +8,7 @@ import {
   ProcessSteps,
   InvestorToolsTeaser,
   ContactBand,
+  FounderStory,
 } from "@/components/home/HomeSections";
 import { Testimonials } from "@/components/sections/Testimonials";
 
@@ -28,6 +29,7 @@ export default function HomePage() {
       <FiguresBand />
       <ProcessSteps />
       <InvestorToolsTeaser />
+      <FounderStory />
       {SHOW_TESTIMONIALS && <Testimonials />}
       <ContactBand />
     </>

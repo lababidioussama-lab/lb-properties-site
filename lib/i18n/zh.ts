@@ -831,6 +831,15 @@ export const zh: Dictionary = {
       },
       cta: "打开投资者工具",
     },
+    story: {
+      kicker: "我们的故事",
+      title: "以信任为本，[[扎根迪拜]]",
+      body: "Lababidi Properties 源于一个愿景：以诚信与本地专业，重新定义迪拜的高端房地产。每位客户都享有创始人亲自坚持的标准：直截了当的回答、真实的数字，以及把客户利益放在首位的建议。",
+      quote: "我的承诺是建立信任，一次一套房产，扎根于迪拜的未来。",
+      name: "Oussama Lababidi",
+      role: "Lababidi Properties 创始人",
+      cta: "与 Oussama 交流",
+    },
     contact: {
       kicker: "私人咨询",
       title: "告诉我们您[[在寻找什么]]",

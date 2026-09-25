@@ -862,6 +862,15 @@ export const en = {
       },
       cta: "Open investor tools",
     },
+    story: {
+      kicker: "Our story",
+      title: "Built on trust, [[rooted in Dubai]]",
+      body: "Lababidi Properties began with a vision to redefine luxury real estate in Dubai, rooted in a commitment to integrity and local expertise. Every client works with the founder's own standards: straight answers, honest numbers and advice that puts the client's interest first.",
+      quote: "My commitment is to build trust, one property at a time, rooted in Dubai's future.",
+      name: "Oussama Lababidi",
+      role: "Founder, Lababidi Properties",
+      cta: "Speak with Oussama",
+    },
     contact: {
       kicker: "Private consultation",
       title: "Tell us what you are [[looking for]]",
