@@ -33,7 +33,7 @@ export function TaskRow({ task, onChange, onRemove, userName, showAssignee }: {
       <span className={`figure text-[11px] ${!done && isOverdue(task.due_at) ? "text-[#c0392b]" : "text-[var(--text-muted)]"}`}>
         {shortDate(task.due_at)}
       </span>
-      <button onClick={remove} aria-label="Delete task" className="text-[var(--text-muted)] opacity-0 transition-opacity hover:text-[#c0392b] group-hover:opacity-100">
+      <button onClick={remove} aria-label="Delete task" className="p-1.5 text-[var(--text-muted)] transition-opacity hover:text-[#c0392b] sm:opacity-0 sm:group-hover:opacity-100">
         <Trash2 size={14} />
       </button>
     </li>

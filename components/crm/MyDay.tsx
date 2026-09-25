@@ -38,7 +38,8 @@ function LeadRow({ lead, meta, onOpen }: { lead: CrmLead; meta: ReactNode; onOpe
 }
 
 /** An agent's day on one screen: what to do first, in order. */
-export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask, onRemoveTask }: {
+export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask, onRemoveTask, loaded = true }: {
+  loaded?: boolean;
   me: CrmUser | undefined;
   isAdmin: boolean;
   leads: CrmLead[];
@@ -54,11 +55,11 @@ export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask,
   const endOfDay = new Date(); endOfDay.setHours(23, 59, 59, 999);
 
   const mine = (l: CrmLead) => isAdmin || l.owner_id === meId;
-  const waiting = leads.filter((l) => mine(l) && l.owner_id && l.stage === "new").sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const waiting = leads.filter((l) => (mine(l) || !l.owner_id) && l.stage === "new").sort((a, b) => a.created_at.localeCompare(b.created_at));
   const followUps = leads
     .filter((l) => mine(l) && OPEN.includes(l.stage) && l.next_follow_up_at && new Date(l.next_follow_up_at).getTime() <= endOfDay.getTime())
     .sort((a, b) => (a.next_follow_up_at ?? "").localeCompare(b.next_follow_up_at ?? ""));
-  const pool = leads.filter((l) => !l.owner_id && OPEN.includes(l.stage));
+  const pool = leads.filter((l) => !l.owner_id && OPEN.includes(l.stage) && l.stage !== "new");
   const expiring = leads
     .filter((l) => mine(l) && l.owner_id && OPEN.includes(l.stage) && l.expires_at && new Date(l.expires_at).getTime() - now < 12 * 3_600_000)
     .sort((a, b) => (a.expires_at ?? "").localeCompare(b.expires_at ?? ""));
@@ -66,6 +67,14 @@ export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask,
     .filter((e) => (isAdmin || e.agent_id === meId) && e.status !== "cancelled" && new Date(e.starts_at).toDateString() === new Date().toDateString())
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const myTasks = tasks.filter((t) => !t.done_at && (isAdmin || t.assignee_id === meId) && t.due_at && new Date(t.due_at).getTime() <= endOfDay.getTime());
+
+  if (!loaded) {
+    return (
+      <div className="space-y-5">
+        {[88, 180, 180].map((h, i) => <div key={i} className="animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" style={{ height: h }} />)}
+      </div>
+    );
+  }
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -98,6 +107,7 @@ export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask,
             <LeadRow key={l.id} lead={l} onOpen={() => onOpenLead(l.id)} meta={
               <span className={hours(l.created_at) >= 1 ? "font-semibold text-[#c0392b]" : "text-[var(--text-muted)]"}>
                 {hours(l.created_at) < 1 ? "Just in" : `${hours(l.created_at)}h waiting`}
+                <span className="block text-[11px] font-medium text-[var(--accent)]">{l.owner_id ? (isAdmin ? userName(l.owner_id) : "Yours") : "Unclaimed · tap to claim"}</span>
               </span>
             } />
           ))}
@@ -150,7 +160,7 @@ export function MyDay({ me, isAdmin, leads, tasks, userName, onOpenLead, onTask,
 
         <Panel icon={Hand} title="Open pool — claim a lead" count={pool.length}>
           {pool.length === 0 ? <Empty>The pool is empty.</Empty> : pool.slice(0, 6).map((l) => (
-            <LeadRow key={l.id} lead={l} onOpen={() => onOpenLead(l.id)} meta={<span className="font-medium text-[var(--accent)]">Open →</span>} />
+            <LeadRow key={l.id} lead={l} onOpen={() => onOpenLead(l.id)} meta={<span className="font-medium text-[var(--accent)]">Claim →<span className="block text-[11px] font-normal text-[var(--text-muted)]">{hours(l.created_at)}h old</span></span>} />
           ))}
         </Panel>
       </div>

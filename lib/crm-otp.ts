@@ -23,8 +23,8 @@ interface Ticket extends SessionUser {
 }
 
 function key(): string | null {
-  const s = process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD;
-  return s && s.length >= 12 ? s : null;
+  const s = process.env.SESSION_SECRET;
+  return s && s.length >= 32 ? s : null;
 }
 
 const hmac = (k: string, v: string) => createHmac("sha256", k).update(v).digest("hex");

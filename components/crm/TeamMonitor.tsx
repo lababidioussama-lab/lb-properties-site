@@ -189,7 +189,7 @@ export function TeamMonitor({ users, leads, tasks, deals }: { users: CrmUser[]; 
             {data.sessions.slice(0, 25).map((s, i) => (
               <li key={i} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-2.5 text-[12.5px]">
                 <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${s.action === "login" ? "bg-emerald-50 text-emerald-700" : s.action === "logout" ? "bg-zinc-100 text-zinc-600" : "bg-red-50 text-red-700"}`}>
-                  {s.action === "login" ? "Signed in" : s.action === "logout" ? "Signed out" : "Failed attempt"}
+                  {s.action === "login" ? "Signed in" : s.action === "logout" ? "Signed out" : s.action === "otp_failed" ? "Wrong code" : "Wrong password"}
                 </span>
                 <span className="font-medium">{s.user_id ? name(s.user_id) : s.detail.email ?? "Unknown email"}</span>
                 <span className="text-[var(--text-muted)]">{device(s.detail.agent)}</span>

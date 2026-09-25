@@ -56,13 +56,13 @@ export const STAGE_STYLE: Record<Stage, string> = {
 };
 
 export const INPUT =
-  "w-full h-9 rounded-lg border border-[var(--hairline-strong)] bg-white px-3 text-[13px] text-[var(--text-primary)] shadow-[0_1px_1px_rgb(15_23_42/0.03)] outline-none transition placeholder:text-[var(--text-muted)] hover:border-[rgb(15_23_42/0.25)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[rgb(11_42_74/0.12)] disabled:bg-[var(--surface-sunken)] disabled:text-[var(--text-muted)] [&:is(textarea)]:h-auto [&:is(textarea)]:py-2";
+  "w-full h-11 sm:h-9 rounded-lg border border-[var(--hairline-strong)] bg-white px-3 text-[13px] text-[var(--text-primary)] shadow-[0_1px_1px_rgb(15_23_42/0.03)] outline-none transition placeholder:text-[var(--text-muted)] hover:border-[rgb(15_23_42/0.25)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[rgb(11_42_74/0.12)] disabled:bg-[var(--surface-sunken)] disabled:text-[var(--text-muted)] [&:is(textarea)]:h-auto [&:is(textarea)]:py-2";
 
 export const BTN =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[var(--accent-solid)] px-3.5 text-[13px] font-semibold text-white shadow-[0_1px_2px_rgb(11_42_74/0.25),inset_0_1px_0_rgb(255_255_255/0.08)] transition hover:bg-[var(--accent-solid-hover)] active:translate-y-px disabled:pointer-events-none disabled:opacity-45";
+  "inline-flex h-11 sm:h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[var(--accent-solid)] px-3.5 text-[13px] font-semibold text-white shadow-[0_1px_2px_rgb(11_42_74/0.25),inset_0_1px_0_rgb(255_255_255/0.08)] transition hover:bg-[var(--accent-solid-hover)] active:translate-y-px disabled:pointer-events-none disabled:opacity-45";
 
 export const BTN_GHOST =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[var(--hairline-strong)] bg-white px-3 text-[13px] font-medium text-[var(--text-secondary)] shadow-[0_1px_1px_rgb(15_23_42/0.03)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] active:translate-y-px disabled:pointer-events-none disabled:opacity-45";
+  "inline-flex h-11 sm:h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[var(--hairline-strong)] bg-white px-3 text-[13px] font-medium text-[var(--text-secondary)] shadow-[0_1px_1px_rgb(15_23_42/0.03)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] active:translate-y-px disabled:pointer-events-none disabled:opacity-45";
 
 export function Label({ children }: { children: ReactNode }) {
   return (
@@ -85,15 +85,25 @@ export function SidePanel({ title, subtitle, onClose, children }: {
   onClose: () => void;
   children: ReactNode;
 }) {
+  /* Fields save on blur, so blur the focused one before closing — otherwise
+     Escape or the backdrop would throw away whatever was just typed. */
+  const close = () => {
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    setTimeout(onClose, 0);
+  };
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      setTimeout(onClose, 0);
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-[rgb(11_26_43/0.35)] backdrop-blur-[2px]" />
+      <button aria-label="Close" onClick={close} className="absolute inset-0 bg-[rgb(11_26_43/0.35)] backdrop-blur-[2px]" />
       <aside className="relative flex h-full w-full max-w-[580px] flex-col bg-[var(--surface)] shadow-[-24px_0_60px_-20px_rgb(15_23_42/0.35)]">
         <header className="flex items-start justify-between gap-4 border-b border-[var(--hairline)] bg-white px-6 py-5">
           <div className="min-w-0">
@@ -102,7 +112,7 @@ export function SidePanel({ title, subtitle, onClose, children }: {
             </h2>
             {subtitle && <div className="mt-1 text-[12.5px] text-[var(--text-muted)]">{subtitle}</div>}
           </div>
-          <button onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--hairline-strong)] bg-white text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
+          <button onClick={close} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--hairline-strong)] bg-white text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
             <X size={16} />
           </button>
         </header>

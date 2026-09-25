@@ -46,6 +46,17 @@ const trim = (value: unknown, max: number): string | null => {
   return cleaned ? cleaned.slice(0, max) : null;
 };
 
+/* The calculator state carried in with an enquiry: flat, small values only. */
+function safeSelections(v: unknown): Record<string, string | number | boolean> {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+  const out: Record<string, string | number | boolean> = {};
+  for (const [k, val] of Object.entries(v).slice(0, 30)) {
+    if (typeof val === "number" || typeof val === "boolean") out[k.slice(0, 40)] = val;
+    else if (typeof val === "string") out[k.slice(0, 40)] = val.slice(0, 200);
+  }
+  return out;
+}
+
 export async function POST(request: NextRequest) {
   const ip = clientIp(request);
   if (rateLimited(ip)) {
@@ -54,7 +65,9 @@ export async function POST(request: NextRequest) {
 
   let body: Partial<LeadPayload>;
   try {
-    body = (await request.json()) as Partial<LeadPayload>;
+    const text = await request.text();
+    if (text.length > 20_000) return NextResponse.json({ ok: false, error: "too_large" }, { status: 413 });
+    body = JSON.parse(text) as Partial<LeadPayload>;
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
@@ -102,7 +115,7 @@ export async function POST(request: NextRequest) {
     currency: ["AED", "USD", "EUR", "GBP"].includes(body.currency ?? "")
       ? body.currency
       : "AED",
-    payload: body.selections ?? {},
+    payload: safeSelections(body.selections),
     source: request.headers.get("referer")?.slice(0, 500) ?? null,
     user_agent: request.headers.get("user-agent")?.slice(0, 500) ?? null,
   });

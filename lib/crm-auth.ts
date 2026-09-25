@@ -22,9 +22,12 @@ export interface SessionUser {
   role: Role;
 }
 
+/* A dedicated secret only. Falling back to ADMIN_PASSWORD would let anyone
+   who learns the owner password forge an admin session and skip the
+   emailed code. */
 function secret(): string | null {
-  const s = process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD;
-  return s && s.length >= 12 ? s : null;
+  const s = process.env.SESSION_SECRET;
+  return s && s.length >= 32 ? s : null;
 }
 
 export function isCrmConfigured(): boolean {
@@ -45,6 +48,8 @@ export function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
   return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
 }
+
+const DUMMY_HASH = `${"0".repeat(32)}:${"0".repeat(128)}`;
 
 export function verifyPassword(password: string, stored: string): boolean {
   const [salt, hash] = stored.split(":");
@@ -74,12 +79,36 @@ export function readSession(value: string | undefined | null): SessionUser | nul
   return { id, role };
 }
 
+/** Reject state-changing requests sent from another site (CSRF defence on top of SameSite). */
+export function sameOrigin(request: NextRequest): boolean {
+  if (request.method === "GET" || request.method === "HEAD") return true;
+  const origin = request.headers.get("origin");
+  if (!origin) return true;
+  try {
+    return new URL(origin).host === request.headers.get("host");
+  } catch {
+    return false;
+  }
+}
+
 export function sessionFromRequest(request: NextRequest): SessionUser | null {
   return readSession(request.cookies.get(CRM_COOKIE)?.value);
 }
 
+/** The cookie proves who signed in; the database decides what they can do
+    now. A deactivated or demoted user loses access on their next request
+    rather than when their 10-hour cookie runs out. */
+export async function liveUser(session: SessionUser | null): Promise<SessionUser | null> {
+  if (!session) return null;
+  const db = getSupabaseAdmin();
+  if (!db) return null;
+  const { data } = await db.from("crm_users").select("role, active").eq("id", session.id).maybeSingle();
+  if (!data || !data.active) return null;
+  return { id: session.id, role: data.role === "admin" ? "admin" : "agent" };
+}
+
 export async function sessionFromCookies(): Promise<SessionUser | null> {
-  return readSession((await cookies()).get(CRM_COOKIE)?.value);
+  return liveUser(readSession((await cookies()).get(CRM_COOKIE)?.value));
 }
 
 export const SESSION_COOKIE_OPTIONS = {
@@ -115,6 +144,8 @@ export async function authenticate(email: string, password: string): Promise<Ses
     .select("id, role, password_hash, active")
     .eq("email", normalized)
     .maybeSingle();
-  if (!data || !data.active || !verifyPassword(password, data.password_hash as string)) return null;
+  // Hash even for unknown emails so response time does not reveal which accounts exist.
+  const valid = verifyPassword(password, (data?.password_hash as string) ?? DUMMY_HASH);
+  if (!data || !data.active || !valid) return null;
   return { id: data.id as string, role: data.role as Role };
 }

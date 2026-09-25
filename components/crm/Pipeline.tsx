@@ -56,7 +56,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
 
   return (
     <div className="flex h-full flex-col gap-5">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="hidden grid-cols-2 gap-3 sm:grid md:grid-cols-5">
         {stats.map((s) => (
           <Card key={s.label} className="px-5 py-4">
             <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{s.label}</div>
@@ -105,7 +105,56 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
 
       {note && <p className="text-[12.5px] text-[var(--text-secondary)]">{note}</p>}
 
-      <div className="grid min-h-0 flex-1 auto-cols-[minmax(240px,1fr)] grid-flow-col gap-3 overflow-x-auto pb-2">
+      {/* Phones: drag-and-drop does not work on touch, so a list grouped by stage with a tap-to-change stage chip. */}
+      <div className="space-y-5 sm:hidden">
+        {STAGES.map((stage) => {
+          const column = visible.filter((l) => l.stage === stage);
+          if (!column.length) return null;
+          return (
+            <section key={stage}>
+              <div className="mb-2 flex items-center gap-2">
+                <span className={`rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold ${STAGE_STYLE[stage]}`}>{STAGE_LABEL[stage]}</span>
+                <span className="text-[12px] text-[var(--text-muted)]">{column.length}</span>
+              </div>
+              <div className="space-y-2">
+                {column.map((l) => (
+                  <div key={l.id} className="flex items-center gap-3 rounded-xl border border-[var(--hairline)] bg-white p-3 shadow-[var(--shadow-card)]">
+                    <button onClick={() => onOpen(l.id)} className="min-w-0 flex-1 text-start">
+                      <div className="flex items-center gap-1.5 truncate text-[14px] font-medium">
+                        {l.starred && <Star size={12} className="shrink-0 fill-amber-300 text-amber-700" />}{l.full_name}
+                      </div>
+                      <div className="truncate text-[12px] text-[var(--text-muted)]">
+                        {SOURCE_LABEL[sourceKey(l.source)]} · {l.owner_id ? userName(l.owner_id) : "Open pool"}
+                        {l.stage === "new" && Date.now() - new Date(l.created_at).getTime() > 3_600_000 && (
+                          <span className="font-semibold text-[#c0392b]"> · {Math.floor((Date.now() - new Date(l.created_at).getTime()) / 3_600_000)}h no reply</span>
+                        )}
+                      </div>
+                    </button>
+                    {(isAdmin || l.owner_id) && (
+                      <select
+                        value={l.stage}
+                        onChange={(e) => {
+                          const next = e.target.value as Stage;
+                          // Won needs the deal form and Lost needs a reason: finish those in the lead panel.
+                          if (next === "won" || next === "lost") onOpen(l.id);
+                          else void move(l.id, next);
+                        }}
+                        aria-label="Stage"
+                        className="h-10 shrink-0 rounded-lg border border-[var(--hairline-strong)] bg-white px-2 text-[12.5px]"
+                      >
+                        {STAGES.map((st) => <option key={st} value={st}>{STAGE_LABEL[st]}</option>)}
+                      </select>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+        {visible.length === 0 && <p className="py-10 text-center text-[13px] text-[var(--text-muted)]">No leads match.</p>}
+      </div>
+
+      <div className="hidden min-h-0 flex-1 auto-cols-[minmax(240px,1fr)] grid-flow-col gap-3 overflow-x-auto pb-2 sm:grid">
         {STAGES.map((stage) => {
           const column = visible.filter((l) => l.stage === stage);
           return (
@@ -113,7 +162,14 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
               key={stage}
               onDragOver={(e) => { e.preventDefault(); setOver(stage); }}
               onDragLeave={() => setOver(null)}
-              onDrop={() => { if (dragging) void move(dragging, stage); setDragging(null); setOver(null); }}
+              onDrop={() => {
+                if (dragging) {
+                  if (stage === "won" || stage === "lost") onOpen(dragging);
+                  else void move(dragging, stage);
+                }
+                setDragging(null);
+                setOver(null);
+              }}
               className={`flex min-h-[300px] flex-col rounded-xl border p-2 transition-colors ${over === stage ? "border-[var(--accent)] bg-[var(--accent-wash)]" : "border-[var(--hairline)] bg-[var(--surface-sunken)]"}`}
             >
               <header className="flex items-center justify-between px-2 py-1.5">

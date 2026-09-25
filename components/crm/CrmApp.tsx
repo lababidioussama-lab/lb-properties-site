@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { Activity, Calculator, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList } from "lucide-react";
+import { Activity, Calculator, Menu, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList } from "lucide-react";
 
 import type { CrmContact, CrmDeal, CrmLead, CrmListing, CrmTask, CrmTemplate, CrmUser } from "@/lib/crm";
 import type { SessionUser } from "@/lib/crm-auth";
@@ -53,6 +53,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   const listings = useTable<CrmListing>("listings");
   const [listingPrefill, setListingPrefill] = useState<Record<string, string> | null>(null);
   const [tempLeadPromote, setTempLeadPromote] = useState<Record<string, string> | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const deals = useTable<CrmDeal>("deals");
   const templates = useTable<CrmTemplate & { created_at?: string }>("templates");
 
@@ -68,6 +69,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     setContacts(c.contacts ?? []);
     setTasks(t.tasks ?? []);
     setUsers(u.users ?? []);
+    setLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -92,7 +94,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   const me_ = users.find((u) => u.id === me.id);
 
   const openTasks = tasks.filter((t) => !t.done_at);
-  const todayCount = leads.filter((l) => l.stage === "new" && l.owner_id && (isAdmin || l.owner_id === me.id)).length;
+  const todayCount = leads.filter((l) => l.stage === "new" && (!l.owner_id || isAdmin || l.owner_id === me.id)).length;
   const dueCount = openTasks.filter((t) => t.due_at && new Date(t.due_at).getTime() < Date.now() + 86_400_000).length;
 
   const nav: { id: View; label: string; icon: typeof Users; badge?: number; group: string; desc: string }[] = [
@@ -225,14 +227,14 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-lg text-white/60" aria-label="Sign out"><LogOut size={16} /></button>
         </div>
 
-        <main className="mx-auto w-full max-w-[1480px] flex-1 px-5 py-6 md:px-10 md:py-9">
-          <div className="mb-7 flex items-start justify-between gap-4 border-b border-[var(--hairline)] pb-6">
+        <main className="mx-auto w-full max-w-[1480px] flex-1 px-4 pb-24 pt-5 md:px-10 md:py-9">
+          <div className="mb-5 flex items-start justify-between gap-4 border-b border-[var(--hairline)] pb-4 md:mb-7 md:pb-6">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gold)]">{current?.group}</p>
-              <h1 className="mt-1.5 font-[family-name:var(--font-display)] text-[34px] font-semibold leading-none tracking-[-0.01em]">
+              <h1 className="mt-1.5 font-[family-name:var(--font-display)] text-[28px] font-semibold leading-none tracking-[-0.01em] md:text-[34px]">
                 {current?.label}
               </h1>
-              <p className="mt-2 text-[13.5px] text-[var(--text-muted)]">{current?.desc}</p>
+              <p className="mt-2 hidden text-[13.5px] text-[var(--text-muted)] sm:block">{current?.desc}</p>
             </div>
             <NotificationBell leads={leads} tasks={tasks} listings={listings.rows} isAdmin={isAdmin} meId={me.id} onOpenLead={setLeadId} />
           </div>
@@ -245,7 +247,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           )}
 
           {view === "today" && (
-            <MyDay me={me_} isAdmin={isAdmin} leads={leads} tasks={tasks} userName={userName}
+            <MyDay loaded={loaded} me={me_} isAdmin={isAdmin} leads={leads} tasks={tasks} userName={userName}
               onOpenLead={setLeadId} onTask={onTask} onRemoveTask={onRemoveTask} />
           )}
           {view === "tools" && <ToolsView />}
@@ -305,6 +307,33 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           {view === "integrations" && isAdmin && <IntegrationsView onLeadsChanged={() => void load()} />}
         </main>
       </div>
+
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--hairline)] bg-white/95 backdrop-blur md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        {(["today", "pipeline", "calendar", "tasks"] as View[]).map((id) => {
+          const n = nav.find((x) => x.id === id)!;
+          const on = view === id;
+          return (
+            <button key={id} onClick={() => setView(id)} className={`relative flex h-16 flex-col items-center justify-center gap-1 text-[10.5px] font-medium ${on ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
+              {on && <span className="absolute top-0 h-[3px] w-8 rounded-b bg-[#c8a96e]" />}
+              <n.icon size={20} strokeWidth={on ? 2 : 1.6} />
+              {n.label}
+              {!!n.badge && <span className="absolute end-[22%] top-2 min-w-4 rounded-full bg-[#c0392b] px-1 text-center text-[9.5px] font-semibold leading-4 text-white">{n.badge}</span>}
+            </button>
+          );
+        })}
+        <label className="relative flex h-16 flex-col items-center justify-center gap-1 text-[10.5px] font-medium text-[var(--text-muted)]">
+          <Menu size={20} strokeWidth={1.6} />
+          More
+          <select value={view} onChange={(e) => setView(e.target.value as View)} className="absolute inset-0 opacity-0" aria-label="More screens">
+            {groups.map((g) => (
+              <optgroup key={g} label={g}>
+                {nav.filter((n) => n.group === g).map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+      </nav>
 
       {lead && (
         <LeadPanel

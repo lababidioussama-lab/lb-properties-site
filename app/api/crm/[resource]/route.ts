@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getSupabaseAdmin, LEADS_TABLE } from "@/lib/supabase";
-import { hashPassword, sessionFromRequest, type SessionUser } from "@/lib/crm-auth";
+import { hashPassword, liveUser, sameOrigin, sessionFromRequest, type SessionUser } from "@/lib/crm-auth";
 import { PORTALS, PORTAL_LABEL, ingestPortalLead, portalSecret, type Portal } from "@/lib/portal-intake";
 import { ACTIVITY_KINDS, CONTACT_KINDS, CONTACT_STATUSES, LEAD_SLA_HOURS, LOST_REASONS, STAGES, STAGE_LABEL, STAR_LIMIT, complianceIssues, type Stage } from "@/lib/crm";
 
@@ -34,7 +34,8 @@ const pick = <T extends string>(v: unknown, allowed: readonly T[]): T | null =>
   allowed.includes(v as T) ? (v as T) : null;
 
 async function setup(request: NextRequest) {
-  const user = sessionFromRequest(request);
+  if (!sameOrigin(request)) return { error: fail("bad_origin", 403) } as const;
+  const user = await liveUser(sessionFromRequest(request));
   if (!user) return { error: fail("unauthorised", 401) } as const;
   const db = getSupabaseAdmin();
   if (!db) return { error: fail("not_configured", 503) } as const;
@@ -82,11 +83,25 @@ async function expireLeads(db: SupabaseClient) {
 }
 
 /** Pool leads are visible to every agent, but contact details stay hidden until claimed. */
-const mask = (lead: Body) => ({
-  ...lead,
-  phone: String(lead.phone ?? "").replace(/\d(?=\d{2})/g, "•"),
-  email: null,
-});
+/* An allow-list, not a deny-list: anything added to the lead row later
+   (payload.raw from a portal carries the phone and email) stays hidden
+   from agents until they claim the lead. */
+const POOL_FIELDS = [
+  "id", "created_at", "service", "source", "full_name", "locale", "stage", "owner_id", "contact_id",
+  "deal_kind", "property_type", "beds", "budget_aed", "location", "ready_status", "starred", "expires_at",
+] as const;
+const mask = (lead: Body) => {
+  const out: Body = Object.fromEntries(POOL_FIELDS.map((k) => [k, lead[k] ?? null]));
+  const digits = String(lead.phone ?? "").replace(/\D/g, "");
+  out.phone = digits ? `${"•".repeat(Math.max(4, digits.length - 2))}${digits.slice(-2)}` : "";
+  out.email = null;
+  out.notes = null;
+  out.internal_notes = null;
+  out.payload = {};
+  out.next_follow_up_at = null;
+  out.deal_value_aed = null;
+  return out;
+};
 
 export async function GET(request: NextRequest, { params }: Ctx) {
   const s = await setup(request);
@@ -127,7 +142,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
       if (user.role !== "admin") return fail("forbidden", 403);
       const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
       const [sessions, actions, work] = await Promise.all([
-        db.from("crm_audit").select("user_id, action, created_at, detail").eq("entity", "session").gte("created_at", since).order("created_at", { ascending: false }).limit(5000),
+        db.from("crm_audit").select("user_id, action, created_at, detail").eq("entity", "session").in("action", ["login", "logout", "login_failed", "otp_failed"]).gte("created_at", since).order("created_at", { ascending: false }).limit(5000),
         db.from("crm_audit").select("user_id, created_at").neq("entity", "session").gte("created_at", since).order("created_at", { ascending: false }).limit(5000),
         db.from("crm_activities").select("user_id, kind, created_at").gte("created_at", since).order("created_at", { ascending: false }).limit(10000),
       ]);
@@ -182,12 +197,17 @@ export async function GET(request: NextRequest, { params }: Ctx) {
       return error ? fail(error.message, 502) : ok({ tasks: data });
     }
     case "users": {
-      const cols: string = "id, full_name, role, active, slab_pct, quarterly_target_aed, phone, languages, specialties, bio, avatar_url";
-      const selection: string = user.role === "admin" ? `email, ${cols}` : cols;
+      const cols: string = "id, full_name, role, active, phone, languages, specialties, bio, avatar_url";
+      // Pay (slab) and targets are admin-only, except an agent's own.
+      const selection: string = user.role === "admin" ? `email, slab_pct, quarterly_target_aed, ${cols}` : cols;
       const { data } = await db
         .from("crm_users")
         .select(selection)
         .order("created_at");
+      if (user.role !== "admin" && data) {
+        const { data: self } = await db.from("crm_users").select("slab_pct, quarterly_target_aed").eq("id", user.id).maybeSingle();
+        return ok({ users: (data as unknown as Body[]).map((u) => (u.id === user.id ? { ...u, ...(self ?? {}) } : u)) });
+      }
       return ok({ users: data ?? [] });
     }
   }
@@ -325,6 +345,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
           .update({ owner_id: user.id, expires_at: slaDeadline() })
           .eq("id", id)
           .is("owner_id", null)
+          .in("stage", OPEN_STAGES)
           .select()
           .maybeSingle();
         if (error) return fail(error.message, 502);

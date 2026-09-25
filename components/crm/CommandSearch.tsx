@@ -21,13 +21,16 @@ export function CommandSearch({ leads, contacts, listings, onPick }: {
   const [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null);
 
+  const openRef = useRef(false);
+  openRef.current = open;
   useEffect(() => {
+    // Capture phase so an open palette handles Escape before a side panel underneath does.
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setOpen((v) => !v); }
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape" && openRef.current) { e.preventDefault(); setOpen(false); }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, []);
 
   useEffect(() => { if (open) { setQ(""); setActive(0); setTimeout(() => input.current?.focus(), 0); } }, [open]);

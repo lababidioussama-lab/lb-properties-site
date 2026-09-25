@@ -13,11 +13,12 @@ export function portalSecret(portal: Portal) {
 }
 
 /** Every leaf value in the payload, keyed by its lower-cased field name. */
-function flatten(value: unknown, out: Map<string, unknown> = new Map(), key = ""): Map<string, unknown> {
+function flatten(value: unknown, out: Map<string, unknown> = new Map(), key = "", depth = 0): Map<string, unknown> {
+  if (depth > 8 || out.size > 500) return out;
   if (value && typeof value === "object" && !Array.isArray(value)) {
-    for (const [k, v] of Object.entries(value)) flatten(v, out, k.toLowerCase());
+    for (const [k, v] of Object.entries(value).slice(0, 200)) flatten(v, out, k.toLowerCase(), depth + 1);
   } else if (Array.isArray(value)) {
-    value.forEach((v) => flatten(v, out, key));
+    value.slice(0, 50).forEach((v) => flatten(v, out, key, depth + 1));
   } else if (key && value != null && value !== "" && !out.has(key)) {
     out.set(key, value);
   }

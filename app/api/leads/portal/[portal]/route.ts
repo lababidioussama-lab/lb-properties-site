@@ -27,7 +27,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const db = getSupabaseAdmin();
   if (!db) return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
 
-  const raw = await request.json().catch(() => null);
+  const text = await request.text();
+  if (text.length > 100_000) return NextResponse.json({ ok: false, error: "too_large" }, { status: 413 });
+  let raw: unknown = null;
+  try { raw = JSON.parse(text); } catch { raw = null; }
   if (!raw || typeof raw !== "object") return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
 
   const { status, ...result } = await ingestPortalLead(db, portal, raw);

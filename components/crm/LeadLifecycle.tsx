@@ -160,42 +160,75 @@ const OUTCOMES = [
 ] as const;
 
 /** One-tap lead update: logs the outcome, moves New → Contacted, sets the next follow-up, restarts the 48h clock. */
-export function QuickUpdate({ lead, onLog, onSave, onLost }: {
+export function QuickUpdate({ lead, listings, highlight, onLog, onSave, onLost, onBookViewing, onDone }: {
   lead: CrmLead;
+  listings: CrmListing[];
+  highlight?: boolean;
   onLog: (kind: string, body: string) => Promise<void>;
   onSave: (patch: Record<string, unknown>) => Promise<void>;
   onLost: () => void;
+  onBookViewing: (startsAt: string, listingId: string, location: string) => Promise<void>;
+  onDone?: () => void;
 }) {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [booking, setBooking] = useState(false);
+  const matched = matchListings(lead, listings);
+  const [viewing, setViewing] = useState({ at: "", listing: matched[0]?.id ?? "", location: "" });
 
-  async function record(o: (typeof OUTCOMES)[number]) {
+  async function record(o: Omit<(typeof OUTCOMES)[number], "body"> & { body: string }, at?: string) {
     setBusy(o.key);
     await onLog(o.kind, note.trim() ? `${o.body}: ${note.trim()}` : o.body);
     const stage = o.stage ?? (lead.stage === "new" ? "contacted" : null);
-    const next = new Date(Date.now() + o.followUpH * HOUR).toISOString();
+    const next = at ? new Date(new Date(at).getTime() + 2 * HOUR).toISOString() : new Date(Date.now() + o.followUpH * HOUR).toISOString();
     await onSave({ next_follow_up_at: next, ...(stage && stage !== lead.stage ? { stage } : {}) });
     setBusy(null);
     setNote("");
     setDone(`Logged. Next follow-up ${new Date(next).toLocaleString("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit" })}.`);
     setTimeout(() => setDone(null), 4000);
+    onDone?.();
+  }
+
+  async function bookViewing() {
+    const o = OUTCOMES.find((x) => x.key === "viewing")!;
+    const listing = listings.find((l) => l.id === viewing.listing);
+    await onBookViewing(new Date(viewing.at).toISOString(), viewing.listing, viewing.location || [listing?.building, listing?.community].filter(Boolean).join(", "));
+    setBooking(false);
+    await record({ ...o, body: `Viewing booked for ${new Date(viewing.at).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}${listing ? ` at ${listing.title}` : ""}` }, viewing.at);
   }
 
   return (
-    <section className="rounded-xl border border-[var(--accent-dim)] bg-white p-4 shadow-[var(--shadow-card)]">
+    <section className={`rounded-xl border bg-white p-4 shadow-[var(--shadow-card)] transition ${highlight ? "border-[var(--accent)] ring-4 ring-[rgb(11_42_74/0.12)]" : "border-[var(--accent-dim)]"}`}>
       <div className="mb-2.5 flex items-center justify-between">
-        <span className="text-[13px] font-semibold text-[var(--text-primary)]">Update this lead</span>
+        <span className="text-[13px] font-semibold text-[var(--text-primary)]">{highlight ? "How did it go?" : "Update this lead"}</span>
         <span className="text-[11.5px] text-[var(--text-muted)]">Each update keeps the lead yours for 48h</span>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         {OUTCOMES.map((o) => (
-          <button key={o.key} disabled={!!busy} onClick={() => record(o)} className={`${BTN_GHOST} !h-10 !justify-center !px-2 text-[12.5px] ${busy === o.key ? "opacity-60" : ""}`}>
+          <button key={o.key} disabled={!!busy} onClick={() => (o.key === "viewing" ? setBooking((v) => !v) : record(o))} className={`${BTN_GHOST} !h-10 !justify-center !px-2 text-[12.5px] ${busy === o.key ? "opacity-60" : ""}`}>
             {busy === o.key ? "Saving…" : o.label}
           </button>
         ))}
         <button disabled={!!busy} onClick={onLost} className={`${BTN_GHOST} !h-10 !px-2 text-[12.5px] hover:!border-red-300 hover:!text-red-700`}>Not interested</button>
       </div>
+      {booking && (
+        <div className="mt-3 grid gap-2 rounded-lg border border-[var(--hairline)] bg-[var(--surface-sunken)] p-3 sm:grid-cols-2">
+          <label className="block"><Label>Date & time</Label><input type="datetime-local" value={viewing.at} onChange={(e) => setViewing({ ...viewing, at: e.target.value })} className={INPUT} /></label>
+          <label className="block"><Label>Listing</Label>
+            <select value={viewing.listing} onChange={(e) => setViewing({ ...viewing, listing: e.target.value })} className={INPUT}>
+              <option value="">No specific listing</option>
+              {matched.length > 0 && <optgroup label="Matches">{matched.map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}</optgroup>}
+              <optgroup label="All listings">{listings.filter((l) => !matched.includes(l)).map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}</optgroup>
+            </select>
+          </label>
+          <label className="block sm:col-span-2"><Label>Location (optional)</Label><input value={viewing.location} onChange={(e) => setViewing({ ...viewing, location: e.target.value })} placeholder="Defaults to the listing's building" className={INPUT} /></label>
+          <div className="flex gap-2 sm:col-span-2">
+            <button onClick={bookViewing} disabled={!viewing.at || !!busy} className={BTN}>Book viewing</button>
+            <button onClick={() => setBooking(false)} className={BTN_GHOST}>Cancel</button>
+          </div>
+        </div>
+      )}
       <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional note, e.g. wants 2BR in Marina, budget 2M" className={`${INPUT} mt-2.5`} />
       {done && <p className="mt-2 text-[12px] font-medium text-emerald-700">{done}</p>}
     </section>

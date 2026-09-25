@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Phone, Mail, MessageCircle, UserPlus, ExternalLink, AlertTriangle, Hand, Undo2 } from "lucide-react";
-import { STAGES, STAGE_LABEL, fillTemplate, type CrmListing, type CrmTemplate, type CrmContact, type CrmLead, type CrmTask, type CrmUser, type Stage } from "@/lib/crm";
+import { STAGES, STAGE_LABEL, SOURCE_LABEL, sourceKey, fillTemplate, type CrmListing, type CrmTemplate, type CrmContact, type CrmLead, type CrmTask, type CrmUser, type Stage } from "@/lib/crm";
 import { api, stamp, toInputDate, whatsapp, INPUT, BTN, BTN_GHOST, Label, SidePanel } from "./shared";
 import { WhatNext, Clock, StarButton, Requirements, Matches, ReasonForm, QuickUpdate } from "./LeadLifecycle";
 import { CloseDealForm } from "./CloseDeal";
@@ -44,6 +44,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
   const [error, setError] = useState<string | null>(null);
   const [ask, setAsk] = useState<"release" | "lost" | null>(null);
   const [closingDeal, setClosingDeal] = useState(false);
+  const [nudge, setNudge] = useState(false);
   const isPool = !lead.owner_id && !isAdmin;
   const closed = lead.stage === "won" || lead.stage === "lost";
   const agentSplitPct = users.find((u) => u.id === lead.owner_id)?.slab_pct ?? 50;
@@ -94,7 +95,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
   return (
     <SidePanel
       title={lead.full_name}
-      subtitle={<>{serviceLabel(lead.service)} · received {stamp(lead.created_at)} · {lead.locale.toUpperCase()}</>}
+      subtitle={<><span className="me-1.5 rounded-full bg-[var(--accent-wash)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">{SOURCE_LABEL[sourceKey(lead.source)]}</span>{serviceLabel(lead.service)} · received {stamp(lead.created_at)} · {lead.locale.toUpperCase()}</>}
       onClose={onClose}
     >
       <div className="flex flex-wrap items-center gap-2">
@@ -107,13 +108,39 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
         )}
       </div>
 
+      {(lead.notes || details.length > 0) && (
+        <section className="rounded-lg border border-[var(--hairline)] bg-[var(--surface)] p-4">
+          <Label>What they submitted</Label>
+          {lead.notes && <p className="whitespace-pre-wrap text-[13px] text-[var(--text-primary)]">{lead.notes}</p>}
+          {details.length > 0 && (
+            <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
+              {details.map(([k, v]) => (
+                <div key={k} className="contents">
+                  <dt className="text-[var(--text-muted)]">{k}</dt>
+                  <dd className="figure text-[var(--text-secondary)]">{String(v)}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </section>
+      )}
+
       <WhatNext lead={lead} />
       {!closed && lead.owner_id && (
         <QuickUpdate
           lead={lead}
+          listings={listings}
+          highlight={nudge}
+          onBookViewing={async (startsAt, listingId, location) => {
+            await api("POST", "data/events", {
+              title: `Viewing: ${lead.full_name}`, kind: "viewing", status: "scheduled", starts_at: startsAt,
+              lead_id: lead.id, listing_id: listingId || null, agent_id: lead.owner_id, location: location || null,
+            });
+          }}
           onLog={async (kind, body) => { await api("POST", "activities", { kind, body, lead_id: lead.id }); setRefresh((n) => n + 1); }}
           onSave={save}
           onLost={() => setAsk("lost")}
+          onDone={() => setNudge(false)}
         />
       )}
       {ask && (
@@ -134,7 +161,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
       )}
 
       <div className="flex flex-wrap gap-2">
-        <a href={whatsapp(lead.phone)} target="_blank" rel="noopener noreferrer" className={BTN_GHOST}><MessageCircle size={14} /> WhatsApp</a>
+        <a href={whatsapp(lead.phone)} onClick={() => setNudge(true)} target="_blank" rel="noopener noreferrer" className={BTN_GHOST}><MessageCircle size={14} /> WhatsApp</a>
         {templates.length > 0 && (
           <select
             value=""
@@ -151,7 +178,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
             {templates.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
           </select>
         )}
-        <a href={`tel:${lead.phone}`} className={BTN_GHOST}><Phone size={14} /> <span className="figure">{lead.phone}</span></a>
+        <a href={`tel:${lead.phone}`} onClick={() => setNudge(true)} className={BTN_GHOST}><Phone size={14} /> <span className="figure">{lead.phone}</span></a>
         {lead.email && <a href={`mailto:${lead.email}`} className={BTN_GHOST}><Mail size={14} /> Email</a>}
       </div>
 
@@ -230,23 +257,6 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
           <button onClick={makeContact} className={BTN_GHOST}><UserPlus size={14} /> Save as contact</button>
         )}
       </section>
-
-      {(lead.notes || details.length > 0) && (
-        <section className="rounded-lg border border-[var(--hairline)] bg-[var(--surface)] p-4">
-          <Label>What they submitted</Label>
-          {lead.notes && <p className="whitespace-pre-wrap text-[13px] text-[var(--text-primary)]">{lead.notes}</p>}
-          {details.length > 0 && (
-            <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
-              {details.map(([k, v]) => (
-                <div key={k} className="contents">
-                  <dt className="text-[var(--text-muted)]">{k}</dt>
-                  <dd className="figure text-[var(--text-secondary)]">{String(v)}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-        </section>
-      )}
 
       <label className="block"><Label>Internal notes</Label>
         <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)}

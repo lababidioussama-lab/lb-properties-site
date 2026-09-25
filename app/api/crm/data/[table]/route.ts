@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getSupabaseAdmin, LEADS_TABLE } from "@/lib/supabase";
-import { sessionFromRequest, type SessionUser } from "@/lib/crm-auth";
+import { liveUser, sameOrigin, sessionFromRequest, type SessionUser } from "@/lib/crm-auth";
 import { LEAD_SOURCES, LISTING_STATUSES, PROPERTY_TYPES, OWNER_REQUEST_STATUSES, TEMP_LEAD_STATUSES, REQUEST_KINDS, REQUEST_STATUSES, DOC_KINDS, complianceIssues } from "@/lib/crm";
 
 export const runtime = "nodejs";
@@ -126,6 +126,7 @@ const SPECS: Record<string, Spec> = {
   },
   campaigns: {
     table: "crm_campaigns",
+    adminOnlyWrite: true,
     required: ["message"],
     order: ["created_at", false],
     fields: { message: text(4000), recipients: amount },
@@ -172,8 +173,9 @@ async function allowed(spec: Spec, user: SessionUser, rowId: string) {
   return !!data && (data as unknown as Row)[spec.owner] === user.id;
 }
 
-function context(request: NextRequest) {
-  const user = sessionFromRequest(request);
+async function context(request: NextRequest) {
+  if (!sameOrigin(request)) return { error: fail("bad_origin", 403) } as const;
+  const user = await liveUser(sessionFromRequest(request));
   const db = getSupabaseAdmin();
   if (!user) return { error: fail("unauthorised", 401) } as const;
   if (!db) return { error: fail("not_configured", 503) } as const;
@@ -181,7 +183,7 @@ function context(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest, { params }: Ctx) {
-  const c = context(request);
+  const c = await context(request);
   if ("error" in c) return c.error;
   const spec = SPECS[(await params).table];
   if (!spec) return fail("not_found", 404);
@@ -192,7 +194,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 }
 
 export async function POST(request: NextRequest, { params }: Ctx) {
-  const c = context(request);
+  const c = await context(request);
   if ("error" in c) return c.error;
   const name = (await params).table;
   const body = ((await request.json().catch(() => ({}))) ?? {}) as Row;
@@ -228,7 +230,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Ctx) {
-  const c = context(request);
+  const c = await context(request);
   if ("error" in c) return c.error;
   const name = (await params).table;
   const spec = SPECS[name];
@@ -255,7 +257,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 }
 
 export async function DELETE(request: NextRequest, { params }: Ctx) {
-  const c = context(request);
+  const c = await context(request);
   if ("error" in c) return c.error;
   const spec = SPECS[(await params).table];
   if (!spec) return fail("not_found", 404);
