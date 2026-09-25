@@ -413,7 +413,7 @@ select {
 [lang="zh"] .display-1,
 [lang="zh"] .display-2,
 [lang="zh"] .display-3 {
-  font-family: var(--font-sc), "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Noto Sans CJK SC", sans-serif;
 }
 
 [lang="zh"] .display-1,

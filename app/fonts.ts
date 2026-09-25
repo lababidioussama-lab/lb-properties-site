@@ -6,7 +6,6 @@ import {
   Amiri,
   JetBrains_Mono,
   Noto_Sans,
-  Noto_Sans_SC,
 } from "next/font/google";
 
 /* Downloaded at build time and self-hosted by next/font, so the rendered page
@@ -83,14 +82,9 @@ export const notoCyrillic = Noto_Sans({
   preload: false,
 });
 
-/* Simplified Chinese has no coverage in any of the Latin faces above. */
-export const notoSC = Noto_Sans_SC({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "700"],
-  variable: "--font-sc",
-  display: "swap",
-  preload: false,
-});
+/* Simplified Chinese is not loaded through next/font: Google serves Noto Sans
+   SC as ~100 unicode-range slices, which breaks the Turbopack production
+   build. Chinese text uses the system CJK faces instead (see globals.css). */
 
 export const fontVariables = [
   cormorant.variable,
@@ -100,5 +94,4 @@ export const fontVariables = [
   amiri.variable,
   mono.variable,
   notoCyrillic.variable,
-  notoSC.variable,
 ].join(" ");
