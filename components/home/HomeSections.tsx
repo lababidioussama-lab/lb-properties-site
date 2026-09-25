@@ -12,7 +12,6 @@ import { SITE, MARKET_SECTION_ID, SECTION_IDS, pageHref, serviceHref } from "@/l
 import { PROJECTS } from "@/lib/projects";
 import { localizeProject } from "@/lib/i18n/project-copy";
 import { IconWhatsApp } from "@/components/ui/Icons";
-import { BrandMark } from "@/components/ui/BrandMark";
 
 const EASE = [0.2, 0.8, 0.2, 1] as const;
 
@@ -77,16 +76,13 @@ export function BrandIntro() {
         </div>
 
         <Reveal delay={0.15} className="relative">
-          <div className="relative aspect-[4/5] overflow-hidden">
-            <Image src="/projects/palace-beach-residence-4.jpg" alt="" fill sizes="(min-width:1024px) 45vw, 100vw" className="object-cover" />
+          <div className="relative aspect-[960/1093] overflow-hidden shadow-[var(--shadow-lift)]">
+            <Image src="/brand/reception.jpg" alt="Lababidi Properties" fill sizes="(min-width:1024px) 45vw, 100vw" className="object-cover" />
           </div>
           <div className="absolute -bottom-8 start-6 hidden w-[46%] border-[10px] border-[var(--surface)] shadow-[var(--shadow-lift)] sm:block lg:-start-12">
             <div className="relative aspect-square">
               <Image src="/projects/the-cove-creek-island-4.jpg" alt="" fill sizes="25vw" className="object-cover" />
             </div>
-          </div>
-          <div className="absolute -top-6 end-6 hidden bg-[var(--surface-raised)] p-5 shadow-[var(--shadow-lift)] sm:block">
-            <BrandMark size={64} />
           </div>
         </Reveal>
       </div>
