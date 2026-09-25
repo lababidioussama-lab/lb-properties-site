@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Download } from "lucide-react";
 import { commissionOf, quarterOf, slabOutcome, type CrmDeal, type CrmListing, type CrmUser } from "@/lib/crm";
-import { money, shortDate, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
+import { money, shortDate, downloadCsv, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
 import { Avatar } from "./Avatar";
 import type { Table } from "./useTable";
 
@@ -60,7 +60,19 @@ export function DealsView({ t, isAdmin, users, listings, userName }: {
           <option value="all">All time</option>
           {months.map((m) => <option key={m} value={m}>{new Date(`${m}-01`).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</option>)}
         </select>
-        <button onClick={() => setEditing("new")} className={`${BTN} ms-auto`}><Plus size={14} /> Record deal</button>
+        {isAdmin && (
+          <button
+            onClick={() => downloadCsv("deals", rows, [
+              ["Deal", (d) => d.title], ["Type", (d) => d.deal_type], ["Agent", (d) => userName(d.agent_id)], ["Price AED", (d) => d.price_aed],
+              ["Commission %", (d) => d.commission_pct], ["Commission AED", (d) => commissionOf(d)], ["Agent split %", (d) => d.agent_split_pct],
+              ["Agent share AED", (d) => (commissionOf(d) * Number(d.agent_split_pct)) / 100], ["Closed", (d) => d.closed_at], ["Paid", (d) => d.paid_at ?? "Unpaid"],
+            ])}
+            className={`${BTN_GHOST} ms-auto`}
+          >
+            <Download size={14} /> Export
+          </button>
+        )}
+        <button onClick={() => setEditing("new")} className={`${BTN} ${isAdmin ? "" : "ms-auto"}`}><Plus size={14} /> Record deal</button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">

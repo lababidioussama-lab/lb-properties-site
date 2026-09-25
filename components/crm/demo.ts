@@ -139,6 +139,24 @@ export async function demoApi(method: string, resource: string, body?: Row, quer
     return { ok: true, rows: added, skipped: 0 };
   }
   if (resource === "audit") return { ok: true, entries: tables.audit };
+  if (resource === "integrations") {
+    const at = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
+    return {
+      ok: true,
+      portals: [
+        { portal: "bayut", label: "Bayut", configured: true, received30: 42, duplicates30: 6, last: at(2) },
+        { portal: "dubizzle", label: "Dubizzle", configured: true, received30: 17, duplicates30: 2, last: at(9) },
+        { portal: "property_finder", label: "Property Finder", configured: false, received30: 0, duplicates30: 0, last: null },
+      ],
+    };
+  }
+  if (resource === "integration_test") {
+    const portal = String(body?.portal ?? "bayut");
+    const row = lead({ full_name: `Test lead (${portal === "bayut" ? "Bayut" : portal === "dubizzle" ? "Dubizzle" : "Property Finder"})`, service: "advisory", stage: "new" }) as unknown as Row;
+    Object.assign(row, { source: portal, phone: "+971500000000", owner_id: "u2", created_at: new Date().toISOString() });
+    tables.leads.unshift(row);
+    return { ok: true, id: row.id, assigned_to: "u2" };
+  }
   if (resource === "team_activity") {
     const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
     const win = { agent: "Mozilla/5.0 (Windows NT 10.0) Chrome/130.0", ip: "94.200.12.8" };

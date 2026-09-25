@@ -88,6 +88,13 @@ CRM sign-in and domain (all required for the CRM):
 - `CRM_HOST` — `crm.lababidiproperties.com`. The CRM is then served at that
   address, and `/admin` on the main site redirects there.
 
+Property portal leads (optional until you connect them):
+
+- `PORTAL_WEBHOOK_SECRET` — 16+ random characters (or per portal:
+  `BAYUT_WEBHOOK_SECRET`, `DUBIZZLE_WEBHOOK_SECRET`,
+  `PROPERTY_FINDER_WEBHOOK_SECRET`). The CRM's *Integrations* page shows the
+  exact address to give each portal and has a "Send test lead" button.
+
 Never set `CRM_OTP_DISABLED` on the live site — it turns off the emailed code
 and exists only for local testing.
 

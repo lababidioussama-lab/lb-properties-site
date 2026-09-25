@@ -6,7 +6,7 @@ import {
   LOST_REASONS, MEDIUMS, PROPERTY_TYPES, whatNext,
   type CrmLead, type CrmListing,
 } from "@/lib/crm";
-import { money, INPUT, BTN, BTN_GHOST, Label } from "./shared";
+import { money, whatsapp, INPUT, BTN, BTN_GHOST, Label } from "./shared";
 
 export function WhatNext({ lead }: { lead: CrmLead }) {
   return (
@@ -85,20 +85,37 @@ export function matchListings(lead: CrmLead, listings: CrmListing[]) {
 }
 
 export function Matches({ lead, listings }: { lead: CrmLead; listings: CrmListing[] }) {
-  const found = matchListings(lead, listings);
+  const found = matchListings(lead, listings).slice(0, 6);
+  const canSend = !!lead.phone && !lead.phone.includes("•");
+  const first = lead.full_name.split(" ")[0];
+  const line = (l: CrmListing) =>
+    `• ${l.title}${l.community ? `, ${l.community}` : ""}${l.bedrooms ? ` (${l.bedrooms})` : ""}: ${money(l.price_aed)}${l.purpose === "rent" ? "/year" : ""}`;
+  const send = (ls: CrmListing[]) =>
+    `${whatsapp(lead.phone)}?text=${encodeURIComponent(
+      `Hi ${first}, based on what you are looking for, ${ls.length > 1 ? "these match" : "this matches"} your brief:\n\n${ls.map(line).join("\n")}\n\nWould you like to arrange a viewing? - Lababidi Properties`,
+    )}`;
+
   return (
     <section>
-      <Label>Matched listings ({found.length})</Label>
+      <div className="mb-1.5 flex items-center justify-between">
+        <Label>Matched listings ({found.length})</Label>
+        {found.length > 1 && canSend && (
+          <a href={send(found)} target="_blank" rel="noopener noreferrer" className="text-[12px] font-semibold text-emerald-700 hover:underline">Send all on WhatsApp</a>
+        )}
+      </div>
       {found.length === 0 ? (
         <p className="text-[12.5px] text-[var(--text-muted)]">
           {lead.deal_kind || lead.location ? "No available listing fits yet." : "Add requirements above to see matching listings."}
         </p>
       ) : (
         <ul className="space-y-1.5">
-          {found.slice(0, 6).map((l) => (
-            <li key={l.id} className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2 text-[12.5px]">
-              <span className="text-[var(--text-primary)]">{l.title} <span className="text-[var(--text-muted)]">· {[l.bedrooms, l.community].filter(Boolean).join(", ")}</span></span>
-              <span className="figure text-[var(--text-secondary)]">{money(l.price_aed)}</span>
+          {found.map((l) => (
+            <li key={l.id} className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2 text-[12.5px]">
+              <span className="min-w-0 flex-1 truncate text-[var(--text-primary)]">{l.title} <span className="text-[var(--text-muted)]">· {[l.bedrooms, l.community].filter(Boolean).join(", ")}</span></span>
+              <span className="figure shrink-0 text-[var(--text-secondary)]">{money(l.price_aed)}</span>
+              {canSend && (
+                <a href={send([l])} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-md bg-white px-2 py-1 text-[11.5px] font-semibold text-emerald-700 shadow-sm hover:bg-emerald-100">Send</a>
+              )}
             </li>
           ))}
         </ul>

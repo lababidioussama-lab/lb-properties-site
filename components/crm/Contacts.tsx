@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Trash2, MessageCircle, Phone } from "lucide-react";
+import { Plus, Search, Trash2, MessageCircle, Phone, Download } from "lucide-react";
 import { CONTACT_KINDS, CONTACT_ROLES, CONTACT_STATUSES, CONTACT_STATUS_LABEL, CONTACT_STATUS_TONE, type CrmListing, type CrmContact, type CrmLead, type CrmProperty, type CrmTask, type CrmUser } from "@/lib/crm";
-import { api, money, shortDate, whatsapp, STAGE_STYLE, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
+import { api, money, shortDate, whatsapp, downloadCsv, STAGE_STYLE, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
 import { Timeline } from "./Timeline";
 import { NewTask, TaskRow } from "./TaskList";
 import { serviceLabel } from "./LeadPanel";
@@ -36,11 +36,22 @@ export function ContactsView({ contacts, isAdmin, users, userName, onContact, on
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">
           <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search contacts" className={`${INPUT} ps-8`} />
         </div>
+        {isAdmin && (
+          <button
+            onClick={() => downloadCsv("contacts", rows, [
+              ["Name", (c) => c.full_name], ["Phone", (c) => c.phone], ["Email", (c) => c.email], ["Type", (c) => c.kind],
+              ["Status", (c) => CONTACT_STATUS_LABEL[c.status]], ["Agent", (c) => userName(c.owner_id)], ["Added", (c) => c.created_at],
+            ])}
+            className={BTN_GHOST}
+          >
+            <Download size={14} /> Export
+          </button>
+        )}
         <button onClick={() => setAdding((v) => !v)} className={BTN}><Plus size={14} /> New contact</button>
       </div>
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { Activity, FolderLock, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList } from "lucide-react";
+import { Activity, Calculator, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList } from "lucide-react";
 
 import type { CrmContact, CrmDeal, CrmLead, CrmListing, CrmTask, CrmTemplate, CrmUser } from "@/lib/crm";
 import type { SessionUser } from "@/lib/crm-auth";
@@ -27,9 +27,12 @@ import { QuickWhatsAppView } from "./QuickWhatsApp";
 import { NotificationBell } from "./Notifications";
 import { RequestsQueue } from "./AgentRequests";
 import { TeamMonitor, TeamDocuments } from "./TeamMonitor";
+import { MyDay } from "./MyDay";
+import { ToolsView } from "./Tools";
+import { IntegrationsView } from "./Integrations";
 import type { CrmAgentRequest } from "@/lib/crm";
 
-type View = "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
+type View = "integrations" | "today" | "tools" | "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
 
 function upsert<T extends { id: string }>(list: T[], item: T, prepend = false): T[] {
   if (list.some((x) => x.id === item.id)) return list.map((x) => (x.id === item.id ? item : x));
@@ -39,7 +42,7 @@ function upsert<T extends { id: string }>(list: T[], item: T, prepend = false): 
 export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }) {
   if (demo && typeof window !== "undefined") (window as { __CRM_DEMO__?: boolean }).__CRM_DEMO__ = true;
   const isAdmin = me.role === "admin";
-  const [view, setView] = useState<View>("reports");
+  const [view, setView] = useState<View>("today");
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [contacts, setContacts] = useState<CrmContact[]>([]);
   const [tasks, setTasks] = useState<CrmTask[]>([]);
@@ -89,9 +92,11 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   const me_ = users.find((u) => u.id === me.id);
 
   const openTasks = tasks.filter((t) => !t.done_at);
+  const todayCount = leads.filter((l) => l.stage === "new" && l.owner_id && (isAdmin || l.owner_id === me.id)).length;
   const dueCount = openTasks.filter((t) => t.due_at && new Date(t.due_at).getTime() < Date.now() + 86_400_000).length;
 
   const nav: { id: View; label: string; icon: typeof Users; badge?: number; group: string; desc: string }[] = [
+    { id: "today", label: "My day", icon: Sun, badge: todayCount, group: "Overview", desc: "What to do first today, in order." },
     { id: "reports", label: "Dashboard", icon: BarChart3, group: "Overview", desc: "Performance across leads, pipeline and commission." },
     { id: "pipeline", label: "Leads", icon: KanbanSquare, badge: leads.filter((l) => l.stage === "new").length, group: "Sales", desc: "Every enquiry, from first contact to closed deal." },
     { id: "temp_leads", label: "Temp leads", icon: PhoneCall, group: "Sales", desc: "Raw calling list, promoted to Leads once qualified." },
@@ -101,11 +106,13 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     { id: "owner_requests", label: "Owner requests", icon: KeySquare, group: "Properties", desc: "Owners who want to sell or let through us." },
     { id: "calendar", label: "Calendar", icon: CalendarDays, group: "Workspace", desc: "Viewings, meetings and handovers." },
     { id: "tasks", label: "Tasks", icon: CheckSquare, badge: dueCount, group: "Workspace", desc: "Follow-ups, grouped by when they are due." },
+    { id: "tools", label: "Tools", icon: Calculator, group: "Workspace", desc: "Cost sheets, commission, yield and mortgage — ready to send on WhatsApp." },
     { id: "templates", label: "WhatsApp templates", icon: MessageSquareText, group: "WhatsApp", desc: "Reusable messages for one-click replies." },
     { id: "quick_wa", label: "Quick WhatsApp", icon: Send, group: "WhatsApp", desc: "Send one message to a list of leads." },
     ...(isAdmin ? [
       { id: "monitor" as View, label: "Agent performance", icon: Activity, group: "Admin", desc: "Who is using the CRM, and how each agent is performing." },
       { id: "team" as View, label: "Team", icon: UserCog, group: "Admin", desc: "Agents, roles, commission slabs and targets." },
+      { id: "integrations" as View, label: "Integrations", icon: PlugZap, group: "Admin", desc: "Bayut, Dubizzle and Property Finder leads, straight to your agents." },
       { id: "team_docs" as View, label: "Team documents", icon: FolderLock, group: "Admin", desc: "Every agent's IDs, visas, licences and contracts." },
       { id: "requests" as View, label: "Requests", icon: ClipboardList, group: "Admin", desc: "What agents have asked the office for." },
       { id: "audit" as View, label: "Audit log", icon: ScrollText, group: "Admin", desc: "Who changed what, and when." },
@@ -237,6 +244,11 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             </Card>
           )}
 
+          {view === "today" && (
+            <MyDay me={me_} isAdmin={isAdmin} leads={leads} tasks={tasks} userName={userName}
+              onOpenLead={setLeadId} onTask={onTask} onRemoveTask={onRemoveTask} />
+          )}
+          {view === "tools" && <ToolsView />}
           {view === "reports" && <ReportsView leads={leads} deals={deals.rows} users={users} userName={userName} />}
           {view === "listings" && (
             <ListingsView t={listings} isAdmin={isAdmin} users={users} contacts={contacts} userName={userName}
@@ -290,6 +302,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           {view === "audit" && isAdmin && <AuditView userName={userName} />}
           {view === "monitor" && isAdmin && <TeamMonitor users={users} leads={leads} tasks={tasks} deals={deals.rows} />}
           {view === "team_docs" && isAdmin && <TeamDocuments users={users} />}
+          {view === "integrations" && isAdmin && <IntegrationsView onLeadsChanged={() => void load()} />}
         </main>
       </div>
 

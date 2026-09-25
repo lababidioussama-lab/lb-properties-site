@@ -115,3 +115,13 @@ export function SidePanel({ title, subtitle, onClose, children }: {
 export function Empty({ children }: { children: ReactNode }) {
   return <p className="py-10 text-center text-[13px] text-[var(--text-muted)]">{children}</p>;
 }
+
+/** Download rows as a CSV that Excel opens cleanly (UTF-8 BOM, quoted cells). */
+export function downloadCsv<T>(name: string, rows: T[], columns: [string, (r: T) => unknown][]) {
+  const cell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const csv = [columns.map(([h]) => cell(h)).join(","), ...rows.map((r) => columns.map(([, f]) => cell(f(r))).join(","))].join("\r\n");
+  const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: `${name}-${new Date().toISOString().slice(0, 10)}.csv` });
+  a.click();
+  URL.revokeObjectURL(url);
+}

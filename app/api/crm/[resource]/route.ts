@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getSupabaseAdmin, LEADS_TABLE } from "@/lib/supabase";
 import { hashPassword, sessionFromRequest, type SessionUser } from "@/lib/crm-auth";
+import { PORTALS, PORTAL_LABEL, ingestPortalLead, portalSecret, type Portal } from "@/lib/portal-intake";
 import { ACTIVITY_KINDS, CONTACT_KINDS, CONTACT_STATUSES, LEAD_SLA_HOURS, LOST_REASONS, STAGES, STAGE_LABEL, STAR_LIMIT, complianceIssues, type Stage } from "@/lib/crm";
 
 export const runtime = "nodejs";
@@ -134,6 +135,25 @@ export async function GET(request: NextRequest, { params }: Ctx) {
       if (err) return fail(err.message, 502);
       return ok({ sessions: sessions.data ?? [], actions: actions.data ?? [], activities: work.data ?? [] });
     }
+    case "integrations": {
+      if (user.role !== "admin") return fail("forbidden", 403);
+      const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+      const { data } = await db.from("crm_audit").select("action, created_at, detail").eq("entity", "integration").gte("created_at", since).order("created_at", { ascending: false }).limit(2000);
+      const log = (data ?? []) as { action: string; created_at: string; detail: { portal?: string; test?: boolean } }[];
+      return ok({
+        portals: PORTALS.map((p) => {
+          const mine = log.filter((e) => e.detail?.portal === p && !e.detail?.test);
+          return {
+            portal: p,
+            label: PORTAL_LABEL[p],
+            configured: portalSecret(p).length >= 16,
+            received30: mine.filter((e) => e.action === "lead_received").length,
+            duplicates30: mine.filter((e) => e.action === "lead_duplicate").length,
+            last: mine[0]?.created_at ?? null,
+          };
+        }),
+      });
+    }
     case "properties": {
       const contactId = q.get("contact_id");
       if (!contactId || !(await canAccess(db, user, "crm_contacts", contactId, "owner_id")))
@@ -182,6 +202,17 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   const b = ((await request.json().catch(() => ({}))) ?? {}) as Body;
 
   switch (resource) {
+    case "integration_test": {
+      if (user.role !== "admin") return fail("forbidden", 403);
+      const portal = String(b.portal) as Portal;
+      if (!PORTALS.includes(portal)) return fail("unknown_portal");
+      const { status, ...result } = await ingestPortalLead(db, portal, {
+        lead: { name: `Test lead (${PORTAL_LABEL[portal]})`, phone: `+97150${String(Date.now()).slice(-7)}`, email: "test@example.com", message: "This is a test enquiry sent from the Integrations page. Delete it any time." },
+        property: { reference: "TEST-REF", title: "Test listing" },
+        test: true,
+      });
+      return status === 200 ? ok(result) : fail(result.error ?? "failed", status);
+    }
     case "contacts": {
       const full_name = str(b.full_name, 200);
       if (!full_name) return fail("name_required");

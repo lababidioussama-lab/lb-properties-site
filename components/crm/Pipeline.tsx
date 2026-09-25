@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, CalendarClock, Plus, Shuffle, Timer, Star, Hand } from "lucide-react";
-import { STAGES, STAGE_LABEL, SOURCE_LABEL, sourceKey, type CrmLead, type CrmTask, type CrmUser, type Stage } from "@/lib/crm";
-import { api, money, shortDate, isOverdue, STAGE_STYLE, INPUT, BTN, BTN_GHOST, Card } from "./shared";
+import { Search, CalendarClock, Plus, Shuffle, Timer, Star, Hand, Download } from "lucide-react";
+import { LEAD_SOURCES, STAGES, STAGE_LABEL, SOURCE_LABEL, sourceKey, type CrmLead, type CrmTask, type CrmUser, type Stage } from "@/lib/crm";
+import { api, money, shortDate, isOverdue, downloadCsv, STAGE_STYLE, INPUT, BTN, BTN_GHOST, Card } from "./shared";
 import { ImportLeads, autoAssign } from "./LeadTools";
 import { serviceLabel } from "./LeadPanel";
 
@@ -18,6 +18,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
 }) {
   const [query, setQuery] = useState("");
   const [owner, setOwner] = useState("all");
+  const [source, setSource] = useState("all");
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<Stage | null>(null);
   const [adding, setAdding] = useState(false);
@@ -28,9 +29,10 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
     const q = query.trim().toLowerCase();
     return leads.filter((l) =>
       (owner === "all" || (owner === "none" ? !l.owner_id : owner === "starred" ? l.starred : l.owner_id === owner)) &&
+      (source === "all" || sourceKey(l.source) === source) &&
       (!q || `${l.full_name} ${l.phone} ${l.email ?? ""}`.toLowerCase().includes(q)),
     );
-  }, [leads, query, owner]);
+  }, [leads, query, owner, source]);
 
   const stats = useMemo(() => {
     const weekAgo = Date.now() - 7 * 86_400_000;
@@ -74,6 +76,22 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
           <option value="starred">Starred</option>
           {isAdmin && users.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
         </select>
+        <select value={source} onChange={(e) => setSource(e.target.value)} className={`${INPUT} !w-auto`}>
+          <option value="all">All sources</option>
+          {LEAD_SOURCES.map((k) => <option key={k} value={k}>{SOURCE_LABEL[k]} ({leads.filter((l) => sourceKey(l.source) === k).length})</option>)}
+        </select>
+        {isAdmin && (
+          <button
+            onClick={() => downloadCsv("leads", visible, [
+              ["Name", (l) => l.full_name], ["Phone", (l) => l.phone], ["Email", (l) => l.email], ["Stage", (l) => STAGE_LABEL[l.stage]],
+              ["Source", (l) => SOURCE_LABEL[sourceKey(l.source)]], ["Agent", (l) => userName(l.owner_id)], ["Budget AED", (l) => l.budget_aed],
+              ["Location", (l) => l.location], ["Next follow-up", (l) => l.next_follow_up_at], ["Created", (l) => l.created_at],
+            ])}
+            className={BTN_GHOST}
+          >
+            <Download size={14} /> Export
+          </button>
+        )}
         {isAdmin && unassigned > 0 && (
           <button
             onClick={async () => setNote(`Assigned ${await autoAssign(leads, users, onLead)} lead(s) to agents in turn.`)}
