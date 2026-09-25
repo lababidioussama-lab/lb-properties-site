@@ -1,0 +1,135 @@
+"use client";
+
+import { useState } from "react";
+import { Lightbulb, Star, Timer } from "lucide-react";
+import {
+  LOST_REASONS, MEDIUMS, PROPERTY_TYPES, whatNext,
+  type CrmLead, type CrmListing,
+} from "@/lib/crm";
+import { money, INPUT, BTN, BTN_GHOST, Label } from "./shared";
+
+export function WhatNext({ lead }: { lead: CrmLead }) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-lg border border-[var(--glass-border-lit)] bg-[var(--accent-wash)] p-3">
+      <Lightbulb size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+      <div>
+        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">What next?</div>
+        <p className="mt-0.5 text-[13px] text-[var(--text-primary)]">{whatNext(lead)}</p>
+      </div>
+    </div>
+  );
+}
+
+export function Clock({ expiresAt }: { expiresAt: string | null }) {
+  if (!expiresAt) return null;
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  const hours = Math.max(0, Math.floor(ms / 3_600_000));
+  const urgent = hours < 12;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${urgent ? "bg-red-500/15 text-red-300" : "bg-[var(--accent-wash)] text-[var(--text-secondary)]"}`}>
+      <Timer size={12} /> {hours > 48 ? `${Math.round(hours / 24)}d` : `${hours}h`} left to update
+    </span>
+  );
+}
+
+export function StarButton({ starred, onToggle }: { starred: boolean; onToggle: () => void }) {
+  return (
+    <button onClick={onToggle} aria-label={starred ? "Unstar lead" : "Star lead"} className={BTN_GHOST}>
+      <Star size={14} className={starred ? "fill-amber-300 text-amber-300" : ""} /> {starred ? "Starred" : "Star"}
+    </button>
+  );
+}
+
+export function Requirements({ lead, onSave }: { lead: CrmLead; onSave: (patch: Record<string, unknown>) => void }) {
+  const blur = (k: keyof CrmLead) => (e: { target: { value: string } }) => {
+    const value = e.target.value;
+    if (value !== String(lead[k] ?? "")) onSave({ [k]: value || null });
+  };
+  return (
+    <section>
+      <Label>Requirements</Label>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        <select defaultValue={lead.deal_kind ?? ""} onChange={blur("deal_kind")} className={INPUT} aria-label="Sale or rent">
+          <option value="">Sale or rent?</option><option value="sale">Buy</option><option value="rent">Rent</option>
+        </select>
+        <select defaultValue={lead.property_type ?? ""} onChange={blur("property_type")} className={INPUT} aria-label="Property type">
+          <option value="">Type</option>
+          {PROPERTY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <input defaultValue={lead.beds ?? ""} onBlur={blur("beds")} placeholder="Beds (e.g. 2BR)" className={INPUT} />
+        <input type="number" defaultValue={lead.budget_aed ?? ""} onBlur={blur("budget_aed")} placeholder="Budget AED" className={`${INPUT} figure`} />
+        <input defaultValue={lead.location ?? ""} onBlur={blur("location")} placeholder="Location / project" className={INPUT} />
+        <select defaultValue={lead.ready_status ?? ""} onChange={blur("ready_status")} className={INPUT} aria-label="Ready or off-plan">
+          <option value="">Ready / off-plan?</option><option value="ready">Ready</option><option value="offplan">Off-plan</option><option value="any">Either</option>
+        </select>
+        <select defaultValue={lead.medium ?? ""} onChange={blur("medium")} className={`${INPUT} col-span-2 sm:col-span-1`} aria-label="Contacted via">
+          <option value="">Contacted via</option>
+          {MEDIUMS.map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </div>
+    </section>
+  );
+}
+
+/** Available listings that fit the lead's requirements. */
+export function matchListings(lead: CrmLead, listings: CrmListing[]) {
+  if (!lead.deal_kind && !lead.location && !lead.beds && !lead.budget_aed) return [];
+  const area = (lead.location ?? "").trim().toLowerCase();
+  return listings.filter((l) =>
+    l.status === "available" &&
+    (!lead.deal_kind || l.purpose === lead.deal_kind) &&
+    (!area || `${l.community ?? ""} ${l.building ?? ""}`.toLowerCase().includes(area)) &&
+    (!lead.beds || (l.bedrooms ?? "").toLowerCase() === lead.beds.toLowerCase()) &&
+    (!lead.budget_aed || !l.price_aed || Number(l.price_aed) <= Number(lead.budget_aed) * 1.15),
+  );
+}
+
+export function Matches({ lead, listings }: { lead: CrmLead; listings: CrmListing[] }) {
+  const found = matchListings(lead, listings);
+  return (
+    <section>
+      <Label>Matched listings ({found.length})</Label>
+      {found.length === 0 ? (
+        <p className="text-[12.5px] text-[var(--text-muted)]">
+          {lead.deal_kind || lead.location ? "No available listing fits yet." : "Add requirements above to see matching listings."}
+        </p>
+      ) : (
+        <ul className="space-y-1.5">
+          {found.slice(0, 6).map((l) => (
+            <li key={l.id} className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[12.5px]">
+              <span className="text-[var(--text-primary)]">{l.title} <span className="text-[var(--text-muted)]">· {[l.bedrooms, l.community].filter(Boolean).join(", ")}</span></span>
+              <span className="figure text-[var(--text-secondary)]">{money(l.price_aed)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/** Mandatory reason + note, used for both "release to pool" and "disqualify". */
+export function ReasonForm({ mode, onSubmit, onCancel }: {
+  mode: "release" | "lost";
+  onSubmit: (reason: string, note: string) => void;
+  onCancel: () => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [note, setNote] = useState("");
+  const reasons = mode === "lost" ? LOST_REASONS : ["Can't handle this area", "Manager asked", "Too many leads", ...LOST_REASONS.slice(0, 3)];
+  return (
+    <div className="space-y-2.5 rounded-lg border border-red-500/40 bg-red-500/5 p-3">
+      <div className="text-[13px] font-medium text-[var(--text-primary)]">
+        {mode === "lost" ? "Disqualify this lead" : "Release this lead to the open pool"}
+      </div>
+      <select value={reason} onChange={(e) => setReason(e.target.value)} className={INPUT}>
+        <option value="">Choose a reason</option>
+        {reasons.map((r) => <option key={r} value={r}>{r}</option>)}
+      </select>
+      <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (required): what happened?" className={`${INPUT} resize-none`} />
+      <div className="flex gap-2">
+        <button onClick={() => onSubmit(reason, note.trim())} disabled={!reason || !note.trim()} className={BTN}>Confirm</button>
+        <button onClick={onCancel} className={BTN_GHOST}>Cancel</button>
+      </div>
+    </div>
+  );
+}

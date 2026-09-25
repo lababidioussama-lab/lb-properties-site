@@ -1,0 +1,19 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Secrets. .env.local holds the Supabase service-role key and the admin
+# password — it must never reach a repository. .env.example is the safe,
+# committed template.
+.env
+.env.local
+.env.*.local
+
+# Netlify
+.netlify/
+
+# OS noise
+Thumbs.db
+.DS_Store

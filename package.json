@@ -1,0 +1,31 @@
+{
+  "name": "estate-concierge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dubai Estate Concierge & Advisory — HNW advisory, relocation, maintenance, fit-out and construction platform",
+  "scripts": {
+    "dev": "next dev -p 3400",
+    "build": "next build",
+    "start": "next start -p 3400",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.112.3",
+    "lucide-react": "^1.31.0",
+    "motion": "13.1.0",
+    "next": "16.3.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "26.2.0",
+    "@types/pg": "^8.21.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "pg": "^8.23.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3"
+  }
+}

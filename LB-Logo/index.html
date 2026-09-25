@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LB Properties — logo files</title>
+<style>
+  :root {
+    --paper: #f7f4ef;
+    --ink: #17120e;
+    --muted: #837769;
+    --accent: #cc1111;
+    --hairline: rgb(23 18 14 / 0.13);
+    font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); padding: 48px 32px 80px; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1 { font-weight: 300; font-size: 34px; letter-spacing: -0.01em; margin: 0 0 6px; }
+  .deck { color: var(--muted); font-size: 14px; line-height: 1.7; max-width: 62ch; margin: 0 0 44px; }
+  h2 { font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase;
+       color: var(--muted); margin: 44px 0 16px; }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); }
+  figure { margin: 0; border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden;
+           background: #fffdfa; }
+  .swatch { display: grid; place-items: center; padding: 26px; min-height: 148px; }
+  .swatch.dark { background: #0a0708; }
+  .swatch img { max-width: 96px; width: 100%; height: auto; display: block; }
+  figcaption { border-top: 1px solid var(--hairline); padding: 9px 12px;
+               font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .note { margin-top: 40px; border-top: 1px solid var(--hairline); padding-top: 20px;
+          font-size: 12px; line-height: 1.85; color: var(--muted); max-width: 78ch; }
+  code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px;
+         background: rgb(23 18 14 / 0.05); padding: 1px 5px; border-radius: 4px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; margin-top: 8px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--hairline); }
+  th { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td:last-child, th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>LB Properties — logo files</h1>
+  <p class="deck">
+    The monogram is an L and a B sharing one vertical stem, inscribed in a square
+    with a hairline rule beneath. Stroke only, no fill — a solid mark would fight
+    the ground it sits on. All PNGs have transparent backgrounds.
+  </p>
+
+  <h2>Brand red — on light grounds</h2>
+  <div class="grid">
+    <figure><div class="swatch"><img src="lb-monogram-red-1024.png" alt="LB monogram, brand red"></div><figcaption>red · 1024px</figcaption></figure>
+    <figure><div class="swatch"><img src="lb-monogram-red-512.png" alt=""></div><figcaption>red · 512px</figcaption></figure>
+    <figure><div class="swatch"><img src="lb-monogram-red-256.png" alt=""></div><figcaption>red · 256px</figcaption></figure>
+    <figure><div class="swatch"><img src="lb-monogram-red-128.png" alt=""></div><figcaption>red · 128px</figcaption></figure>
+    <figure><div class="swatch"><img src="lb-monogram-red-64.png" alt=""></div><figcaption>red · 64px</figcaption></figure>
+  </div>
+
+  <h2>White — on dark grounds</h2>
+  <div class="grid">
+    <figure><div class="swatch dark"><img src="lb-monogram-white-1024.png" alt="LB monogram, white"></div><figcaption>white · 1024px</figcaption></figure>
+    <figure><div class="swatch dark"><img src="lb-monogram-white-512.png" alt=""></div><figcaption>white · 512px</figcaption></figure>
+    <figure><div class="swatch dark"><img src="lb-monogram-white-256.png" alt=""></div><figcaption>white · 256px</figcaption></figure>
+    <figure><div class="swatch dark"><img src="lb-monogram-white-128.png" alt=""></div><figcaption>white · 128px</figcaption></figure>
+    <figure><div class="swatch dark"><img src="lb-monogram-white-64.png" alt=""></div><figcaption>white · 64px</figcaption></figure>
+  </div>
+
+  <h2>Ink — for print and mono</h2>
+  <div class="grid">
+    <figure><div class="swatch"><img src="lb-monogram-ink-1024.png" alt="LB monogram, ink"></div><figcaption>ink · 1024px</figcaption></figure>
+    <figure><div class="swatch"><img src="lb-monogram-ink-512.png" alt=""></div><figcaption>ink · 512px</figcaption></figure>
+    <figure><div class="swatch"><img src="lb-monogram-ink-256.png" alt=""></div><figcaption>ink · 256px</figcaption></figure>
+    <figure><div class="swatch"><img src="lb-monogram-ink-128.png" alt=""></div><figcaption>ink · 128px</figcaption></figure>
+    <figure><div class="swatch"><img src="lb-monogram-ink-64.png" alt=""></div><figcaption>ink · 64px</figcaption></figure>
+  </div>
+
+  <h2>Colours</h2>
+  <table>
+    <thead><tr><th>Role</th><th>Where it's used</th><th>Hex</th></tr></thead>
+    <tbody>
+      <tr><td>Brand red</td><td>Light grounds — the site's accent</td><td>#cc1111</td></tr>
+      <tr><td>Brand red (dark UI)</td><td>The site's accent in dark mode</td><td>#ef2b2b</td></tr>
+      <tr><td>White</td><td>Dark grounds, photography</td><td>#ffffff</td></tr>
+      <tr><td>Ink</td><td>Print, single-colour, fax-grade</td><td>#17120e</td></tr>
+      <tr><td>Paper</td><td>The site's light background</td><td>#f7f4ef</td></tr>
+    </tbody>
+  </table>
+
+  <p class="note">
+    <strong>Which file to use.</strong> Prefer <code>lb-monogram.svg</code> wherever
+    vectors are accepted — it stays crisp at any size and recolours by editing the two
+    <code>stroke</code> values. Use the PNGs where SVG isn't supported: 1024px for print
+    and large artwork, 512px for social profiles, 256px and below for favicons, email
+    signatures and app icons.
+    <br><br>
+    <strong>Clear space.</strong> The mark already carries its own margin inside the
+    square, so it needs no extra padding to sit correctly — but keep at least the width
+    of the square's stroke gap clear of other elements on all four sides.
+    <br><br>
+    <strong>Don't</strong> fill the letterforms, add a drop shadow, stretch it
+    non-uniformly, or place the red version on a dark ground — that's what the white
+    version is for.
+  </p>
+
+</div>
+</body>
+</html>

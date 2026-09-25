@@ -1,0 +1,46 @@
+# Netlify build configuration.
+#
+# Secrets are NOT set here — this file is committed. Set them on the site
+# (Site configuration → Environment variables, or `netlify env:set`):
+#
+#   SUPABASE_URL                required — lead capture + ledger
+#   SUPABASE_ANON_KEY           required — public form inserts
+#   SUPABASE_SERVICE_ROLE_KEY   required — /admin reads leads back
+#   ADMIN_PASSWORD              required — /admin gate, 12+ characters
+#   GROQ_API_KEY                required — the AI concierge at /api/chat
+#
+# Deliberately NOT set: ALLOW_SAMPLE_TESTIMONIALS. The testimonials are
+# sample copy, and app/[locale]/page.tsx omits the section from a production
+# build unless that flag is explicitly true. Leave it unset on the live site.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Next 16 requires Node 20+; pin so a Netlify default bump cannot
+  # silently change the runtime under a working build.
+  NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# The ledger must never be indexed, cached by a CDN, or embedded. The page
+# already sets robots meta; these headers cover the ways a crawler or proxy
+# can bypass that.
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Cache-Control = "no-store, max-age=0"
+
+[[headers]]
+  for = "/admin"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Cache-Control = "no-store, max-age=0"
+
+[[headers]]
+  for = "/api/admin/*"
+  [headers.values]
+    Cache-Control = "no-store, max-age=0"

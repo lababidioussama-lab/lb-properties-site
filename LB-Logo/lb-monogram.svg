@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+  <!-- LB monogram. An L and a B sharing one vertical stem, inscribed in a
+       square with a hairline rule beneath. Stroke only, no fill.
+       Change the two `stroke` values below to recolour. -->
+  <defs>
+    <clipPath id="lb-clip"><rect x="2.5" y="2.5" width="35" height="35"/></clipPath>
+  </defs>
+  <rect x="2.5" y="2.5" width="35" height="35" stroke="#cc1111" stroke-opacity="0.32" stroke-width="1"/>
+  <g clip-path="url(#lb-clip)" stroke="#cc1111" fill="none">
+    <path d="M13 10.5v16" stroke-width="1.6" stroke-linecap="square"/>
+    <path d="M13 26.5h7.5" stroke-width="1.6" stroke-linecap="square"/>
+    <path d="M20.5 10.5h4a3.6 3.6 0 0 1 0 7.2h-4" stroke-width="1.6" stroke-linecap="square"/>
+    <path d="M20.5 17.7h4.8a4.4 4.4 0 0 1 0 8.8h-4.8" stroke-width="1.6" stroke-linecap="square"/>
+    <path d="M2.5 31.5h35" stroke-width="1" stroke-opacity="0.3"/>
+  </g>
+</svg>
