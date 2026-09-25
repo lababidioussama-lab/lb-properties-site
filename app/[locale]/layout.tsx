@@ -5,6 +5,7 @@ import "../globals.css";
 
 import { LOCALES, dirFor, type Locale } from "@/lib/i18n/types";
 import { getDictionary } from "@/lib/i18n";
+import { SITE, SITE_URL } from "@/lib/site-config";
 import { SiteProvider } from "@/lib/context/site-context";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -48,8 +49,11 @@ export async function generateMetadata({
   const t = getDictionary(locale as Locale);
 
   return {
+    metadataBase: new URL(SITE_URL),
     title: t.meta.title,
     description: t.meta.description,
+    // Google Search Console "HTML tag" method: paste only the content="…" value into GOOGLE_SITE_VERIFICATION.
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } } : {}),
 
     /* Home-screen and tab icons. Android reads app/manifest.ts; iOS ignores
        the manifest's icons and uses apple-touch-icon, so both are declared. */
@@ -79,6 +83,20 @@ export async function generateMetadata({
     },
   };
 }
+
+/* Tells Google who we are: a Dubai real-estate agency, its logo and contact. */
+const ORGANISATION = {
+  "@context": "https://schema.org",
+  "@type": "RealEstateAgent",
+  name: SITE.name,
+  url: SITE_URL,
+  logo: `${SITE_URL}/logo-full.png`,
+  image: `${SITE_URL}/logo-full.png`,
+  telephone: SITE.phoneDisplay,
+  areaServed: { "@type": "City", name: "Dubai" },
+  address: { "@type": "PostalAddress", addressLocality: "Dubai", addressCountry: "AE" },
+  sameAs: [`https://wa.me/${SITE.whatsappNumber}`],
+};
 
 /* Applies the theme before first paint, so nobody sees a flash of the wrong
    ground. The house default is light — the limestone the logo is carved
@@ -110,6 +128,7 @@ export default async function LocaleLayout({
     <html lang={typed} dir={dirFor(typed)} className={fontVariables} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANISATION) }} />
       </head>
       <body>
         <SiteProvider locale={typed}>

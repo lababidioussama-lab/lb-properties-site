@@ -3,6 +3,10 @@
  * Change the number here and every CTA, deeplink and tel: link follows.
  */
 
+/** The public address Google should index. Override with SITE_URL (e.g. the
+    netlify.app address) until the real domain is connected. */
+export const SITE_URL = (process.env.SITE_URL || "https://lababidiproperties.com").replace(/\/$/, "");
+
 export const SITE = {
   name: "Lababidi Properties",
   /** Wordmark line 1 / line 2, as set in the lockup */
