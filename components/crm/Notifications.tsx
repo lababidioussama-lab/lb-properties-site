@@ -22,18 +22,18 @@ export function NotificationBell({ leads, tasks, listings, isAdmin, meId, onOpen
     const out: Item[] = [];
     for (const l of leads.filter((l) => mine(l) && l.expires_at)) {
       const hrs = (new Date(l.expires_at as string).getTime() - Date.now()) / 3_600_000;
-      if (hrs > 0 && hrs < 6) out.push({ icon: Timer, text: `Lead expiring soon: ${l.full_name}`, sub: `${Math.round(hrs)}h left to update`, tone: "text-red-300", onClick: () => onOpenLead(l.id) });
+      if (hrs > 0 && hrs < 6) out.push({ icon: Timer, text: `Lead expiring soon: ${l.full_name}`, sub: `${Math.round(hrs)}h left to update`, tone: "text-red-700", onClick: () => onOpenLead(l.id) });
     }
     for (const t of tasks.filter((t) => !t.done_at && t.due_at && (isAdmin || t.assignee_id === meId))) {
-      if (new Date(t.due_at as string).getTime() < Date.now()) out.push({ icon: AlertTriangle, text: `Overdue task: ${t.title}`, sub: shortDate(t.due_at), tone: "text-amber-300" });
+      if (new Date(t.due_at as string).getTime() < Date.now()) out.push({ icon: AlertTriangle, text: `Overdue task: ${t.title}`, sub: shortDate(t.due_at), tone: "text-amber-700" });
     }
     if (isAdmin) {
       for (const l of listings.filter((l) => l.approval === "rejected")) {
-        out.push({ icon: ShieldX, text: `Listing rejected: ${l.title}`, sub: l.approval_note ?? "No reason given", tone: "text-red-300" });
+        out.push({ icon: ShieldX, text: `Listing rejected: ${l.title}`, sub: l.approval_note ?? "No reason given", tone: "text-red-700" });
       }
     }
     const poolCount = leads.filter((l) => !l.owner_id && l.stage !== "won" && l.stage !== "lost").length;
-    if (poolCount > 0) out.push({ icon: Hand, text: `${poolCount} lead${poolCount === 1 ? "" : "s"} in the open pool`, sub: "Unclaimed and waiting", tone: "text-sky-300" });
+    if (poolCount > 0) out.push({ icon: Hand, text: `${poolCount} lead${poolCount === 1 ? "" : "s"} in the open pool`, sub: "Unclaimed and waiting", tone: "text-sky-700" });
     return out.slice(0, 12);
   }, [leads, tasks, listings, isAdmin, meId]);
 

@@ -7,10 +7,10 @@ import { toInputDate, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } fro
 import { useTable } from "./useTable";
 
 const KIND_STYLE: Record<CrmEvent["kind"], string> = {
-  viewing: "bg-amber-500/20 text-amber-200 border-amber-500/40",
-  meeting: "bg-sky-500/20 text-sky-200 border-sky-500/40",
-  call: "bg-indigo-500/20 text-indigo-200 border-indigo-500/40",
-  handover: "bg-emerald-500/20 text-emerald-200 border-emerald-500/40",
+  viewing: "bg-amber-50 text-amber-700 border-amber-200",
+  meeting: "bg-sky-50 text-sky-700 border-sky-200",
+  call: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  handover: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
@@ -56,7 +56,7 @@ export function CalendarView({ isAdmin, users, leads, listings, userName }: {
           <button onClick={() => shift(1)} className={BTN_GHOST} aria-label="Next month"><ChevronRight size={15} /></button>
           <button onClick={() => { const d = new Date(); d.setDate(1); setCursor(d); }} className={BTN_GHOST}>Today</button>
           {isAdmin && (
-            <select value={agent} onChange={(e) => setAgent(e.target.value)} className={`${INPUT} ms-auto w-auto`}>
+            <select value={agent} onChange={(e) => setAgent(e.target.value)} className={`${INPUT} ms-auto !w-auto`}>
               <option value="all">All agents</option>
               {users.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
             </select>
@@ -188,7 +188,7 @@ function EventForm({ event, defaultStart, isAdmin, users, leads, listings, error
         )}
       </div>
       <label className="block"><Label>Notes</Label><textarea rows={3} value={f.notes} onChange={set("notes")} className={`${INPUT} resize-none`} /></label>
-      {error && <p className="text-[12px] text-[#e0645f]">{error}</p>}
+      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button onClick={() => save()} disabled={!f.title.trim() || !f.starts_at} className={BTN}>Save</button>
         {event && event.status === "scheduled" && <button onClick={() => save({ status: "done" })} className={BTN_GHOST}>Mark done</button>}

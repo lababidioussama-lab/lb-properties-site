@@ -21,8 +21,9 @@ const SERVICE_LABEL: Record<string, string> = {
 };
 export const serviceLabel = (s: string) => SERVICE_LABEL[s] ?? s;
 
-export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, users, contact, tasks, userName, onLead, onContact, onTask, onRemoveTask, onOpenContact, onClose }: {
+export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, users, contact, tasks, userName, onLead, onContact, onTask, onRemoveTask, onOpenContact, onClose, onDeal }: {
   lead: CrmLead;
+  onDeal?: () => void;
   listings: CrmListing[];
   templates: CrmTemplate[];
   duplicates: string[];
@@ -71,7 +72,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
         </p>
         <div className="figure text-[14px] text-[var(--text-muted)]">{lead.phone}</div>
         {lead.notes && <p className="rounded-lg border border-[var(--hairline)] bg-[var(--surface)] p-3 text-[13px]">{lead.notes}</p>}
-        {error && <p className="text-[12px] text-[#e0645f]">{error}</p>}
+        {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
         <button onClick={() => save({ claim: true })} className={BTN}><Hand size={14} /> Claim this lead</button>
       </SidePanel>
     );
@@ -99,8 +100,8 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
       <div className="flex flex-wrap items-center gap-2">
         <StarButton starred={lead.starred} onToggle={() => save({ starred: !lead.starred })} />
         <Clock expiresAt={lead.expires_at} />
-        {!lead.owner_id && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-300">In the open pool</span>}
-        {lead.stage === "lost" && lead.lost_reason && <span className="rounded-full bg-zinc-500/20 px-2 py-0.5 text-[11px] text-zinc-300">Lost: {lead.lost_reason}</span>}
+        {!lead.owner_id && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">In the open pool</span>}
+        {lead.stage === "lost" && lead.lost_reason && <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-600">Lost: {lead.lost_reason}</span>}
         {lead.owner_id && !closed && (
           <button onClick={() => setAsk("release")} className={`${BTN_GHOST} ms-auto`}><Undo2 size={14} /> Release</button>
         )}
@@ -120,7 +121,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
           listings={listings}
           agentSplitPct={agentSplitPct}
           onSkip={() => { setClosingDeal(false); save({ stage: "won" }); }}
-          onDone={() => { setClosingDeal(false); save({ stage: "won" }); }}
+          onDone={() => { setClosingDeal(false); save({ stage: "won" }); onDeal?.(); }}
         />
       )}
 
@@ -136,7 +137,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
               window.open(`${whatsapp(lead.phone)}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
               void api("POST", "activities", { kind: "whatsapp", body: `Sent template: ${tpl.name}`, lead_id: lead.id }).then(() => setRefresh((n) => n + 1));
             }}
-            className={`${INPUT} w-auto`}
+            className={`${INPUT} !w-auto`}
           >
             <option value="">WhatsApp template…</option>
             {templates.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
@@ -147,7 +148,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
       </div>
 
       {duplicates.length > 0 && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-[12.5px] text-amber-200">
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[12.5px] text-amber-700">
           <AlertTriangle size={15} className="mt-0.5 shrink-0" />
           <span>Possible duplicate: this phone number is also on {duplicates.join(", ")}.</span>
         </div>
@@ -185,7 +186,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
             onBlur={(e) => save({ deal_value_aed: e.target.value })} className={`${INPUT} figure`} />
         </label>
       </div>
-      {error && <p className="text-[12px] text-[#e0645f]">{error}</p>}
+      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
 
       <Requirements lead={lead} onSave={save} />
       <Matches lead={lead} listings={listings} />
@@ -207,7 +208,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
           </label>
         )}
         {lead.partner_agency && !lead.partner_approved && (
-          <p className="mt-1.5 text-[11px] text-amber-300">Not yet approved{isAdmin ? "" : " by an admin"}.</p>
+          <p className="mt-1.5 text-[11px] text-amber-700">Not yet approved{isAdmin ? "" : " by an admin"}.</p>
         )}
       </section>
 

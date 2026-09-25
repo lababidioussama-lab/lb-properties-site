@@ -22,11 +22,11 @@ export const CONTACT_STATUS_LABEL: Record<string, string> = {
   not_serious: "Not serious", unrealistic: "Unrealistic", wrong_client: "Wrong client", blocked: "Blocked", archived: "Archived",
 };
 export const CONTACT_STATUS_TONE: Record<string, string> = {
-  need_to_validate: "bg-zinc-500/15 text-zinc-300", validated: "bg-sky-500/15 text-sky-300",
-  serious: "bg-emerald-500/15 text-emerald-300", motivated: "bg-emerald-500/15 text-emerald-300",
-  vip: "bg-amber-500/20 text-amber-200", not_serious: "bg-zinc-500/15 text-zinc-400",
-  unrealistic: "bg-zinc-500/15 text-zinc-400", wrong_client: "bg-red-500/15 text-red-300",
-  blocked: "bg-red-500/15 text-red-300", archived: "bg-zinc-500/15 text-zinc-500",
+  need_to_validate: "bg-zinc-100 text-zinc-600", validated: "bg-sky-50 text-sky-700",
+  serious: "bg-emerald-50 text-emerald-700", motivated: "bg-emerald-50 text-emerald-700",
+  vip: "bg-amber-50 text-amber-700", not_serious: "bg-zinc-100 text-zinc-600",
+  unrealistic: "bg-zinc-100 text-zinc-600", wrong_client: "bg-red-50 text-red-700",
+  blocked: "bg-red-50 text-red-700", archived: "bg-zinc-100 text-zinc-500",
 };
 export const ACTIVITY_KINDS = ["note", "call", "whatsapp", "email", "meeting", "stage", "system"] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
@@ -292,9 +292,9 @@ export function quarterOf(date: Date | string): string {
 export function slabOutcome(achieved: number, target: number | null | undefined) {
   if (!target) return { pct: 0, label: "No target set", tone: "text-[var(--text-muted)]" };
   const pct = Math.round((achieved / target) * 100);
-  if (pct >= 100) return { pct, label: "Target hit: bonus in full, slab upgrade", tone: "text-emerald-300" };
-  if (pct >= 50) return { pct, label: "Partial: bonus prorated, slab unchanged", tone: "text-amber-300" };
-  return { pct, label: "Below target: bonus forfeited, slab downgrade", tone: "text-red-300" };
+  if (pct >= 100) return { pct, label: "Target hit: bonus in full, slab upgrade", tone: "text-emerald-700" };
+  if (pct >= 50) return { pct, label: "Partial: bonus prorated, slab unchanged", tone: "text-amber-700" };
+  return { pct, label: "Below target: bonus forfeited, slab downgrade", tone: "text-red-700" };
 }
 
 export interface CrmAuditEntry {
@@ -313,8 +313,8 @@ export const OWNER_REQUEST_LABEL: Record<OwnerRequestStatus, string> = {
   new: "New", in_progress: "Listing in progress", listed: "Listed", declined: "Declined",
 };
 export const OWNER_REQUEST_TONE: Record<OwnerRequestStatus, string> = {
-  new: "bg-sky-500/15 text-sky-300", in_progress: "bg-amber-500/15 text-amber-300",
-  listed: "bg-emerald-500/15 text-emerald-300", declined: "bg-zinc-500/15 text-zinc-400",
+  new: "bg-sky-50 text-sky-700", in_progress: "bg-amber-50 text-amber-700",
+  listed: "bg-emerald-50 text-emerald-700", declined: "bg-zinc-100 text-zinc-600",
 };
 
 export interface CrmOwnerRequest {
@@ -375,8 +375,8 @@ export const REQUEST_KIND_LABEL: Record<string, string> = {
 };
 export const REQUEST_STATUSES = ["pending", "approved", "done", "rejected"] as const;
 export const REQUEST_STATUS_TONE: Record<string, string> = {
-  pending: "bg-amber-500/15 text-amber-300", approved: "bg-sky-500/15 text-sky-300",
-  done: "bg-emerald-500/15 text-emerald-300", rejected: "bg-red-500/15 text-red-300",
+  pending: "bg-amber-50 text-amber-700", approved: "bg-sky-50 text-sky-700",
+  done: "bg-emerald-50 text-emerald-700", rejected: "bg-red-50 text-red-700",
 };
 
 export interface CrmAgentRequest {

@@ -52,7 +52,7 @@ export function Timeline({ leadId, contactId, userName, refreshKey = 0 }: {
     <section>
       <Label>Activity</Label>
       <div className="flex gap-2">
-        <select value={kind} onChange={(e) => setKind(e.target.value as ActivityKind)} className={`${INPUT} w-32`}>
+        <select value={kind} onChange={(e) => setKind(e.target.value as ActivityKind)} className={`${INPUT} !w-32`}>
           {ACTIVITY_KINDS.filter((k) => k !== "stage" && k !== "system").map((k) => (
             <option key={k} value={k}>{KIND_LABEL[k]}</option>
           ))}

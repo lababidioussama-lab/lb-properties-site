@@ -26,7 +26,7 @@ export function Clock({ expiresAt }: { expiresAt: string | null }) {
   const hours = Math.max(0, Math.floor(ms / 3_600_000));
   const urgent = hours < 12;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${urgent ? "bg-red-500/15 text-red-300" : "bg-[var(--accent-wash)] text-[var(--text-secondary)]"}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${urgent ? "bg-red-50 text-red-700" : "bg-[var(--accent-wash)] text-[var(--text-secondary)]"}`}>
       <Timer size={12} /> {hours > 48 ? `${Math.round(hours / 24)}d` : `${hours}h`} left to update
     </span>
   );
@@ -35,7 +35,7 @@ export function Clock({ expiresAt }: { expiresAt: string | null }) {
 export function StarButton({ starred, onToggle }: { starred: boolean; onToggle: () => void }) {
   return (
     <button onClick={onToggle} aria-label={starred ? "Unstar lead" : "Star lead"} className={BTN_GHOST}>
-      <Star size={14} className={starred ? "fill-amber-300 text-amber-300" : ""} /> {starred ? "Starred" : "Star"}
+      <Star size={14} className={starred ? "fill-amber-300 text-amber-700" : ""} /> {starred ? "Starred" : "Star"}
     </button>
   );
 }
@@ -96,7 +96,7 @@ export function Matches({ lead, listings }: { lead: CrmLead; listings: CrmListin
       ) : (
         <ul className="space-y-1.5">
           {found.slice(0, 6).map((l) => (
-            <li key={l.id} className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[12.5px]">
+            <li key={l.id} className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2 text-[12.5px]">
               <span className="text-[var(--text-primary)]">{l.title} <span className="text-[var(--text-muted)]">· {[l.bedrooms, l.community].filter(Boolean).join(", ")}</span></span>
               <span className="figure text-[var(--text-secondary)]">{money(l.price_aed)}</span>
             </li>
@@ -117,7 +117,7 @@ export function ReasonForm({ mode, onSubmit, onCancel }: {
   const [note, setNote] = useState("");
   const reasons = mode === "lost" ? LOST_REASONS : ["Can't handle this area", "Manager asked", "Too many leads", ...LOST_REASONS.slice(0, 3)];
   return (
-    <div className="space-y-2.5 rounded-lg border border-red-500/40 bg-red-500/5 p-3">
+    <div className="space-y-2.5 rounded-lg border border-red-200 bg-red-50/60 p-3">
       <div className="text-[13px] font-medium text-[var(--text-primary)]">
         {mode === "lost" ? "Disqualify this lead" : "Release this lead to the open pool"}
       </div>

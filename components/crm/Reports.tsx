@@ -94,15 +94,15 @@ export function ReportsView({ leads, deals, users, userName }: {
 
   return (
     <div className="space-y-5">
-      <select value={range} onChange={(e) => setRange(Number(e.target.value) as keyof typeof RANGES)} className={`${INPUT} w-auto`}>
+      <select value={range} onChange={(e) => setRange(Number(e.target.value) as keyof typeof RANGES)} className={`${INPUT} !w-auto`}>
         {Object.entries(RANGES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
       </select>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {kpis.map((k) => (
-          <Card key={k.label} className="px-4 py-3">
+          <Card key={k.label} className="px-5 py-4">
             <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{k.label}</div>
-            <div className="figure mt-1 text-[18px] text-[var(--text-primary)]">{k.value}</div>
+            <div className="figure mt-2 text-[24px] font-semibold leading-none text-[var(--accent)]">{k.value}</div>
           </Card>
         ))}
       </div>
@@ -129,7 +129,7 @@ export function ReportsView({ leads, deals, users, userName }: {
                   </td>
                   <td className="figure py-2">{a.leads}</td>
                   <td className="figure py-2">{a.won}</td>
-                  <td className={`figure py-2 ${a.overdue ? "text-[#e0645f]" : ""}`}>{a.overdue}</td>
+                  <td className={`figure py-2 ${a.overdue ? "text-[#c0392b]" : ""}`}>{a.overdue}</td>
                   <td className="figure py-2">{a.deals}</td>
                   <td className="figure py-2">{money(a.earned)}</td>
                 </tr>

@@ -56,7 +56,7 @@ export function DealsView({ t, isAdmin, users, listings, userName }: {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
-        <select value={month} onChange={(e) => setMonth(e.target.value)} className={`${INPUT} w-auto`}>
+        <select value={month} onChange={(e) => setMonth(e.target.value)} className={`${INPUT} !w-auto`}>
           <option value="all">All time</option>
           {months.map((m) => <option key={m} value={m}>{new Date(`${m}-01`).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</option>)}
         </select>
@@ -65,9 +65,9 @@ export function DealsView({ t, isAdmin, users, listings, userName }: {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {totals.map((s) => (
-          <Card key={s.label} className="px-4 py-3">
+          <Card key={s.label} className="px-5 py-4">
             <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{s.label}</div>
-            <div className="figure mt-1 text-[17px] text-[var(--text-primary)]">{s.value}</div>
+            <div className="figure mt-2 text-[24px] font-semibold leading-none text-[var(--accent)]">{s.value}</div>
           </Card>
         ))}
       </div>
@@ -93,7 +93,7 @@ export function DealsView({ t, isAdmin, users, listings, userName }: {
                     <td className="figure px-3 py-2.5">{money((c * Number(d.agent_split_pct)) / 100)}</td>
                     <td className="px-3 py-2.5 text-[var(--text-muted)]">{shortDate(d.closed_at)}</td>
                     <td className="px-3 py-2.5">
-                      <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${d.paid_at ? "bg-emerald-500/15 text-emerald-300" : "bg-amber-500/15 text-amber-300"}`}>
+                      <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${d.paid_at ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
                         {d.paid_at ? "Paid" : "Unpaid"}
                       </span>
                     </td>
@@ -202,7 +202,7 @@ function DealForm({ deal, isAdmin, users, listings, error, onClose, onSave, onTo
         <div><Label>Company</Label><div className="figure text-[14px]">{money(commission - (commission * Number(f.agent_split_pct)) / 100)}</div></div>
       </Card>
       <label className="block"><Label>Notes</Label><textarea rows={3} value={f.notes} onChange={set("notes")} className={`${INPUT} resize-none`} /></label>
-      {error && <p className="text-[12px] text-[#e0645f]">{error}</p>}
+      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
       <div className="flex gap-2">
         <button onClick={() => onSave(f)} disabled={!f.title.trim()} className={BTN}>Save deal</button>
         {onTogglePaid && <button onClick={onTogglePaid} className={BTN_GHOST}>{deal?.paid_at ? "Mark unpaid" : "Mark commission paid"}</button>}

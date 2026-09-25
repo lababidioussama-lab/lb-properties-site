@@ -48,7 +48,7 @@ export function TemplatesView({ templates, isAdmin, onCreate, onUpdate, onRemove
                   className="flex-1 bg-transparent text-[13.5px] font-semibold text-[var(--text-primary)] outline-none"
                 />
                 {isAdmin && (
-                  <button onClick={() => window.confirm(`Delete "${t.name}"?`) && onRemove(t.id)} aria-label="Delete" className="text-[var(--text-muted)] hover:text-[#e0645f]">
+                  <button onClick={() => window.confirm(`Delete "${t.name}"?`) && onRemove(t.id)} aria-label="Delete" className="text-[var(--text-muted)] hover:text-[#c0392b]">
                     <Trash2 size={14} />
                   </button>
                 )}

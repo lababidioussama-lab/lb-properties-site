@@ -219,12 +219,12 @@ export function ContactPanel({ contact, listings, leads, tasks, users, isAdmin, 
           <ul className="mb-3 space-y-1.5">
             {properties.map((p) => (
               <li key={p.id} className="flex items-center gap-3 rounded-lg border border-[var(--hairline)] px-3 py-2 text-[12.5px]">
-                <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${p.relation === "owns" ? "bg-emerald-500/15 text-emerald-300" : "bg-sky-500/15 text-sky-300"}`}>{p.relation}</span>
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${p.relation === "owns" ? "bg-emerald-50 text-emerald-700" : "bg-sky-50 text-sky-700"}`}>{p.relation}</span>
                 <span className="flex-1 text-[var(--text-primary)]">
                   {[p.community, p.building, p.unit && `Unit ${p.unit}`, p.bedrooms].filter(Boolean).join(" · ") || "—"}
                 </span>
                 <span className="figure text-[var(--text-secondary)]">{money(p.price_aed)}</span>
-                <button onClick={() => removeProperty(p.id)} aria-label="Remove" className="text-[var(--text-muted)] hover:text-[#e0645f]"><Trash2 size={13} /></button>
+                <button onClick={() => removeProperty(p.id)} aria-label="Remove" className="text-[var(--text-muted)] hover:text-[#c0392b]"><Trash2 size={13} /></button>
               </li>
             ))}
           </ul>
@@ -251,7 +251,7 @@ export function ContactPanel({ contact, listings, leads, tasks, users, isAdmin, 
           ) : (
             <ul className="space-y-1.5">
               {matches.slice(0, 8).map((l) => (
-                <li key={l.id} className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[12.5px]">
+                <li key={l.id} className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2 text-[12.5px]">
                   <span className="text-[var(--text-primary)]">{l.title} <span className="text-[var(--text-muted)]">· {[l.bedrooms, l.community].filter(Boolean).join(", ")}</span></span>
                   <span className="figure text-[var(--text-secondary)]">{money(l.price_aed)}</span>
                 </li>

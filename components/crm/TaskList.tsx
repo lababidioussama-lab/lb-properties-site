@@ -30,10 +30,10 @@ export function TaskRow({ task, onChange, onRemove, userName, showAssignee }: {
         {task.title}
       </span>
       {showAssignee && <span className="text-[11px] text-[var(--text-muted)]">{userName(task.assignee_id)}</span>}
-      <span className={`figure text-[11px] ${!done && isOverdue(task.due_at) ? "text-[#e0645f]" : "text-[var(--text-muted)]"}`}>
+      <span className={`figure text-[11px] ${!done && isOverdue(task.due_at) ? "text-[#c0392b]" : "text-[var(--text-muted)]"}`}>
         {shortDate(task.due_at)}
       </span>
-      <button onClick={remove} aria-label="Delete task" className="text-[var(--text-muted)] opacity-0 transition-opacity hover:text-[#e0645f] group-hover:opacity-100">
+      <button onClick={remove} aria-label="Delete task" className="text-[var(--text-muted)] opacity-0 transition-opacity hover:text-[#c0392b] group-hover:opacity-100">
         <Trash2 size={14} />
       </button>
     </li>
@@ -72,9 +72,9 @@ export function NewTask({ onCreated, users, isAdmin, link }: {
   return (
     <div className="flex flex-wrap gap-2">
       <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} placeholder="New follow-up task" className={`${INPUT} min-w-[180px] flex-1`} />
-      <input type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} className={`${INPUT} w-auto`} />
+      <input type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} className={`${INPUT} !w-auto`} />
       {isAdmin && (
-        <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className={`${INPUT} w-auto`}>
+        <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className={`${INPUT} !w-auto`}>
           <option value="">Assign to me</option>
           {users.filter((u) => u.active).map((u) => (
             <option key={u.id} value={u.id}>{u.full_name}</option>

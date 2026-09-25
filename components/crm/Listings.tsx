@@ -7,11 +7,11 @@ import { money, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./s
 import type { Table } from "./useTable";
 
 const STATUS_STYLE: Record<string, string> = {
-  available: "bg-emerald-500/15 text-emerald-300",
-  reserved: "bg-amber-500/15 text-amber-300",
-  sold: "bg-zinc-500/20 text-zinc-300",
-  rented: "bg-sky-500/15 text-sky-300",
-  off_market: "bg-zinc-500/15 text-zinc-400",
+  available: "bg-emerald-50 text-emerald-700",
+  reserved: "bg-amber-50 text-amber-700",
+  sold: "bg-zinc-100 text-zinc-600",
+  rented: "bg-sky-50 text-sky-700",
+  off_market: "bg-zinc-100 text-zinc-600",
 };
 
 const BLANK = {
@@ -23,9 +23,9 @@ const BLANK = {
 };
 
 const APPROVAL_STYLE: Record<string, string> = {
-  pending: "bg-amber-500/15 text-amber-300",
-  approved: "bg-emerald-500/15 text-emerald-300",
-  rejected: "bg-red-500/15 text-red-300",
+  pending: "bg-amber-50 text-amber-700",
+  approved: "bg-emerald-50 text-emerald-700",
+  rejected: "bg-red-50 text-red-700",
 };
 
 export function ListingsView({ t, isAdmin, users, contacts, userName, prefill, onPrefillUsed }: {
@@ -61,12 +61,12 @@ export function ListingsView({ t, isAdmin, users, contacts, userName, prefill, o
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">
           <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search title, community, building, permit" className={`${INPUT} ps-8`} />
         </div>
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className={`${INPUT} w-auto`}>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className={`${INPUT} !w-auto`}>
           <option value="all">All statuses ({t.rows.length})</option>
           {LISTING_STATUSES.map((s) => <option key={s} value={s}>{s.replace("_", " ")} ({counts[s] ?? 0})</option>)}
         </select>
@@ -95,7 +95,7 @@ export function ListingsView({ t, isAdmin, users, contacts, userName, prefill, o
                 <span className={`absolute bottom-3 start-3 rounded-full px-2 py-0.5 text-[10.5px] font-semibold capitalize ${APPROVAL_STYLE[l.approval]}`}>
                   {l.approval}
                 </span>
-                {l.off_market && <span className="absolute bottom-3 end-3 rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10.5px] font-semibold text-zinc-300">Off-market</span>}
+                {l.off_market && <span className="absolute bottom-3 end-3 rounded-full bg-zinc-900/80 px-2 py-0.5 text-[10.5px] font-semibold text-white">Off-market</span>}
               </div>
               <div className="p-4">
                 <div className="figure text-[17px] text-[var(--text-primary)]">
@@ -107,18 +107,18 @@ export function ListingsView({ t, isAdmin, users, contacts, userName, prefill, o
                   {l.bedrooms && <span className="flex items-center gap-1"><BedDouble size={13} /> {l.bedrooms}</span>}
                   {l.size_sqft && <span className="flex items-center gap-1"><Ruler size={13} /> {Number(l.size_sqft).toLocaleString()} sqft</span>}
                   <span className="capitalize">{l.property_type}</span>
-                  {l.permit_no && <span className="flex items-center gap-1 text-emerald-300"><BadgeCheck size={13} /> Permit</span>}
+                  {l.permit_no && <span className="flex items-center gap-1 text-emerald-700"><BadgeCheck size={13} /> Permit</span>}
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-[var(--hairline)] pt-2 text-[11px] text-[var(--text-muted)]">
                   <span>{l.ref_code ?? "Agent:"} {!l.ref_code && userName(l.agent_id)}</span>
                   {complianceIssues(l).length > 0
-                    ? <span className="flex items-center gap-1 text-amber-300"><ShieldAlert size={12} /> {complianceIssues(l).length} to fix</span>
-                    : <span className="flex items-center gap-1 text-emerald-300"><ShieldCheck size={12} /> Compliant</span>}
+                    ? <span className="flex items-center gap-1 text-amber-700"><ShieldAlert size={12} /> {complianceIssues(l).length} to fix</span>
+                    : <span className="flex items-center gap-1 text-emerald-700"><ShieldCheck size={12} /> Compliant</span>}
                 </div>
                 {(l.low_performing || l.price_reduced_at) && (
                   <div className="border-t border-[var(--hairline)] px-0 pt-2 text-[10.5px]">
-                    {l.low_performing && <span className="me-2 text-amber-300">Low performing</span>}
-                    {l.price_reduced_at && <span className="text-sky-300">Price cut {money(l.price_was_aed)} → {money(l.price_aed)}</span>}
+                    {l.low_performing && <span className="me-2 text-amber-700">Low performing</span>}
+                    {l.price_reduced_at && <span className="text-sky-700">Price cut {money(l.price_was_aed)} → {money(l.price_aed)}</span>}
                   </div>
                 )}
               </div>
@@ -246,7 +246,7 @@ function ListingForm({ listing, prefill, isAdmin, users, contacts, error, onClos
       </div>
 
       {titleIssues.length > 0 && (
-        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-[12px] text-amber-200">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[12px] text-amber-700">
           <div className="font-medium">Ad title needs work before publishing</div>
           <ul className="mt-1 list-disc ps-4">{titleIssues.map((t) => <li key={t}>{t}</li>)}</ul>
         </div>
@@ -254,7 +254,7 @@ function ListingForm({ listing, prefill, isAdmin, users, contacts, error, onClos
 
       <label className="block"><Label>Photo links (one per line)</Label><textarea rows={3} value={f.photo} onChange={set("photo")} placeholder="https://…" className={`${INPUT} resize-none`} /></label>
       <label className="block"><Label>Description</Label><textarea rows={5} value={f.description} onChange={set("description")} className={`${INPUT} resize-none`} /></label>
-      {error && <p className="text-[12px] text-[#e0645f]">{error}</p>}
+      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button onClick={submit} disabled={!f.title.trim()} className={BTN}>Save listing</button>
         {onDelete && <button onClick={() => window.confirm("Delete this listing?") && onDelete()} className={BTN_GHOST}>Delete</button>}
@@ -264,7 +264,7 @@ function ListingForm({ listing, prefill, isAdmin, users, contacts, error, onClos
         <section className="rounded-lg border border-[var(--hairline)] p-3">
           <Label>Manager approval</Label>
           {issues.length > 0 && (
-            <div className="mt-1.5 flex items-start gap-2 text-[12px] text-amber-300"><ShieldAlert size={14} className="mt-0.5 shrink-0" /> Cannot approve yet: {issues.join(", ")}</div>
+            <div className="mt-1.5 flex items-start gap-2 text-[12px] text-amber-700"><ShieldAlert size={14} className="mt-0.5 shrink-0" /> Cannot approve yet: {issues.join(", ")}</div>
           )}
           <div className="mt-2 flex flex-wrap gap-2">
             <button onClick={() => onApprove?.("approved", "")} disabled={issues.length > 0} className={BTN}><ShieldCheck size={14} /> Approve</button>
@@ -279,7 +279,7 @@ function ListingForm({ listing, prefill, isAdmin, users, contacts, error, onClos
         </section>
       )}
       {listing?.approval === "rejected" && listing.approval_note && (
-        <p className="text-[12px] text-red-300">Rejected: {listing.approval_note}</p>
+        <p className="text-[12px] text-red-700">Rejected: {listing.approval_note}</p>
       )}
       {listing && (
         <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]"><Key size={12} /> {listing.key_status || "Key status not set"}</div>

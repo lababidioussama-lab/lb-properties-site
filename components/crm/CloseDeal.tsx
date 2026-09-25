@@ -41,8 +41,8 @@ export function CloseDealForm({ lead, listings, agentSplitPct, onDone, onSkip }:
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3">
-      <div className="flex items-center gap-2 text-emerald-300">
+    <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/60 p-3">
+      <div className="flex items-center gap-2 text-emerald-700">
         <PartyPopper size={16} />
         <span className="text-[13px] font-medium">Won! Record the deal</span>
       </div>
@@ -82,7 +82,7 @@ export function CloseDealForm({ lead, listings, agentSplitPct, onDone, onSkip }:
           {money((Number(f.price_aed) * Number(f.commission_pct) * agentSplitPct) / 10000)}
         </p>
       )}
-      {error && <p className="text-[12px] text-[#e0645f]">{error}</p>}
+      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
       <div className="flex gap-2">
         <button onClick={submit} disabled={busy} className={BTN}>{busy ? "Saving…" : "Save deal"}</button>
         <button onClick={onSkip} className={BTN_GHOST}>Skip for now</button>

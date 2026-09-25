@@ -56,19 +56,24 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
     <div className="flex h-full flex-col gap-5">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {stats.map((s) => (
-          <Card key={s.label} className="px-4 py-3">
+          <Card key={s.label} className="px-5 py-4">
             <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{s.label}</div>
-            <div className="figure mt-1 text-[18px] text-[var(--text-primary)]">{s.value}</div>
+            <div className="figure mt-2 text-[24px] font-semibold leading-none text-[var(--accent)]">{s.value}</div>
           </Card>
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">
           <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, phone, email" className={`${INPUT} ps-8`} />
         </div>
-        <button onClick={() => setAdding(true)} className={BTN}><Plus size={14} /> Add leads</button>
+        <select value={owner} onChange={(e) => setOwner(e.target.value)} className={`${INPUT} !w-auto`}>
+          <option value="all">{isAdmin ? "All agents" : "All my leads + pool"}</option>
+          <option value="none">Open pool ({unassigned})</option>
+          <option value="starred">Starred</option>
+          {isAdmin && users.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+        </select>
         {isAdmin && unassigned > 0 && (
           <button
             onClick={async () => setNote(`Assigned ${await autoAssign(leads, users, onLead)} lead(s) to agents in turn.`)}
@@ -77,12 +82,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
             <Shuffle size={14} /> Auto-assign {unassigned}
           </button>
         )}
-        <select value={owner} onChange={(e) => setOwner(e.target.value)} className={`${INPUT} w-auto`}>
-          <option value="all">{isAdmin ? "All agents" : "All my leads + pool"}</option>
-          <option value="none">Open pool ({unassigned})</option>
-          <option value="starred">Starred</option>
-          {isAdmin && users.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
-        </select>
+        <button onClick={() => setAdding(true)} className={BTN}><Plus size={14} /> Add leads</button>
       </div>
 
       {note && <p className="text-[12.5px] text-[var(--text-secondary)]">{note}</p>}
@@ -112,20 +112,20 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
                     className="rounded-lg border border-[var(--hairline)] bg-[var(--surface-raised)] p-3 text-start transition-colors hover:border-[var(--accent)]"
                   >
                     <div className="flex items-center gap-1.5">
-                      {l.starred && <Star size={12} className="shrink-0 fill-amber-300 text-amber-300" />}
+                      {l.starred && <Star size={12} className="shrink-0 fill-amber-300 text-amber-700" />}
                       <span className="truncate text-[13px] font-medium text-[var(--text-primary)]">{l.full_name}</span>
                     </div>
                     <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">{SOURCE_LABEL[sourceKey(l.source)]} · {serviceLabel(l.service)} · {shortDate(l.created_at)}</div>
                     {l.stage === "new" && Date.now() - new Date(l.created_at).getTime() > 3_600_000 && (
-                      <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-[#e0645f]">
+                      <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-[#c0392b]">
                         <Timer size={12} /> No reply for {Math.floor((Date.now() - new Date(l.created_at).getTime()) / 3_600_000)}h
                       </div>
                     )}
                     {!l.owner_id && !isAdmin && (
-                      <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-amber-300"><Hand size={12} /> Open pool: claim it</div>
+                      <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-amber-700"><Hand size={12} /> Open pool: claim it</div>
                     )}
                     {l.expires_at && (
-                      <div className={`mt-1.5 flex items-center gap-1 text-[11px] ${new Date(l.expires_at).getTime() - Date.now() < 12 * 3_600_000 ? "text-[#e0645f]" : "text-[var(--text-muted)]"}`}>
+                      <div className={`mt-1.5 flex items-center gap-1 text-[11px] ${new Date(l.expires_at).getTime() - Date.now() < 12 * 3_600_000 ? "text-[#c0392b]" : "text-[var(--text-muted)]"}`}>
                         <Timer size={12} /> {Math.max(0, Math.floor((new Date(l.expires_at).getTime() - Date.now()) / 3_600_000))}h to update
                       </div>
                     )}
@@ -134,7 +134,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
                       {l.deal_value_aed != null && <span className="figure text-[var(--text-secondary)]">{money(l.deal_value_aed)}</span>}
                     </div>
                     {l.next_follow_up_at && (
-                      <div className={`mt-1.5 flex items-center gap-1 text-[11px] ${isOverdue(l.next_follow_up_at) ? "text-[#e0645f]" : "text-[var(--text-muted)]"}`}>
+                      <div className={`mt-1.5 flex items-center gap-1 text-[11px] ${isOverdue(l.next_follow_up_at) ? "text-[#c0392b]" : "text-[var(--text-muted)]"}`}>
                         <CalendarClock size={12} /> {shortDate(l.next_follow_up_at)}
                       </div>
                     )}

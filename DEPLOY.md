@@ -76,6 +76,28 @@ The full list is in `.env.example`. All five are required:
 - `ADMIN_PASSWORD` — 12+ characters
 - `GROQ_API_KEY`
 
+CRM sign-in and domain (all required for the CRM):
+
+- `ADMIN_EMAIL` — the owner's email; the first admin account is created from it
+- `SESSION_SECRET` — a long random string (32+ characters), signs sessions and codes
+- `RESEND_API_KEY` — from resend.com; sends the 6-digit sign-in code by email.
+  In Resend, add and verify the domain `lababidiproperties.com` (it gives you
+  DNS records to add) so codes come from your own address.
+- `OTP_FROM` — optional, defaults to
+  `Lababidi Properties CRM <security@lababidiproperties.com>`
+- `CRM_HOST` — `crm.lababidiproperties.com`. The CRM is then served at that
+  address, and `/admin` on the main site redirects there.
+
+Never set `CRM_OTP_DISABLED` on the live site — it turns off the emailed code
+and exists only for local testing.
+
+### 5. Connect the domains
+
+In Netlify → *Domain management*, add `lababidiproperties.com` (primary),
+`www.lababidiproperties.com` and `crm.lababidiproperties.com` to the same site.
+Netlify shows the DNS records to add at your domain registrar and issues the
+HTTPS certificates automatically.
+
 Do **not** set `ALLOW_SAMPLE_TESTIMONIALS`. See below.
 
 Redeploy after changing any of them — they are read at build/boot.

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList } from "lucide-react";
+import { Activity, FolderLock, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList } from "lucide-react";
 
 import type { CrmContact, CrmDeal, CrmLead, CrmListing, CrmTask, CrmTemplate, CrmUser } from "@/lib/crm";
 import type { SessionUser } from "@/lib/crm-auth";
@@ -26,9 +26,10 @@ import { AgentProfileView } from "./AgentProfile";
 import { QuickWhatsAppView } from "./QuickWhatsApp";
 import { NotificationBell } from "./Notifications";
 import { RequestsQueue } from "./AgentRequests";
+import { TeamMonitor, TeamDocuments } from "./TeamMonitor";
 import type { CrmAgentRequest } from "@/lib/crm";
 
-type View = "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
+type View = "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
 
 function upsert<T extends { id: string }>(list: T[], item: T, prepend = false): T[] {
   if (list.some((x) => x.id === item.id)) return list.map((x) => (x.id === item.id ? item : x));
@@ -90,23 +91,29 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   const openTasks = tasks.filter((t) => !t.done_at);
   const dueCount = openTasks.filter((t) => t.due_at && new Date(t.due_at).getTime() < Date.now() + 86_400_000).length;
 
-  const nav: { id: View; label: string; icon: typeof Users; badge?: number }[] = [
-    { id: "reports", label: "Dashboard", icon: BarChart3 },
-    { id: "pipeline", label: "Leads", icon: KanbanSquare, badge: leads.filter((l) => l.stage === "new").length },
-    { id: "contacts", label: "Contacts", icon: Users },
-    { id: "listings", label: "Listings", icon: Building2 },
-    { id: "owner_requests", label: "Owner requests", icon: KeySquare },
-    { id: "temp_leads", label: "Temp leads", icon: PhoneCall },
-    { id: "calendar", label: "Calendar", icon: CalendarDays },
-    { id: "deals", label: "Deals", icon: HandCoins },
-    { id: "tasks", label: "Tasks", icon: CheckSquare, badge: dueCount },
-    { id: "templates", label: "WhatsApp templates", icon: MessageSquareText },
-    { id: "quick_wa", label: "Quick WhatsApp", icon: Send },
-    { id: "profile", label: "My profile", icon: UserCircle },
-    ...(isAdmin ? [{ id: "team" as View, label: "Team", icon: UserCog }] : []),
-    ...(isAdmin ? [{ id: "requests" as View, label: "Requests", icon: ClipboardList }] : []),
-    ...(isAdmin ? [{ id: "audit" as View, label: "Audit log", icon: ScrollText }] : []),
+  const nav: { id: View; label: string; icon: typeof Users; badge?: number; group: string; desc: string }[] = [
+    { id: "reports", label: "Dashboard", icon: BarChart3, group: "Overview", desc: "Performance across leads, pipeline and commission." },
+    { id: "pipeline", label: "Leads", icon: KanbanSquare, badge: leads.filter((l) => l.stage === "new").length, group: "Sales", desc: "Every enquiry, from first contact to closed deal." },
+    { id: "temp_leads", label: "Temp leads", icon: PhoneCall, group: "Sales", desc: "Raw calling list, promoted to Leads once qualified." },
+    { id: "contacts", label: "Contacts", icon: Users, group: "Sales", desc: "Clients, owners and their properties." },
+    { id: "deals", label: "Deals", icon: HandCoins, group: "Sales", desc: "Closed transactions, commission and payouts." },
+    { id: "listings", label: "Listings", icon: Building2, group: "Properties", desc: "Stock for sale and rent, with permit compliance." },
+    { id: "owner_requests", label: "Owner requests", icon: KeySquare, group: "Properties", desc: "Owners who want to sell or let through us." },
+    { id: "calendar", label: "Calendar", icon: CalendarDays, group: "Workspace", desc: "Viewings, meetings and handovers." },
+    { id: "tasks", label: "Tasks", icon: CheckSquare, badge: dueCount, group: "Workspace", desc: "Follow-ups, grouped by when they are due." },
+    { id: "templates", label: "WhatsApp templates", icon: MessageSquareText, group: "WhatsApp", desc: "Reusable messages for one-click replies." },
+    { id: "quick_wa", label: "Quick WhatsApp", icon: Send, group: "WhatsApp", desc: "Send one message to a list of leads." },
+    ...(isAdmin ? [
+      { id: "monitor" as View, label: "Agent performance", icon: Activity, group: "Admin", desc: "Who is using the CRM, and how each agent is performing." },
+      { id: "team" as View, label: "Team", icon: UserCog, group: "Admin", desc: "Agents, roles, commission slabs and targets." },
+      { id: "team_docs" as View, label: "Team documents", icon: FolderLock, group: "Admin", desc: "Every agent's IDs, visas, licences and contracts." },
+      { id: "requests" as View, label: "Requests", icon: ClipboardList, group: "Admin", desc: "What agents have asked the office for." },
+      { id: "audit" as View, label: "Audit log", icon: ScrollText, group: "Admin", desc: "Who changed what, and when." },
+    ] : []),
+    { id: "profile", label: "My profile", icon: UserCircle, group: "Account", desc: "Your details, targets, documents and requests." },
   ];
+  const groups = [...new Set(nav.map((n) => n.group))];
+  const current = nav.find((n) => n.id === view);
   const requestsTable = useTable<CrmAgentRequest>("requests");
 
   const digits = (p: string | null) => (p ?? "").replace(/\D/g, "").slice(-9);
@@ -126,15 +133,15 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
 
   return (
     <div className="flex min-h-screen text-[var(--text-primary)]">
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-e border-[var(--hairline)] bg-[var(--surface-sunken)] p-4 md:flex">
-        <div className="flex items-center gap-2.5 px-2 py-2">
-          <Image src="/logo-icon-white.png" alt="" width={30} height={30} />
-          <div className="leading-tight">
-            <div className="font-[family-name:var(--font-display)] text-[17px] tracking-[0.18em]">LABABIDI</div>
-            <div className="text-[9px] uppercase tracking-[0.3em] text-[var(--text-muted)]">CRM</div>
+      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col bg-[#0b1a2b] text-white md:flex">
+        <div className="flex items-center gap-3 px-5 pb-5 pt-6">
+          <Image src="/logo-icon-white.png" alt="" width={34} height={34} />
+          <div className="leading-none">
+            <div className="font-[family-name:var(--font-wordmark)] text-[16px] tracking-[0.16em]">LABABIDI</div>
+            <div className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.34em] text-[#d4b87f]">Properties CRM</div>
           </div>
         </div>
-        <div className="mt-5">
+        <div className="px-3 [&_button]:!border-white/10 [&_button]:!bg-white/[0.06] [&_button]:!text-white/60 hover:[&_button]:!text-white">
           <CommandSearch
             leads={leads}
             contacts={contacts}
@@ -146,57 +153,85 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             }}
           />
         </div>
-        <nav className="mt-4 flex flex-col gap-1">
-          {nav.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => setView(n.id)}
-              className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition-colors ${view === n.id ? "bg-[var(--accent-wash)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
-            >
-              <n.icon size={16} strokeWidth={1.6} />
-              <span className="flex-1 text-start">{n.label}</span>
-              {!!n.badge && <span className="figure rounded-full bg-[var(--accent-solid)] px-1.5 text-[10px] text-white">{n.badge}</span>}
-            </button>
+        <nav className="mt-3 flex-1 overflow-y-auto px-3 pb-4">
+          {groups.map((g) => (
+            <div key={g} className="mt-4 first:mt-2">
+              <div className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">{g}</div>
+              {nav.filter((n) => n.group === g).map((n) => {
+                const on = view === n.id;
+                return (
+                  <button
+                    key={n.id}
+                    onClick={() => setView(n.id)}
+                    className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-[7px] text-[13px] transition-colors ${on ? "bg-white/[0.09] font-medium text-white" : "text-white/65 hover:bg-white/[0.05] hover:text-white"}`}
+                  >
+                    {on && <span className="absolute -start-3 top-1.5 bottom-1.5 w-[3px] rounded-e bg-[#c8a96e]" />}
+                    <n.icon size={16} strokeWidth={1.7} className={on ? "text-[#d4b87f]" : "text-white/50 group-hover:text-white/80"} />
+                    <span className="flex-1 text-start">{n.label}</span>
+                    {!!n.badge && <span className="min-w-5 rounded-full bg-[#c8a96e] px-1.5 text-center text-[10.5px] font-semibold leading-5 text-[#0b1a2b]">{n.badge}</span>}
+                  </button>
+                );
+              })}
+            </div>
           ))}
           <a
             href="/documents/index.html"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-[7px] text-[13px] text-white/65 transition-colors hover:bg-white/[0.05] hover:text-white"
           >
-            <FileText size={16} strokeWidth={1.6} />
+            <FileText size={16} strokeWidth={1.7} className="text-white/50" />
             <span className="flex-1 text-start">Documents</span>
-            <ExternalLink size={12} className="text-[var(--text-muted)]" />
+            <ExternalLink size={12} className="text-white/40" />
           </a>
         </nav>
-        <div className="mt-auto border-t border-[var(--hairline)] px-2 pt-4">
-          <div className="text-[12.5px]">{me_?.full_name ?? "Signed in"}</div>
-          <div className="text-[11px] capitalize text-[var(--text-muted)]">{me.role}</div>
-          <button onClick={signOut} className="mt-3 flex items-center gap-2 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-            <LogOut size={14} /> Sign out
-          </button>
+        <div className="border-t border-white/10 p-3">
+          <div className="flex items-center gap-3 rounded-lg px-2 py-2">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#c8a96e]/20 text-[12px] font-semibold text-[#e3cc9f]">
+              {(me_?.full_name ?? "?").split(" ").map((w) => w[0]).slice(0, 2).join("")}
+            </div>
+            <div className="min-w-0 flex-1 leading-tight">
+              <div className="truncate text-[13px] font-medium">{me_?.full_name ?? "Signed in"}</div>
+              <div className="text-[11px] capitalize text-white/45">{me.role}</div>
+            </div>
+            <button onClick={signOut} aria-label="Sign out" title="Sign out" className="grid h-8 w-8 place-items-center rounded-lg text-white/50 transition hover:bg-white/10 hover:text-white">
+              <LogOut size={15} />
+            </button>
+          </div>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <nav className="flex gap-1 overflow-x-auto border-b border-[var(--hairline)] p-2 md:hidden">
-          {nav.map((n) => (
-            <button key={n.id} onClick={() => setView(n.id)} className={`rounded-lg px-3 py-1.5 text-[12.5px] ${view === n.id ? "bg-[var(--accent-wash)]" : "text-[var(--text-muted)]"}`}>{n.label}</button>
-          ))}
-          <a href="/documents/index.html" target="_blank" rel="noopener noreferrer" className="rounded-lg px-3 py-1.5 text-[12.5px] text-[var(--text-muted)]">Documents</a>
-          <button onClick={signOut} className="ms-auto px-2 text-[var(--text-muted)]" aria-label="Sign out"><LogOut size={15} /></button>
-        </nav>
+        <div className="sticky top-0 z-30 flex items-center gap-3 bg-[#0b1a2b] px-4 py-3 text-white md:hidden">
+          <Image src="/logo-icon-white.png" alt="" width={26} height={26} />
+          <select
+            value={view}
+            onChange={(e) => setView(e.target.value as View)}
+            className="h-9 flex-1 rounded-lg border border-white/15 bg-white/[0.06] px-3 text-[13px] text-white outline-none"
+          >
+            {groups.map((g) => (
+              <optgroup key={g} label={g}>
+                {nav.filter((n) => n.group === g).map((n) => <option key={n.id} value={n.id} className="text-black">{n.label}</option>)}
+              </optgroup>
+            ))}
+          </select>
+          <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-lg text-white/60" aria-label="Sign out"><LogOut size={16} /></button>
+        </div>
 
-        <main className="flex-1 p-5 md:p-8">
-          <div className="mb-6 flex items-center justify-between">
-            <h1 className="font-[family-name:var(--font-display)] text-[32px] leading-none">
-              {nav.find((n) => n.id === view)?.label}
-            </h1>
+        <main className="mx-auto w-full max-w-[1480px] flex-1 px-5 py-6 md:px-10 md:py-9">
+          <div className="mb-7 flex items-start justify-between gap-4 border-b border-[var(--hairline)] pb-6">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gold)]">{current?.group}</p>
+              <h1 className="mt-1.5 font-[family-name:var(--font-display)] text-[34px] font-semibold leading-none tracking-[-0.01em]">
+                {current?.label}
+              </h1>
+              <p className="mt-2 text-[13.5px] text-[var(--text-muted)]">{current?.desc}</p>
+            </div>
             <NotificationBell leads={leads} tasks={tasks} listings={listings.rows} isAdmin={isAdmin} meId={me.id} onOpenLead={setLeadId} />
           </div>
 
           {problem && (
-            <Card className="mb-5 border-[#e0645f]/40 p-4 text-[13px] text-[var(--text-secondary)]">
+            <Card className="mb-5 border-[#c0392b]/40 p-4 text-[13px] text-[var(--text-secondary)]">
               Could not load CRM data ({problem}). If this mentions a missing relation or column, run
               supabase/migrations/0001_concierge_leads.sql and 0002_crm.sql on the database.
             </Card>
@@ -253,6 +288,8 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           )}
           {view === "team" && isAdmin && <TeamView users={users} meId={me.id} onUser={onUser} />}
           {view === "audit" && isAdmin && <AuditView userName={userName} />}
+          {view === "monitor" && isAdmin && <TeamMonitor users={users} leads={leads} tasks={tasks} deals={deals.rows} />}
+          {view === "team_docs" && isAdmin && <TeamDocuments users={users} />}
         </main>
       </div>
 
@@ -274,6 +311,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           onRemoveTask={onRemoveTask}
           onOpenContact={(id) => { setLeadId(null); setContactId(id); }}
           onClose={() => setLeadId(null)}
+          onDeal={() => void deals.reload()}
         />
       )}
       {contact && (

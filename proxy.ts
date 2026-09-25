@@ -5,8 +5,34 @@ import { LOCALES } from "@/lib/i18n/types";
 
 const DEFAULT_LOCALE = "en";
 
+/* The CRM's own hostname, e.g. crm.lababidiproperties.com. When set, the CRM
+   is served at that host's root and /admin on the public site sends people
+   there. Unset (local dev, preview URLs) keeps /admin working as before. */
+const CRM_HOST = process.env.CRM_HOST?.toLowerCase();
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = (request.headers.get("host") ?? "").toLowerCase().split(":")[0];
+
+  if (CRM_HOST) {
+    if (host === CRM_HOST) {
+      if (pathname === "/") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/admin";
+        return NextResponse.rewrite(url);
+      }
+      if (pathname === "/admin" || pathname.startsWith("/admin/")) return NextResponse.next();
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+    if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+      return NextResponse.redirect(new URL(`https://${CRM_HOST}/`));
+    }
+  }
+
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) return NextResponse.next();
 
   const hasLocale = LOCALES.some(
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
@@ -27,9 +53,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  /* Everything except API routes, Next internals and static files.
-     `admin` is excluded too: it is the operator's own tool, deliberately
-     outside the locale tree, and redirecting it to /en/admin would land on
-     a route that does not exist. */
-  matcher: ["/((?!api|admin|_next/static|_next/image|favicon.ico|.*\\.[\\w]+$).*)"],
+  /* Everything except API routes, Next internals and static files. */
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.[\\w]+$).*)"],
 };

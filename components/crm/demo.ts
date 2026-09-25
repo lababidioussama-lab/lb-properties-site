@@ -139,6 +139,23 @@ export async function demoApi(method: string, resource: string, body?: Row, quer
     return { ok: true, rows: added, skipped: 0 };
   }
   if (resource === "audit") return { ok: true, entries: tables.audit };
+  if (resource === "team_activity") {
+    const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+    const win = { agent: "Mozilla/5.0 (Windows NT 10.0) Chrome/130.0", ip: "94.200.12.8" };
+    const iph = { agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) Safari/604.1", ip: "5.195.44.21" };
+    return {
+      ok: true,
+      sessions: [
+        { user_id: "u1", action: "login", created_at: at(3), detail: win },
+        { user_id: "u2", action: "login", created_at: at(42), detail: iph },
+        { user_id: null, action: "login_failed", created_at: at(95), detail: { email: "omar@lababidi.ae", ip: "188.12.4.9" } },
+        { user_id: "u2", action: "logout", created_at: at(60 * 20), detail: {} },
+        { user_id: "u3", action: "login", created_at: at(60 * 52), detail: win },
+      ],
+      actions: [{ user_id: "u2", created_at: at(12) }],
+      activities: (tables.activities as Row[]).map((a) => ({ user_id: a.user_id, kind: a.kind, created_at: a.created_at })),
+    };
+  }
   const generic = resource.startsWith("data/");
   const table = tables[resource];
   if (!table) return { ok: false, error: "not_found" };

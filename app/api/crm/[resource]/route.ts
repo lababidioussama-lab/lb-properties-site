@@ -122,6 +122,18 @@ export async function GET(request: NextRequest, { params }: Ctx) {
       const { data, error } = await db.from("crm_audit").select("*").order("created_at", { ascending: false }).limit(500);
       return error ? fail(error.message, 502) : ok({ entries: data });
     }
+    case "team_activity": {
+      if (user.role !== "admin") return fail("forbidden", 403);
+      const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+      const [sessions, actions, work] = await Promise.all([
+        db.from("crm_audit").select("user_id, action, created_at, detail").eq("entity", "session").gte("created_at", since).order("created_at", { ascending: false }).limit(5000),
+        db.from("crm_audit").select("user_id, created_at").neq("entity", "session").gte("created_at", since).order("created_at", { ascending: false }).limit(5000),
+        db.from("crm_activities").select("user_id, kind, created_at").gte("created_at", since).order("created_at", { ascending: false }).limit(10000),
+      ]);
+      const err = sessions.error ?? actions.error ?? work.error;
+      if (err) return fail(err.message, 502);
+      return ok({ sessions: sessions.data ?? [], actions: actions.data ?? [], activities: work.data ?? [] });
+    }
     case "properties": {
       const contactId = q.get("contact_id");
       if (!contactId || !(await canAccess(db, user, "crm_contacts", contactId, "owner_id")))

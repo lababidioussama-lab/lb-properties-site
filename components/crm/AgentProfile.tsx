@@ -56,16 +56,16 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
         </div>
         <div className="mt-3 flex items-center gap-3">
           <button onClick={save} className={BTN}>Save profile</button>
-          {saved && <span className="text-[12px] text-emerald-300">Saved</span>}
+          {saved && <span className="text-[12px] text-emerald-700">Saved</span>}
         </div>
       </Card>
 
       <Card className="p-5">
         <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">This quarter · {thisQuarter}</h3>
         <div className="grid grid-cols-3 gap-3 text-center">
-          <div><div className="figure text-[18px] text-[var(--text-primary)]">{stats.deals}</div><div className="text-[11px] text-[var(--text-muted)]">Deals</div></div>
-          <div><div className="figure text-[18px] text-[var(--text-primary)]">{money(stats.earned)}</div><div className="text-[11px] text-[var(--text-muted)]">Earned</div></div>
-          <div><div className={`figure text-[18px] ${outcome.tone}`}>{outcome.pct}%</div><div className="text-[11px] text-[var(--text-muted)]">Of target</div></div>
+          <div><div className="figure text-[24px] font-semibold text-[var(--text-primary)]">{stats.deals}</div><div className="text-[11px] text-[var(--text-muted)]">Deals</div></div>
+          <div><div className="figure text-[24px] font-semibold text-[var(--text-primary)]">{money(stats.earned)}</div><div className="text-[11px] text-[var(--text-muted)]">Earned</div></div>
+          <div><div className={`figure text-[24px] font-semibold ${outcome.tone}`}>{outcome.pct}%</div><div className="text-[11px] text-[var(--text-muted)]">Of target</div></div>
         </div>
         <p className={`mt-3 text-center text-[12px] ${outcome.tone}`}>{outcome.label}</p>
         {!isAdmin && <p className="mt-2 text-center text-[11px] text-[var(--text-muted)]">Slab % and quarterly target are set by an admin, under Team.</p>}

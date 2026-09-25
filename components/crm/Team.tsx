@@ -49,7 +49,7 @@ export function TeamView({ users, meId, onUser }: {
           </select>
           <button onClick={create} className={BTN}><Plus size={14} /> Add</button>
         </div>
-        {error && <p className="mt-2 text-[12px] text-[#e0645f]">{error}</p>}
+        {error && <p className="mt-2 text-[12px] text-[#c0392b]">{error}</p>}
       </Card>
 
       <Card className="divide-y divide-[var(--hairline)]">
@@ -62,7 +62,7 @@ export function TeamView({ users, meId, onUser }: {
               </div>
               <div className="text-[12px] text-[var(--text-muted)]">{u.email}</div>
             </div>
-            <select value={u.role} onChange={(e) => patch(u.id, { role: e.target.value })} className={`${INPUT} w-auto`}>
+            <select value={u.role} onChange={(e) => patch(u.id, { role: e.target.value })} className={`${INPUT} !w-auto`}>
               <option value="agent">Agent</option>
               <option value="admin">Admin</option>
             </select>
@@ -70,14 +70,14 @@ export function TeamView({ users, meId, onUser }: {
               Slab
               <input
                 type="number" defaultValue={u.slab_pct ?? 50} onBlur={(e) => patch(u.id, { slab_pct: e.target.value })}
-                className={`${INPUT} figure w-16`}
+                className={`${INPUT} figure !w-16`}
               />%
             </label>
             <label className="flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)]">
               Target/qtr
               <input
                 type="number" defaultValue={u.quarterly_target_aed ?? ""} placeholder="AED" onBlur={(e) => patch(u.id, { quarterly_target_aed: e.target.value })}
-                className={`${INPUT} figure w-24`}
+                className={`${INPUT} figure !w-24`}
               />
             </label>
             <button onClick={() => patch(u.id, { active: !u.active })} className={BTN_GHOST}>

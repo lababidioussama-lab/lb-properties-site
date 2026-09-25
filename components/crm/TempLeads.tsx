@@ -8,11 +8,11 @@ import { useTable } from "./useTable";
 
 const BLANK = { full_name: "", phone: "", source: "", notes: "" };
 const TONE: Record<string, string> = {
-  to_call: "bg-sky-500/15 text-sky-300", call_back: "bg-amber-500/15 text-amber-300",
-  called_done: "bg-zinc-500/15 text-zinc-300", interested: "bg-emerald-500/15 text-emerald-300",
-  not_interested: "bg-zinc-500/15 text-zinc-400", wrong_number: "bg-red-500/15 text-red-300",
-  do_not_call: "bg-red-500/15 text-red-300", it_is_agent: "bg-zinc-500/15 text-zinc-400",
-  pre_exist: "bg-zinc-500/15 text-zinc-400", sold_rented: "bg-zinc-500/15 text-zinc-400",
+  to_call: "bg-sky-50 text-sky-700", call_back: "bg-amber-50 text-amber-700",
+  called_done: "bg-zinc-100 text-zinc-600", interested: "bg-emerald-50 text-emerald-700",
+  not_interested: "bg-zinc-100 text-zinc-600", wrong_number: "bg-red-50 text-red-700",
+  do_not_call: "bg-red-50 text-red-700", it_is_agent: "bg-zinc-100 text-zinc-600",
+  pre_exist: "bg-zinc-100 text-zinc-600", sold_rented: "bg-zinc-100 text-zinc-600",
 };
 
 export function TempLeadsView({ isAdmin, users, userName, onPromote }: {
@@ -32,10 +32,9 @@ export function TempLeadsView({ isAdmin, users, userName, onPromote }: {
 
   return (
     <div className="space-y-4">
-      <p className="text-[12.5px] text-[var(--text-muted)]">
-        A raw calling list — numbers not yet qualified as real leads. Promote one to Leads once they show interest.
-      </p>
-      <button onClick={() => setAdding((v) => !v)} className={BTN}><Plus size={14} /> Add to call list</button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button onClick={() => setAdding((v) => !v)} className={`${BTN} ms-auto`}><Plus size={14} /> Add to call list</button>
+      </div>
 
       {adding && (
         <Card className="grid gap-2.5 p-4 sm:grid-cols-4">

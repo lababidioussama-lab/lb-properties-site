@@ -11,7 +11,7 @@ import "../globals.css";
  * screen nobody but him ever opens.
  */
 export const metadata: Metadata = {
-  title: "Ledger — Lababidi Properties",
+  title: "CRM — Lababidi Properties",
   // Belt and braces alongside the auth gate: nothing here should ever be
   // indexed, previewed or cached by an intermediary.
   robots: { index: false, follow: false, nocache: true },
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" dir="ltr" data-theme="dark" className={`${fontVariables} crm-shell`}>
+    <html lang="en" dir="ltr" data-theme="light" className={`${fontVariables} crm-shell`}>
       <body className="bg-[var(--surface)]">{children}</body>
     </html>
   );

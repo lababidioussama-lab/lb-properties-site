@@ -766,23 +766,42 @@ select {
 }
 
 /* ============================================================================
-   CRM SHELL
-   The site tokens above are tuned for a moody marketing hero and are too dark
-   for a dense data app read for hours at a time. Scoped override, not a
-   replacement: the public site keeps --surface: #0a0708 untouched.
+   CRM SHELL — a light, calm workspace for a data app read for hours:
+   white cards on warm grey, brand navy for actions, gold only as a marker.
    ========================================================================= */
-html[data-theme="dark"].crm-shell {
-  --surface: #17191d;
-  --surface-raised: #202329;
-  --surface-sunken: #101216;
-  --glass-bg: rgb(32 35 41 / 0.85);
-  --glass-bg-strong: rgb(23 25 29 / 0.96);
-  --hairline: rgb(255 255 255 / 0.09);
-  --hairline-strong: rgb(255 255 255 / 0.16);
-  --text-primary: #f0f1f3;
-  --text-secondary: #b7bcc4;
-  --text-muted: #82868f;
+html.crm-shell {
+  color-scheme: light;
+  --surface: #f4f3ef;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f8f7f4;
+  --glass-bg: rgb(255 255 255 / 0.9);
+  --glass-bg-strong: rgb(255 255 255 / 0.97);
+  --glass-border: rgb(15 23 42 / 0.08);
+  --hairline: rgb(15 23 42 / 0.08);
+  --hairline-strong: rgb(15 23 42 / 0.15);
+  --text-primary: #14171c;
+  --text-secondary: #464c55;
+  --text-muted: #7b8089;
+  --accent: #0b2a4a;
+  --accent-bright: #1f4e7a;
+  --accent-wash: rgb(11 42 74 / 0.06);
+  --accent-dim: rgb(11 42 74 / 0.2);
+  --accent-solid: #0b2a4a;
+  --accent-solid-hover: #173f68;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 1px rgb(15 23 42 / 0.02);
+  --shadow-lift: 0 12px 40px -12px rgb(15 23 42 / 0.25);
+  --gold: #b8955a;
 }
+html.crm-shell body { font-size: 14px; }
+html.crm-shell ::-webkit-scrollbar { width: 10px; height: 10px; }
+html.crm-shell ::-webkit-scrollbar-thumb { background: rgb(15 23 42 / 0.15); border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
+html.crm-shell select { cursor: pointer; }
+
+/* Tables: one treatment everywhere. */
+html.crm-shell main table thead tr { background: var(--surface-sunken); }
+html.crm-shell main table thead th { color: var(--text-muted); font-weight: 600; font-size: 10.5px; letter-spacing: 0.08em; }
+html.crm-shell main table tbody tr { transition: background-color 0.15s; }
+html.crm-shell main table tbody tr:hover { background: rgb(11 42 74 / 0.025); }
 
 /* ============================================================================
    LIMESTONE & STEEL — editorial building blocks

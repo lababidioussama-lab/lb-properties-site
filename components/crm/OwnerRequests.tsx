@@ -33,12 +33,12 @@ export function OwnerRequestsView({ isAdmin, users, userName, onCreateListing }:
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className={`${INPUT} w-auto`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className={`${INPUT} !w-auto`}>
           <option value="all">All statuses ({t.rows.length})</option>
           {OWNER_REQUEST_STATUSES.map((s) => <option key={s} value={s}>{OWNER_REQUEST_LABEL[s]} ({counts[s] ?? 0})</option>)}
         </select>
-        <button onClick={() => setAdding((v) => !v)} className={BTN}><Plus size={14} /> New owner request</button>
+        <button onClick={() => setAdding((v) => !v)} className={`${BTN} ms-auto`}><Plus size={14} /> New owner request</button>
       </div>
 
       {adding && (
