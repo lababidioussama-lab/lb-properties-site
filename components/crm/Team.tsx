@@ -94,9 +94,20 @@ export function TeamView({ users, meId, onUser }: {
                 className={`${INPUT} figure !w-24`}
               />
             </label>
-            <button onClick={() => patch(u.id, { active: !u.active })} className={BTN_GHOST}>
-              {u.active ? "Active" : "Disabled"}
-            </button>
+            <span className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${u.active ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+              {u.active ? "Can sign in" : "Switched off"}
+            </span>
+            {u.id !== meId && (
+              <button
+                onClick={() => {
+                  if (u.active && !window.confirm(`Switch off ${u.full_name}? They will not be able to sign in until you turn them back on.`)) return;
+                  void patch(u.id, { active: !u.active });
+                }}
+                className={BTN_GHOST}
+              >
+                {u.active ? "Switch off" : "Turn on"}
+              </button>
+            )}
             <button onClick={() => resetPassword(u)} className={BTN_GHOST}>Reset password</button>
             <div className="basis-full ps-12">
               <div className="flex flex-wrap items-center gap-1.5">

@@ -119,6 +119,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
   }
   const user = await authenticate(email, body.password);
+  if (user === "disabled") {
+    return NextResponse.json({ ok: false, error: "account_disabled" }, { status: 403 });
+  }
   if (!user) {
     await logSession(null, "login_failed", { email: email.slice(0, 120), ip });
     return NextResponse.json({ ok: false, error: "invalid_credentials" }, { status: 401 });

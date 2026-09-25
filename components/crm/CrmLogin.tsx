@@ -13,6 +13,7 @@ const MESSAGES: Record<string, string> = {
   code_expired: "That code has expired. Sign in again.",
   wait: "Wait 30 seconds before asking for another code.",
   invalid_credentials: "Email or password is not right.",
+  account_disabled: "Your account is switched off. Ask the admin to turn it on (Team page).",
   invalid: "Enter your email and password.",
   bad_origin: "Blocked as a cross-site request. Open the CRM from its own address.",
 };

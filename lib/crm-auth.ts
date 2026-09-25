@@ -120,7 +120,7 @@ export const SESSION_COOKIE_OPTIONS = {
 };
 
 /** Email + password → session user, or null. Handles owner bootstrap. */
-export async function authenticate(email: string, password: string): Promise<SessionUser | null> {
+export async function authenticate(email: string, password: string): Promise<SessionUser | "disabled" | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
   const normalized = email.trim().toLowerCase();
@@ -146,6 +146,8 @@ export async function authenticate(email: string, password: string): Promise<Ses
     .maybeSingle();
   // Hash even for unknown emails so response time does not reveal which accounts exist.
   const valid = verifyPassword(password, (data?.password_hash as string) ?? DUMMY_HASH);
-  if (!data || !data.active || !valid) return null;
+  if (!data || !valid) return null;
+  // Only someone who knows the password learns the account is switched off.
+  if (!data.active) return "disabled";
   return { id: data.id as string, role: data.role as Role };
 }
