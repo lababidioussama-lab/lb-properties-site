@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { FILE_BUCKET, parseFilePath, pathFromUrl } from "@/lib/crm-files";
 import { getSupabaseAdmin, LEADS_TABLE } from "@/lib/supabase";
 import { liveUser, sameOrigin, sessionFromRequest, type SessionUser } from "@/lib/crm-auth";
 import { LEAD_SOURCES, LISTING_STATUSES, PROPERTY_TYPES, OWNER_REQUEST_STATUSES, TEMP_LEAD_STATUSES, REQUEST_KINDS, REQUEST_STATUSES, DOC_KINDS, PAYMENT_METHODS, complianceIssues, goamlRequired, kycMissing } from "@/lib/crm";
@@ -205,7 +206,7 @@ const SPECS: Record<string, Spec> = {
     required: ["title", "url"],
     order: ["created_at", false],
     fields: {
-      title: text(200), url: (v) => (typeof v === "string" && /^https?:\/\//.test(v) ? v : null),
+      title: text(200), url: (v) => (typeof v === "string" && (/^https?:\/\//.test(v) || pathFromUrl(v)) ? v : null),
       kind: oneOf(DOC_KINDS), user_id: id,
     },
     adminFields: ["user_id"],
@@ -345,6 +346,11 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   if (name === "invoices") Object.assign(row, await invoiceNumbers(c.db, row));
   if (spec.required.some((k) => !row[k])) return fail(`${spec.required.join(", ")} required`);
   if (spec.owner && (c.user.role !== "admin" || !row[spec.owner])) row[spec.owner] = c.user.id;
+  // An uploaded document must live in its owner's own folder.
+  if (name === "agent_documents") {
+    const file = parseFilePath(pathFromUrl(row.url as string));
+    if (file && (file.folder !== "docs" || file.ownerId !== row.user_id)) return fail("forbidden", 403);
+  }
   if (name === "listings") row.ref_code = `${row.purpose === "rent" ? (row.property_type === "villa" ? "VR" : "AR") : (row.property_type === "villa" ? "VS" : "AS")}-${String(Date.now()).slice(-6)}`;
   const { data, error } = await c.db.from(spec.table).insert(row).select().single();
   return error ? fail(error.message, 502) : NextResponse.json({ ok: true, row: data });
@@ -400,6 +406,11 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   if (!spec) return fail("not_found", 404);
   const rowId = request.nextUrl.searchParams.get("id");
   if (!rowId || !(await allowed(spec, c.user, rowId))) return fail("forbidden", 403);
+  const { data: gone } = spec.table === "crm_agent_documents"
+    ? await c.db.from(spec.table).select("url").eq("id", rowId).maybeSingle()
+    : { data: null };
   const { error } = await c.db.from(spec.table).delete().eq("id", rowId);
+  const stored = pathFromUrl((gone as { url?: string } | null)?.url);
+  if (!error && stored) await c.db.storage.from(FILE_BUCKET).remove([stored]);
   return error ? fail(error.message, 502) : NextResponse.json({ ok: true });
 }

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getSupabaseAdmin, LEADS_TABLE } from "@/lib/supabase";
+import { parseFilePath, pathFromUrl } from "@/lib/crm-files";
 import { hashPassword, liveUser, sameOrigin, sessionFromRequest, type SessionUser } from "@/lib/crm-auth";
 import { PORTALS, PORTAL_LABEL, ingestPortalLead, portalSecret, type Portal } from "@/lib/portal-intake";
 import { licenceValid, ACTIVITY_KINDS, CONTACT_KINDS, CONTACT_STATUSES, LEAD_SLA_HOURS, LOST_REASONS, STAGES, STAGE_LABEL, STAR_LIMIT, complianceIssues, type Stage } from "@/lib/crm";
@@ -471,7 +472,8 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       if ("bio" in b) patch.bio = str(b.bio, 1000);
       if ("avatar_url" in b) {
         const url = str(b.avatar_url, 500);
-        patch.avatar_url = url && /^https?:\/\//.test(url) ? url : null;
+        const own = parseFilePath(pathFromUrl(url));
+        patch.avatar_url = url && (/^https?:\/\//.test(url) || (own?.folder === "avatars" && own.ownerId === id)) ? url : null;
       }
 
       if (user.role === "admin") {

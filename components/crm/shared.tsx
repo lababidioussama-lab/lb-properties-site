@@ -135,3 +135,39 @@ export function downloadCsv<T>(name: string, rows: T[], columns: [string, (r: T)
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/** Upload a real file to CRM storage. Returns the private URL to save on the record. */
+export async function uploadFile(file: File, kind: "avatar" | "doc", userId?: string): Promise<{ url?: string; error?: string }> {
+  if (typeof window !== "undefined" && (window as { __CRM_DEMO__?: boolean }).__CRM_DEMO__) {
+    return { url: URL.createObjectURL(file) };
+  }
+  const body = new FormData();
+  body.append("file", file);
+  body.append("kind", kind);
+  if (userId) body.append("user_id", userId);
+  const res = await fetch("/api/crm/upload", { method: "POST", body }).catch(() => null);
+  if (!res) return { error: "Could not reach the server." };
+  const r = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+  if (r.url) return { url: r.url };
+  return {
+    error: r.error === "too_large" ? "That file is over 5 MB. Compress it or take a smaller photo."
+      : r.error === "unsupported_type" ? "Only JPG, PNG, WEBP, HEIC photos and PDF files are accepted."
+      : `Upload failed (${r.error ?? res.status}).`,
+  };
+}
+
+/** Shrink a photo to a square-ish JPEG no larger than `max` px, so profile photos stay small. */
+export async function shrinkImage(file: File, max = 512): Promise<File> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, "image/jpeg", 0.86));
+    return blob ? new File([blob], "photo.jpg", { type: "image/jpeg" }) : file;
+  } catch {
+    return file;
+  }
+}

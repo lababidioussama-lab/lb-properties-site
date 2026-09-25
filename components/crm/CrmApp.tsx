@@ -33,6 +33,7 @@ import { IntegrationsView } from "./Integrations";
 import { InvoicesView } from "./Invoices";
 import { RentalsView } from "./Rentals";
 import { ComplianceView } from "./Compliance";
+import { TargetMeter } from "./TargetMeter";
 import type { CrmAgentRequest } from "@/lib/crm";
 
 type View = "compliance" | "invoices" | "rentals" | "integrations" | "today" | "tools" | "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
@@ -204,11 +205,17 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             <ExternalLink size={12} className="text-white/40" />
           </a>
         </nav>
+        {!isAdmin && <TargetMeter me={me_} deals={deals.rows} variant="sidebar" />}
         <div className="border-t border-white/10 p-3">
           <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#c8a96e]/20 text-[12px] font-semibold text-[#e3cc9f]">
-              {(me_?.full_name ?? "?").split(" ").map((w) => w[0]).slice(0, 2).join("")}
-            </div>
+            {me_?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={me_.avatar_url} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+            ) : (
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#c8a96e]/20 text-[12px] font-semibold text-[#e3cc9f]">
+                {(me_?.full_name ?? "?").split(" ").map((w) => w[0]).slice(0, 2).join("")}
+              </div>
+            )}
             <div className="min-w-0 flex-1 leading-tight">
               <div className="truncate text-[13px] font-medium">{me_?.full_name ?? "Signed in"}</div>
               <div className="text-[11px] capitalize text-white/45">{me.role}</div>
@@ -236,6 +243,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           </select>
           <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-lg text-white/60" aria-label="Sign out"><LogOut size={16} /></button>
         </div>
+        {!isAdmin && <div className="sticky top-[60px] z-30"><TargetMeter me={me_} deals={deals.rows} variant="bar" /></div>}
 
         <main className="mx-auto w-full max-w-[1480px] flex-1 px-4 pb-24 pt-5 md:px-10 md:py-9">
           <div className="mb-5 flex items-start justify-between gap-4 border-b border-[var(--hairline)] pb-4 md:mb-7 md:pb-6">
