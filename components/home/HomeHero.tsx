@@ -67,14 +67,14 @@ export function HomeHero() {
       </div>
 
       <div className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col justify-end px-5 pb-10 pt-40 sm:px-8 sm:pb-14">
-        <motion.p {...rise(0.1)} className="kicker flex items-center gap-3 !text-[#c9d6e4]">
-          <span className="h-px w-10 bg-[#c9d6e4]/70" />
+        <motion.p {...rise(0.1)} className="kicker flex items-center gap-3 !text-[#d4b87f]">
+          <span className="h-px w-10 bg-[#c8a96e]/80" />
           {h.kicker}
         </motion.p>
 
         <motion.h1
           {...rise(0.22)}
-          className="mt-6 max-w-[14ch] font-[family-name:var(--font-display)] text-[clamp(44px,8.4vw,112px)] font-medium leading-[0.98] tracking-[-0.015em] text-white [&_em]:font-medium [&_em]:italic [&_em]:text-[#dfe8f2] [text-shadow:0_2px_30px_rgb(7_26_46/0.55)] rtl:font-[family-name:var(--font-display-ar)] rtl:leading-[1.25] rtl:[&_em]:not-italic"
+          className="mt-6 max-w-[14ch] font-[family-name:var(--font-display)] text-[clamp(44px,8.4vw,112px)] font-medium leading-[0.98] tracking-[-0.015em] text-white [&_em]:font-medium [&_em]:italic [&_em]:text-[#ead6ad] [text-shadow:0_2px_30px_rgb(7_26_46/0.55)] rtl:font-[family-name:var(--font-display-ar)] rtl:leading-[1.25] rtl:[&_em]:not-italic"
         >
           {emphasize(h.title)}
         </motion.h1>
@@ -99,7 +99,7 @@ export function HomeHero() {
         >
           {facts.map((x) => (
             <div key={x.k}>
-              <dt className="font-[family-name:var(--font-eyebrow)] text-[9.5px] font-semibold uppercase tracking-[0.24em] text-[#9fb2c8] rtl:tracking-normal rtl:text-[12px]">
+              <dt className="font-[family-name:var(--font-eyebrow)] text-[9.5px] font-semibold uppercase tracking-[0.24em] text-[#d4b87f] rtl:tracking-normal rtl:text-[12px]">
                 {x.k}
               </dt>
               <dd className="mt-2 text-[14px] text-white/90">{x.v}</dd>

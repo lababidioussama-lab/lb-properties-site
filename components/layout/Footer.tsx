@@ -21,7 +21,7 @@ export function Footer() {
 
   return (
     <footer className="relative bg-[#07192b] text-[#c9d1dc]">
-      <span className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,#4a6788_20%,#9fb2c8_50%,#4a6788_80%,transparent)]" />
+      <span className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,#8a7348_20%,#d4b87f_50%,#8a7348_80%,transparent)]" />
 
       <div className="mx-auto max-w-[1320px] px-5 pb-10 pt-20 sm:px-8">
         <div className="grid gap-14 lg:grid-cols-[1.3fr_0.8fr_1fr_1fr]">
@@ -31,7 +31,7 @@ export function Footer() {
           </div>
 
           <nav>
-            <h3 className="kicker !text-[#9fb2c8]">{t.nav.menu}</h3>
+            <h3 className="kicker !text-[#d4b87f]">{t.nav.menu}</h3>
             <ul className="mt-6 space-y-3.5">
               {pages.map((p) => (
                 <li key={p.href}>
@@ -44,7 +44,7 @@ export function Footer() {
           </nav>
 
           <nav>
-            <h3 className="kicker !text-[#9fb2c8]">{t.footer.services}</h3>
+            <h3 className="kicker !text-[#d4b87f]">{t.footer.services}</h3>
             <ul className="mt-6 space-y-3.5">
               {SERVICE_KEYS.map((service) => (
                 <li key={service}>
@@ -57,7 +57,7 @@ export function Footer() {
           </nav>
 
           <div>
-            <h3 className="kicker !text-[#9fb2c8]">{t.footer.contact}</h3>
+            <h3 className="kicker !text-[#d4b87f]">{t.footer.contact}</h3>
             <ul className="mt-6 space-y-4 text-[14px]">
               <li>
                 <a href={SITE.waLink("Hello — I would like to speak to an advisor.")} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 text-[#dfe4ea] hover:text-white">
@@ -81,7 +81,7 @@ export function Footer() {
         </div>
 
         <div className="mt-16 border-t border-white/10 pt-8">
-          <h4 className="kicker !text-[#9fb2c8]">{t.footer.disclaimerTitle}</h4>
+          <h4 className="kicker !text-[#d4b87f]">{t.footer.disclaimerTitle}</h4>
           <p className="mt-3 max-w-[100ch] text-[13px] leading-[1.8] text-[#8793a3]">{t.footer.disclaimer}</p>
         </div>
 

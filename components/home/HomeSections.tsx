@@ -34,11 +34,11 @@ function Reveal({ children, delay = 0, className = "" }: { children: ReactNode; 
 function Heading({ kicker, title, light = false, center = false }: { kicker: string; title: string; light?: boolean; center?: boolean }) {
   return (
     <Reveal className={center ? "text-center" : ""}>
-      <p className={`kicker flex items-center gap-3 ${center ? "justify-center" : ""} ${light ? "!text-[#9fb2c8]" : ""}`}>
-        <span className={`h-px w-10 ${light ? "bg-[#9fb2c8]/70" : "bg-[var(--metal)]/70"}`} />
+      <p className={`kicker flex items-center gap-3 ${center ? "justify-center" : ""} ${light ? "!text-[#d4b87f]" : ""}`}>
+        <span className={`h-px w-10 ${light ? "bg-[#c8a96e]/80" : "bg-[var(--metal)]/70"}`} />
         {kicker}
       </p>
-      <h2 className={`display-2 mt-5 ${center ? "mx-auto" : ""} max-w-[20ch] ${light ? "text-white [&_em]:!text-[#c9d6e4]" : "text-[var(--text-primary)]"}`}>
+      <h2 className={`display-2 mt-5 ${center ? "mx-auto" : ""} max-w-[20ch] ${light ? "text-white [&_em]:!text-[#d4b87f]" : "text-[var(--text-primary)]"}`}>
         {emphasize(title)}
       </h2>
     </Reveal>
@@ -227,7 +227,7 @@ export function FiguresBand() {
         <Heading kicker={c.kicker} title={c.title} light />
         <div className="mt-16 grid gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
           {items.map((x, i) => (
-            <Reveal key={x.label} delay={0.08 * i} className="border-t border-white/20 pe-8 pt-6">
+            <Reveal key={x.label} delay={0.08 * i} className="border-t border-[#c8a96e]/45 pe-8 pt-6">
               <div className="font-[family-name:var(--font-display)] text-[clamp(44px,5vw,68px)] font-medium leading-none text-white" dir="ltr">
                 {x.value}
               </div>

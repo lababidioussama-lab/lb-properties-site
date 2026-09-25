@@ -30,11 +30,11 @@ export function PageHero({
       </div>
 
       <div className="mx-auto w-full max-w-[1320px] px-5 sm:px-8">
-        <motion.p {...rise(0.05)} className="kicker flex items-center gap-3 !text-[#c9d6e4]">
-          <span className="h-px w-10 bg-[#c9d6e4]/70" />
+        <motion.p {...rise(0.05)} className="kicker flex items-center gap-3 !text-[#d4b87f]">
+          <span className="h-px w-10 bg-[#c8a96e]/80" />
           {kicker}
         </motion.p>
-        <motion.h1 {...rise(0.15)} className="display-1 mt-5 max-w-[18ch] text-white [&_em]:!text-[#c9d6e4]">
+        <motion.h1 {...rise(0.15)} className="display-1 mt-5 max-w-[18ch] text-white [&_em]:!text-[#d4b87f]">
           {emphasize(title)}
         </motion.h1>
         <motion.p {...rise(0.28)} className="mt-6 max-w-[60ch] text-[16.5px] leading-[1.8] text-white/80">
