@@ -98,7 +98,7 @@ export async function demoDs(method: string, action: string, body?: Record<strin
     } });
     case "permit": return ok({ permits: [{ permit_number: "7117000000", bayut_listing_id: "10000001", zone_name_en: "Marsa Dubai", property_type_name_en: "Unit", developer_name_en: "Sample Developer", authority_name_en: "DLD", property_name_en: "Marina Gate 2", property_value: 2450000, validation_url: null, fetched_at: "2026-09-20T10:00:00Z" }], tabu: null });
     case "pnumber": return ok({ rows: [{ ref: "d1", name: "Khalid Rahman", side: "Bought", date: "2019-03-14", amount: 2100000, place: "Unit 1405 · Marina Gate 2 · Dubai Marina", numbers: { plot: "392", reg: null, property: String(body?.q) }, phones: [{ masked: "+971 50 ••• ••12" }] }] });
-    case "listed": return ok({ error: "not_configured" });
+    case "listed": return ok({ listings: [{ title: "2 BR · Marina Gate 2 · high floor, sea view", price: 2450000, agency: "Sample Realty LLC", agent: "Sample Broker", url: null, beds: 2 }] });
     case "brokers": return ok({ brokers: [{ name: "Sample Broker", company: "Sample Realty LLC", phone: "+971 50 000 0000", dial: "971500000000", nationality: "United Kingdom", brn: "00000", listings: 42 }] });
     case "admin":
       if (method === "PATCH") return ok({ updated: body });

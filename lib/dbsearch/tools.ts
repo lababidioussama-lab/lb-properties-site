@@ -170,9 +170,23 @@ export async function propertyNumber(db: Db, viewer: { id: string }, q: string) 
     }));
 }
 
-/** Live portal listings, through the CRM's own RapidAPI key (never DB Search's). */
-export async function listedNow(q: string) {
-  const key = process.env.RAPIDAPI_KEY;
+/* The RapidAPI key: RAPIDAPI_KEY on the CRM's server if set, otherwise the
+   same key DB Search uses, read on the server through get_app_secret (a read;
+   DB Search is unchanged). It is held in memory for ten minutes and never
+   leaves the server. */
+let rapid: { key: string; at: number } | null = null;
+async function rapidKey(db: Db): Promise<string | null> {
+  if (process.env.RAPIDAPI_KEY) return process.env.RAPIDAPI_KEY;
+  if (rapid && Date.now() - rapid.at < 10 * 60_000) return rapid.key;
+  const { data } = await db.rpc("get_app_secret", { p_name: "RAPIDAPI_KEY" });
+  if (typeof data !== "string" || !data) return null;
+  rapid = { key: data, at: Date.now() };
+  return data;
+}
+
+/** Live portal listings, with the same RapidAPI key DB Search uses. */
+export async function listedNow(db: Db, q: string) {
+  const key = await rapidKey(db);
   if (!key) return { error: "not_configured" as const };
   const url = new URL("https://uae-real-estate-data-api1.p.rapidapi.com/search-brokers");
   url.searchParams.set("query", clip(q, 120));

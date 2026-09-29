@@ -38,7 +38,7 @@ export function DsChecks({ mode, onMode, onExpired, onOpenOwner }: { mode: Check
     if (mode === "permit") setPermits({ permits: (r.permits as Permit[]) ?? [], tabu: (r.tabu as never) ?? null });
     if (mode === "pnumber") setRows((r.rows as PRow[]) ?? []);
     if (mode === "listed") {
-      if (r.error === "not_configured") return setError("Live listings need a RapidAPI key on the CRM's Netlify site (RAPIDAPI_KEY). DB Search's own key is not borrowed.");
+      if (r.error === "not_configured") return setError("The RapidAPI key could not be found, so live listings are unavailable right now.");
       if (typeof r.error === "string") return setError(`The listings provider did not answer (${r.error}).`);
       setListings((r.listings as Listing[]) ?? []);
     }

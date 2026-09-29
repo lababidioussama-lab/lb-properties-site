@@ -199,7 +199,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         }
         case "permit": return done(await permitLookup(db, q) as Record<string, unknown>);
         case "pnumber": return done({ rows: await propertyNumber(db, user, q) });
-        case "listed": return done(await listedNow(q));
+        case "listed": return done(await listedNow(db, q));
         case "brokers": return done({ brokers: await brokers(db, q) });
       }
       return fail("not_found", 404);
