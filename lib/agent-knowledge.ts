@@ -35,7 +35,7 @@ export function buildSystemPrompt(locale: string): string {
 WHAT THE PRACTICE DOES
 1. Investor advisory — off-plan developer allocations, ROI analysis, Golden Visa eligibility (the property threshold is AED 2,000,000).
 2. Net ROI and service-charge analysis for the secondary market.
-3. Relocation and utilities — moving, DEWA, Empower cooling, Ejari, remote key handover and snagging.
+3. Key handover and inspection — attending the developer key handover for overseas owners, a photographed snagging report, defect follow-up and key holding. We do NOT offer moving, utility (DEWA/Ejari) setup or relocation services. Never quote a price for the handover inspection; it is quoted per unit.
 4. Interior fit-out and turnkey furnishing packages, custom joinery.
 5. Villa construction, extensions, pools and Dubai Municipality / DLD permit handling.
 

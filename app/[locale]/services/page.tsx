@@ -1,6 +1,6 @@
 import { pageMetadata } from "@/lib/page-metadata";
 import { SubpageHero } from "@/components/ui/SubpageHero";
-import { RelocationConcierge } from "@/components/sections/RelocationConcierge";
+import { KeyHandover } from "@/components/sections/KeyHandover";
 import { RenovationSlider } from "@/components/sections/RenovationSlider";
 import { ConstructionPermits } from "@/components/sections/ConstructionPermits";
 import { ContactBand } from "@/components/home/HomeSections";
@@ -15,7 +15,7 @@ export default function ServicesPage() {
       <SubpageHero page="services" image="/projects/grand-polo-equestra-5.jpg" />
       <RenovationSlider />
       <ConstructionPermits />
-      <RelocationConcierge />
+      <KeyHandover />
       <ContactBand />
     </>
   );

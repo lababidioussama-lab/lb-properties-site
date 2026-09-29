@@ -111,6 +111,30 @@ export async function sessionFromCookies(): Promise<SessionUser | null> {
   return liveUser(readSession((await cookies()).get(CRM_COOKIE)?.value));
 }
 
+/* The Documents suite has its own, shorter session, opened by its own
+   emailed code. The token starts with "docs." so it can never be read as a
+   CRM session (whose second part must be a role), nor a CRM token as this. */
+export const DOCS_COOKIE = "lb_docs";
+const DOCS_MS = 4 * 60 * 60 * 1000;
+
+export function createDocsSession(userId: string): string | null {
+  const key = secret();
+  if (!key) return null;
+  const payload = `docs.${userId}.${Date.now() + DOCS_MS}.${randomBytes(6).toString("hex")}`;
+  return `${payload}.${sign(payload, key)}`;
+}
+
+export function readDocsSession(value: string | undefined | null): SessionUser | null {
+  const key = secret();
+  if (!key || !value) return null;
+  const parts = value.split(".");
+  if (parts.length !== 5 || parts[0] !== "docs") return null;
+  const [, id, expiry, nonce, mac] = parts;
+  if (!safeEqual(mac, sign(`docs.${id}.${expiry}.${nonce}`, key))) return null;
+  if (!(Number(expiry) > Date.now())) return null;
+  return { id, role: "admin" };
+}
+
 export const SESSION_COOKIE_OPTIONS = {
   httpOnly: true,
   sameSite: "strict" as const,
@@ -118,6 +142,8 @@ export const SESSION_COOKIE_OPTIONS = {
   path: "/",
   maxAge: SESSION_MS / 1000,
 };
+
+export const DOCS_COOKIE_OPTIONS = { ...SESSION_COOKIE_OPTIONS, maxAge: DOCS_MS / 1000 };
 
 /** Email + password → session user, or null. Handles owner bootstrap. */
 export async function authenticate(email: string, password: string): Promise<SessionUser | "disabled" | null> {
@@ -128,14 +154,14 @@ export async function authenticate(email: string, password: string): Promise<Ses
   const ownerEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const ownerPassword = process.env.ADMIN_PASSWORD;
   if (ownerEmail && ownerPassword && normalized === ownerEmail && safeEqual(password, ownerPassword)) {
-    const { data } = await supabase
-      .from("crm_users")
-      .upsert(
-        { email: ownerEmail, full_name: "Owner", role: "admin", active: true, password_hash: hashPassword(ownerPassword) },
-        { onConflict: "email", ignoreDuplicates: false },
-      )
-      .select("id")
-      .single();
+    /* Update in place when the row exists: an upsert rewrote full_name to
+       "Owner" on every sign-in, wiping the name set in My profile (and the
+       login greeting then said "Good evening, Owner"). */
+    const fields = { role: "admin", active: true, password_hash: hashPassword(ownerPassword) };
+    const { data: existing } = await supabase.from("crm_users").select("id").eq("email", ownerEmail).maybeSingle();
+    const { data } = existing
+      ? await supabase.from("crm_users").update(fields).eq("id", existing.id).select("id").single()
+      : await supabase.from("crm_users").insert({ email: ownerEmail, full_name: "Owner", ...fields }).select("id").single();
     return data ? { id: data.id as string, role: "admin" } : null;
   }
 

@@ -7,6 +7,7 @@ import { KycBadge } from "./Kyc";
 import { api, money, shortDate, toInputDate, downloadCsv, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
 import { Avatar } from "./Avatar";
 import type { Table } from "./useTable";
+import { CountText } from "./Motion";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const BLANK = {
@@ -99,8 +100,8 @@ export function DealsView({ t, isAdmin, users, listings, contacts, kyc, userName
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {totals.map((s) => (
           <Card key={s.label} className="px-5 py-4">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{s.label}</div>
-            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]">{s.value}</div>
+            <div className="text-[12px] font-medium text-[var(--text-secondary)]">{s.label}</div>
+            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]"><CountText text={s.value} /></div>
           </Card>
         ))}
       </div>

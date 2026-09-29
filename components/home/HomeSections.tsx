@@ -2,45 +2,28 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
-import type { ReactNode } from "react";
 import { ArrowRight, ArrowUpRight, MapPin, Phone, Calculator, TrendingUp, Landmark, BarChart3, ShieldCheck, Globe2, KeyRound } from "lucide-react";
 import { useSite } from "@/lib/context/site-context";
-import { emphasize } from "@/lib/i18n/emphasis";
+import { CurtainImage, DrawLine, Reveal, SplitWords } from "@/components/motion";
 import { interpolate } from "@/lib/i18n";
 import { SITE, MARKET_SECTION_ID, SECTION_IDS, pageHref, serviceHref } from "@/lib/site-config";
 import { PROJECTS } from "@/lib/projects";
 import { localizeProject } from "@/lib/i18n/project-copy";
 import { IconWhatsApp } from "@/components/ui/Icons";
 
-const EASE = [0.2, 0.8, 0.2, 1] as const;
-
-function Reveal({ children, delay = 0, className = "" }: { children: ReactNode; delay?: number; className?: string }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 26 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-70px" }}
-      transition={{ duration: 0.8, delay, ease: EASE }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 function Heading({ kicker, title, light = false, center = false }: { kicker: string; title: string; light?: boolean; center?: boolean }) {
   return (
-    <Reveal className={center ? "text-center" : ""}>
-      <p className={`kicker flex items-center gap-3 ${center ? "justify-center" : ""} ${light ? "!text-[#d4b87f]" : ""}`}>
-        <span className={`h-px w-10 ${light ? "bg-[#c8a96e]/80" : "bg-[var(--metal)]/70"}`} />
-        {kicker}
-      </p>
+    <div className={center ? "text-center" : ""}>
+      <Reveal y={10}>
+        <p className={`kicker flex items-center gap-3 ${center ? "justify-center" : ""} ${light ? "!text-[#d4b87f]" : ""}`}>
+          <DrawLine className={`block h-px w-10 ${light ? "bg-[#c8a96e]/80" : "bg-[var(--metal)]/70"}`} />
+          {kicker}
+        </p>
+      </Reveal>
       <h2 className={`display-2 mt-5 ${center ? "mx-auto" : ""} max-w-[20ch] ${light ? "text-white [&_em]:!text-[#d4b87f]" : "text-[var(--text-primary)]"}`}>
-        {emphasize(title)}
+        <SplitWords text={title} inView delay={0.1} />
       </h2>
-    </Reveal>
+    </div>
   );
 }
 
@@ -75,16 +58,16 @@ export function BrandIntro() {
           </Reveal>
         </div>
 
-        <Reveal delay={0.15} className="relative">
-          <div className="relative aspect-[960/1093] overflow-hidden shadow-[var(--shadow-lift)]">
+        <div className="relative">
+          <CurtainImage className="aspect-[960/1093] shadow-[var(--shadow-lift)]">
             <Image src="/brand/reception.jpg" alt="Lababidi Properties" fill sizes="(min-width:1024px) 45vw, 100vw" className="object-cover" />
-          </div>
-          <div className="absolute -bottom-8 start-6 hidden w-[46%] border-[10px] border-[var(--surface)] shadow-[var(--shadow-lift)] sm:block lg:-start-12">
-            <div className="relative aspect-square">
+          </CurtainImage>
+          <Reveal delay={0.55} className="absolute -bottom-8 start-6 hidden w-[46%] border-[10px] border-[var(--surface)] shadow-[var(--shadow-lift)] sm:block lg:-start-12">
+            <CurtainImage className="aspect-square" delay={0.6} parallax={5}>
               <Image src="/projects/the-cove-creek-island-4.jpg" alt="" fill sizes="25vw" className="object-cover" />
-            </div>
-          </div>
-        </Reveal>
+            </CurtainImage>
+          </Reveal>
+        </div>
       </div>
     </section>
   );
@@ -141,7 +124,9 @@ function ProjectFeature({ project, href, big = false }: { project: (typeof PROJE
   const p = localizeProject(project, locale);
   return (
     <Link href={href} className={`zoom-media group relative block overflow-hidden bg-[#07192b] ${big ? "aspect-[4/5] lg:aspect-auto lg:h-full lg:min-h-[640px]" : "aspect-[4/5] sm:aspect-[3/4]"}`}>
-      <Image src={project.image} alt={project.name} fill sizes={big ? "(min-width:1024px) 50vw, 100vw" : "(min-width:1024px) 25vw, 50vw"} className="object-cover" />
+      <CurtainImage className="!absolute inset-0" parallax={big ? 6 : 4}>
+        <Image src={project.image} alt={project.name} fill sizes={big ? "(min-width:1024px) 50vw, 100vw" : "(min-width:1024px) 25vw, 50vw"} className="object-cover" />
+      </CurtainImage>
       <div className="card-scrim absolute inset-0" />
       <span className="absolute start-5 top-5 bg-[rgb(7_26_46/0.7)] px-3 py-1.5 font-[family-name:var(--font-eyebrow)] text-[9.5px] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-sm rtl:tracking-normal">
         {project.developer}
@@ -184,9 +169,9 @@ export function ServicesShowcase() {
           {items.map((s, i) => (
             <Reveal key={s.title} delay={0.07 * i} className="bg-[var(--surface)]">
               <Link href={s.href} className="zoom-media group flex h-full flex-col">
-                <div className="relative aspect-[4/3] overflow-hidden">
+                <CurtainImage className="aspect-[4/3]" delay={0.08 * i} parallax={5}>
                   <Image src={s.img} alt="" fill sizes="(min-width:1024px) 25vw, 50vw" className="object-cover" />
-                </div>
+                </CurtainImage>
                 <div className="flex flex-1 flex-col p-6 sm:p-7">
                   <span className="figure text-[12px] text-[var(--metal)]">0{i + 1}</span>
                   <h3 className="mt-3 font-[family-name:var(--font-display)] text-[26px] leading-[1.1] text-[var(--text-primary)] rtl:font-[family-name:var(--font-display-ar)]">
@@ -223,9 +208,10 @@ export function FiguresBand() {
         <Heading kicker={c.kicker} title={c.title} light />
         <div className="mt-16 grid gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
           {items.map((x, i) => (
-            <Reveal key={x.label} delay={0.08 * i} className="border-t border-[#c8a96e]/45 pe-8 pt-6">
+            <Reveal key={x.label} delay={0.08 * i} className="relative pe-8 pt-6">
+              <DrawLine className="absolute inset-x-0 top-0 block h-px bg-[#c8a96e]/45" delay={0.1 * i} />
               <div className="font-[family-name:var(--font-display)] text-[clamp(44px,5vw,68px)] font-medium leading-none text-white" dir="ltr">
-                {x.value}
+                <SplitWords text={x.value} inView delay={0.15 + 0.1 * i} />
               </div>
               <p className="mt-4 max-w-[26ch] text-[14.5px] leading-[1.7] text-[#c3ccd7]">{x.label}</p>
             </Reveal>
@@ -260,7 +246,7 @@ export function ProcessSteps() {
                   <span className="grid h-12 w-12 shrink-0 place-items-center border border-[var(--accent)] font-[family-name:var(--font-display)] text-[22px] text-[var(--accent)]">
                     {i + 1}
                   </span>
-                  {i < steps.length - 1 && <span className="steel-rule hidden flex-1 lg:block" />}
+                  {i < steps.length - 1 && <DrawLine className="steel-rule hidden flex-1 lg:block" delay={0.35 + 0.25 * i} />}
                 </div>
                 <h3 className="mt-6 text-[16px] font-semibold text-[var(--text-primary)]">{s.title}</h3>
                 <p className="mt-3 text-[14.5px] leading-[1.75] text-[var(--text-secondary)]">{s.desc}</p>
@@ -400,9 +386,9 @@ export function FounderStory() {
     <section className="py-24 sm:py-32">
       <div className="mx-auto grid max-w-[1320px] items-center gap-14 px-5 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20">
         <Reveal className="relative mx-auto w-full max-w-[520px]">
-          <div className="relative aspect-[4/5] overflow-hidden shadow-[var(--shadow-lift)]">
+          <CurtainImage className="aspect-[4/5] shadow-[var(--shadow-lift)]" parallax={5}>
             <Image src="/brand/oussama-lababidi.jpg" alt={c.name} fill sizes="(min-width:1024px) 40vw, 100vw" className="object-cover" />
-          </div>
+          </CurtainImage>
           <span className="absolute -bottom-5 -end-5 -z-10 hidden h-full w-full border border-[#c8a96e]/60 sm:block" />
         </Reveal>
 

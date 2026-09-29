@@ -12,7 +12,7 @@ import { NewTask, TaskRow } from "./TaskList";
 const SERVICE_LABEL: Record<string, string> = {
   advisory: "Investor Advisory",
   netRoi: "Net ROI",
-  relocation: "Relocation",
+  relocation: "Key handover",
   maintenance: "Maintenance",
   fitout: "Fit-Out",
   construction: "Construction",

@@ -39,7 +39,7 @@ export function NotificationBell({ leads, tasks, listings, isAdmin, meId, onOpen
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen((v) => !v)} aria-label="Notifications" className="relative rounded-full border border-[var(--hairline)] p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+      <button onClick={() => setOpen((v) => !v)} aria-label="Notifications" className="relative grid h-10 w-10 place-items-center rounded-full border border-[var(--hairline-strong)] bg-[var(--surface-raised)] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]">
         <Bell size={15} />
         {items.length > 0 && <span className="absolute -top-1 -end-1 grid h-4 w-4 place-items-center rounded-full bg-[var(--accent-solid)] text-[9px] text-white">{items.length}</span>}
       </button>

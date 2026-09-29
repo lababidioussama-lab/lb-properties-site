@@ -10,6 +10,10 @@ const DEFAULT_LOCALE = "en";
    there. Unset (local dev, preview URLs) keeps /admin working as before. */
 const CRM_HOST = process.env.CRM_HOST?.toLowerCase();
 
+/** The admin-only areas: the CRM and the Documents suite. */
+const isPrivate = (pathname: string) =>
+  pathname === "/admin" || pathname.startsWith("/admin/") || pathname === "/documents" || pathname.startsWith("/documents/");
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = (request.headers.get("host") ?? "").toLowerCase().split(":")[0];
@@ -21,7 +25,7 @@ export function proxy(request: NextRequest) {
         url.pathname = "/admin";
         return NextResponse.rewrite(url);
       }
-      if (pathname === "/admin" || pathname.startsWith("/admin/")) return NextResponse.next();
+      if (isPrivate(pathname)) return NextResponse.next();
       const url = request.nextUrl.clone();
       url.pathname = "/";
       url.search = "";
@@ -30,9 +34,12 @@ export function proxy(request: NextRequest) {
     if (pathname === "/admin" || pathname.startsWith("/admin/")) {
       return NextResponse.redirect(new URL(`https://${CRM_HOST}/`));
     }
+    if (pathname === "/documents" || pathname.startsWith("/documents/")) {
+      return NextResponse.redirect(new URL(`https://${CRM_HOST}/documents`));
+    }
   }
 
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) return NextResponse.next();
+  if (isPrivate(pathname)) return NextResponse.next();
 
   const hasLocale = LOCALES.some(
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),

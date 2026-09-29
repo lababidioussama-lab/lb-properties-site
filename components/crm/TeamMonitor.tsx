@@ -6,6 +6,7 @@ import { commissionOf, quarterOf, slabOutcome, DOC_KIND_LABEL, type CrmAgentDocu
 import { api, money, shortDate, stamp, Card, Empty, INPUT } from "./shared";
 import { Avatar } from "./Avatar";
 import { useTable } from "./useTable";
+import { CountText } from "./Motion";
 
 interface Session { user_id: string | null; action: string; created_at: string; detail: { ip?: string; agent?: string; email?: string } }
 interface Stamp { user_id: string | null; created_at: string; kind?: string }
@@ -113,8 +114,8 @@ export function TeamMonitor({ users, leads, tasks, deals }: { users: CrmUser[]; 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
           <Card key={k.label} className="px-5 py-4">
-            <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{k.label}</div>
-            <div className={`figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] ${k.alert ? "text-[#c0392b]" : "text-[var(--accent)]"}`}>{k.value}</div>
+            <div className="text-[12px] font-medium text-[var(--text-secondary)]">{k.label}</div>
+            <div className={`figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] ${k.alert ? "text-[#c0392b]" : "text-[var(--accent)]"}`}><CountText text={String(k.value)} /></div>
           </Card>
         ))}
       </div>

@@ -132,10 +132,10 @@ export interface CrmTask {
   contact_id: string | null;
 }
 
-export const LEAD_SOURCES = ["website", "bayut", "property_finder", "dubizzle", "instagram", "referral", "walk_in", "other"] as const;
+export const LEAD_SOURCES = ["website", "bayut", "property_finder", "dubizzle", "instagram", "referral", "walk_in", "db_search", "other"] as const;
 export const SOURCE_LABEL: Record<string, string> = {
   website: "Website", bayut: "Bayut", property_finder: "Property Finder", dubizzle: "Dubizzle",
-  instagram: "Instagram", referral: "Referral", walk_in: "Walk-in", other: "Other",
+  instagram: "Instagram", referral: "Referral", walk_in: "Walk-in", db_search: "DB Search", other: "Other",
 };
 
 export const LISTING_STATUSES = ["available", "reserved", "sold", "rented", "off_market"] as const;

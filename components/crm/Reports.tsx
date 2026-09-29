@@ -21,6 +21,7 @@ export const duration = (mins: number | null) =>
 
 export const medianResponse = (leads: CrmLead[]) => median(leads.map(responseMins).filter((m): m is number => m !== null));
 import { Avatar } from "./Avatar";
+import { CountText } from "./Motion";
 
 const RANGES = { 30: "Last 30 days", 90: "Last 90 days", 365: "Last 12 months", 0: "All time" } as const;
 
@@ -121,8 +122,8 @@ export function ReportsView({ leads, deals, users, userName, spend }: {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {kpis.map((k) => (
           <Card key={k.label} className="px-5 py-4">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{k.label}</div>
-            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]">{k.value}</div>
+            <div className="text-[12px] font-medium text-[var(--text-secondary)]">{k.label}</div>
+            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]"><CountText text={k.value} /></div>
           </Card>
         ))}
       </div>
