@@ -24,6 +24,7 @@ export function DsSearch({ onExpired, onUsage, onOpenOwner, initialQuery = null 
   const [hasPhone, setHasPhone] = useState(false);
   const [abroad, setAbroad] = useState(false);
   const [notInCrm, setNotInCrm] = useState(false);
+  const [hideConflicts, setHideConflicts] = useState(true);
   const [beds, setBeds] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
@@ -55,9 +56,11 @@ export function DsSearch({ onExpired, onUsage, onOpenOwner, initialQuery = null 
     if (hasPhone && !h.phones.length) return false;
     if (abroad && !h.phones.some((p) => p.region === "abroad")) return false;
     if (notInCrm && h.inCrm) return false;
+    if (hideConflicts && h.notes.length) return false;
     if (beds && h.property.beds !== beds) return false;
     return true;
-  }), [data, who, hasPhone, abroad, notInCrm, beds]);
+  }), [data, who, hasPhone, abroad, notInCrm, beds, hideConflicts]);
+  const conflicting = (data?.hits ?? []).filter((h) => h.notes.length).length;
 
   const pages = Math.max(1, Math.ceil(shown.length / PAGE));
   const slice = shown.slice(page * PAGE, page * PAGE + PAGE);
@@ -109,6 +112,7 @@ export function DsSearch({ onExpired, onUsage, onOpenOwner, initialQuery = null 
               <label className="flex items-center gap-2"><input type="checkbox" checked={hasPhone} onChange={(e) => { setHasPhone(e.target.checked); setPage(0); }} /> Has a phone number</label>
               <label className="flex items-center gap-2"><input type="checkbox" checked={abroad} onChange={(e) => { setAbroad(e.target.checked); setPage(0); }} /> Number outside the UAE</label>
               <label className="flex items-center gap-2"><input type="checkbox" checked={notInCrm} onChange={(e) => { setNotInCrm(e.target.checked); setPage(0); }} /> Not already in the CRM</label>
+              <label className="flex items-start gap-2"><input type="checkbox" className="mt-1" checked={hideConflicts} onChange={(e) => { setHideConflicts(e.target.checked); setPage(0); }} /> <span>Hide records whose files disagree{conflicting ? <span className="text-[var(--text-muted)]"> ({conflicting})</span> : null}</span></label>
             </div>
           </Card>
 
@@ -133,6 +137,7 @@ export function DsSearch({ onExpired, onUsage, onOpenOwner, initialQuery = null 
                           <div className="font-semibold">{h.name}</div>
                           <div className="mt-1 flex flex-wrap gap-1.5">
                             <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${STATUS_STYLE[h.status]}`}>{STATUS_LABEL[h.status]}</span>
+                            {h.notes.length > 0 && <span title={h.notes.join(" ")} className="rounded-full border border-[#e6d5b0] bg-[#fff7e6] px-2 py-0.5 text-[11px] font-semibold text-[#8a5a00]">Records disagree</span>}
                             {h.inCrm && <span className="rounded-full border border-[#e6d5b0] bg-[#f7f0e2] px-2 py-0.5 text-[11px] font-semibold text-[#7a5c26]">{h.inCrm.kind === "lead" ? "Lead" : h.inCrm.kind === "contact" ? "Contact" : "Temp lead"} · {h.inCrm.mine ? "you" : h.inCrm.ownerName ?? "unassigned"}</span>}
                           </div>
                         </td>

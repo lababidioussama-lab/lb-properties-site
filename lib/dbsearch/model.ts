@@ -15,6 +15,7 @@ export type OwnerStatus =
   | "previous" // a later confirmed sale names someone else
   | "bought" // the record says Buyer, and nothing confirms or contradicts it
   | "sold" // the record says Seller
+  | "listed" // an owner register lists them as the owner, with no sale behind it
   | "unknown";
 
 export interface DsProperty {
@@ -116,7 +117,32 @@ export function sideOf(r: OwnerRow): OwnerStatus {
   const p = partyOf(r);
   if (/buyer/.test(p)) return "bought";
   if (/seller/.test(p)) return "sold";
+  // Owner-register loaders write "Owner" / "Owner (Unspecified)", not a transaction side.
+  if (/owner/.test(p)) return "listed";
   return "unknown";
+}
+
+const placeWords = (s: string) => s.toLowerCase().replace(/\(\d+\)/g, " ").split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !/^\d+$/.test(w));
+
+/**
+ * Source files that contradict themselves on one record: the building names
+ * one place, the community another ("Burj Khalifa" in "Damac Lagoons").
+ * A building still counts as consistent when its name appears among the
+ * communities of the whole result (Lagoons clusters are stored as
+ * "DAMAC LAGOONS - MALTA"), or when many records in the result carry it.
+ */
+export function conflictNotes(rows: { building: string | null; community: string | null }[]): string[] {
+  const communities = rows.map((r) => (r.community ?? "").toLowerCase());
+  const freq = new Map<string, number>();
+  for (const r of rows) if (r.building) freq.set(r.building.toLowerCase(), (freq.get(r.building.toLowerCase()) ?? 0) + 1);
+  return rows.map((r) => {
+    if (!r.building || !r.community) return "";
+    const b = placeWords(r.building), c = placeWords(r.community);
+    if (!b.length || !c.length || b.some((w) => c.includes(w))) return "";
+    if (b.some((w) => communities.some((x) => x.includes(w)))) return "";
+    if ((freq.get(r.building.toLowerCase()) ?? 0) >= 5) return "";
+    return `The source records disagree: the building says “${r.building}”, the community says “${r.community}”.`;
+  });
 }
 
 /* ------------------------------------------------------------ phones */

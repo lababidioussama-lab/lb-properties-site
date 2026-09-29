@@ -313,7 +313,13 @@ export function collapsePeople(rows: OwnerRow[]): OwnerRow[] {
     for (const c of cands) if (!byKey.has(name + "|" + c)) byKey.set(name + "|" + c, winner);
     winner.alt_ids = [...(winner.alt_ids ?? []), ...(loser.alt_ids ?? []), loser.id].filter((x): x is number | string => x != null);
     winner.email = String(winner.email ?? "").trim() || loser.email || null;
-    if (!winner.building && loser.building) winner.building = loser.building;
+    // Borrow the other copy's building only inside the same community — a
+    // person's copies can span properties, and a building taken from another
+    // community would put a Lagoons villa in Burj Khalifa.
+    const comm = (r: OwnerRow) => String(r.community_clean || r.project_name || "").toLowerCase().trim().replace(/\s*\(\d+\)\s*$/, "").replace(/[-\s]+$/, "").trim();
+    const wc = comm(winner), lc = comm(loser);
+    const sameCommunity = !!wc && !!lc && (wc === lc || wc.startsWith(lc) || lc.startsWith(wc));
+    if (!winner.building && loser.building && sameCommunity) winner.building = loser.building;
     winner.merged_rows = (winner.merged_rows ?? 1) + (loser.merged_rows ?? 1);
   }
   return out;

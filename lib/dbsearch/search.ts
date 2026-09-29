@@ -5,7 +5,7 @@ import {
   CODE_QUERY, collapsePeople, demotePlotLevelCodes, dropBarePropertylessRows, dropCodeMismatches,
   dropEmptyRows, dropEntities, dropSellers, exactNameFirst, rawPhoneValues, usablePhones, type OwnerRow,
 } from "./rows";
-import { maskPhone, nameOf, nationalityOf, phoneCore, propertyOf, regionOf, sideOf, type DsCrmLink, type DsHit, type OwnerStatus } from "./model";
+import { conflictNotes, maskPhone, nameOf, nationalityOf, phoneCore, propertyOf, regionOf, sideOf, type DsCrmLink, type DsHit, type OwnerStatus } from "./model";
 import { signRef } from "./guard";
 
 /**
@@ -78,31 +78,41 @@ async function phonesFor(db: Db, rows: OwnerRow[]): Promise<Map<OwnerRow, string
 async function statusFor(db: Db, rows: OwnerRow[]): Promise<Map<OwnerRow, { status: OwnerStatus; date: string | null }>> {
   const unitKey = (r: OwnerRow) => String(r.unit_clean || r.unit || "").toUpperCase().replace(/\s+/g, "");
   const units = [...new Set(rows.map(unitKey).filter((u) => u && u !== "0"))].slice(0, 400);
-  type Rec = { unit_no: string; place: string | null; owner_ids: (number | string)[] | null; confidence: string; tx_date: string | null };
+  type Rec = { unit_no: string; place: string | null; owner_ids: (number | string)[] | null; owner_names: string[] | null; confidence: string; tx_date: string | null };
   const recs: Rec[] = [];
   for (let i = 0; i < units.length; i += 200) {
-    const { data } = await db.from("unit_current_owner").select("unit_no, place, owner_ids, confidence, tx_date").in("unit_no", units.slice(i, i + 200));
+    const { data } = await db.from("unit_current_owner").select("unit_no, place, owner_ids, owner_names, confidence, tx_date").in("unit_no", units.slice(i, i + 200));
     recs.push(...((data ?? []) as Rec[]));
   }
+  const norm = (s: unknown) => String(s ?? "").toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, " ").trim();
+  /* A code like DL-Q166 or DH2-XH101B names one unit in the whole city; a bare
+     "1405" names one in every tower, so it only counts inside the same place. */
+  const distinctive = (u: string) => /[A-Z]/.test(u) && /\d/.test(u) && u.length >= 4;
   const byUnit = new Map<string, Rec[]>();
   for (const r of recs) byUnit.set(r.unit_no, [...(byUnit.get(r.unit_no) ?? []), r]);
 
   const placeOf = (r: OwnerRow) => [r.building, r.community_clean, r.project_name].map((v) => String(v ?? "").toLowerCase().trim()).filter(Boolean);
   const out = new Map<OwnerRow, { status: OwnerStatus; date: string | null }>();
   for (const r of rows) {
-    const cands = byUnit.get(unitKey(r)) ?? [];
+    const places = placeOf(r);
+    const inPlace = (c: Rec) => {
+      const p = String(c.place ?? "").toLowerCase().trim();
+      return !!p && places.some((x) => x === p || x.includes(p) || p.includes(x));
+    };
+    const cands = (byUnit.get(unitKey(r)) ?? []).filter((c) => distinctive(unitKey(r)) || inPlace(c));
     const mine = idsOf(r);
-    const named = cands.find((c) => (c.owner_ids ?? []).map(String).some((id) => mine.includes(id)));
+    const myName = norm(r.full_name);
+    // The owner table often points at another duplicate copy of the same
+    // person, so a match on the NAME within the unit counts as well as the id.
+    const named = cands.find((c) =>
+      (c.owner_ids ?? []).map(String).some((id) => mine.includes(id)) ||
+      (!!myName && (c.owner_names ?? []).some((n) => norm(n) === myName)));
     if (named) {
       out.set(r, { status: named.confidence === "high" ? "confirmed" : "likely", date: named.tx_date });
       continue;
     }
-    // Same unit number in the same place, confirmed for someone else: this person sold.
-    const places = placeOf(r);
-    const samePlace = cands.filter((c) => {
-      const p = String(c.place ?? "").toLowerCase().trim();
-      return !!p && places.some((x) => x === p || x.includes(p) || p.includes(x));
-    });
+    // Same unit, confirmed for someone else: this person has sold since.
+    const samePlace = cands;
     if (samePlace.length === 1 && samePlace[0].confidence === "high") {
       out.set(r, { status: "previous", date: samePlace[0].tx_date });
       continue;
@@ -172,7 +182,8 @@ export async function searchOwners(db: Db, viewer: { id: string }, rawQuery: str
     crmLinks(db, rows.flatMap((r) => (phones.get(r) ?? []).map(phoneCore)), viewer),
   ]);
 
-  const hits: DsHit[] = rows.map((r) => {
+  const conflicts = conflictNotes(rows.map((r) => { const p = propertyOf(r); return { building: p.building, community: p.community }; }));
+  const hits: DsHit[] = rows.map((r, i) => {
     const nums = phones.get(r) ?? [];
     const st = status.get(r) ?? { status: "unknown" as const, date: null };
     return {
@@ -185,9 +196,11 @@ export async function searchOwners(db: Db, viewer: { id: string }, rawQuery: str
       phones: nums.map((p) => ({ masked: maskPhone(p), region: regionOf(p) })),
       hasEmail: !!String(r.email ?? "").trim(),
       inCrm: nums.map((p) => links.get(phoneCore(p))).find(Boolean) ?? null,
-      notes: [],
+      notes: conflicts[i] ? [conflicts[i]] : [],
     };
   });
+  // Records whose own files contradict each other go last.
+  hits.sort((a, b) => Number(a.notes.length > 0) - Number(b.notes.length > 0));
 
   // Past owners stay out of the default list but are counted, so nobody is hidden silently.
   const hiddenPast = hits.filter((h) => h.status === "previous" || h.status === "sold").length;

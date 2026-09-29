@@ -5,7 +5,7 @@
  * never sends more than these shapes, so neither can the page show more.
  */
 
-export type OwnerStatus = "confirmed" | "likely" | "previous" | "bought" | "sold" | "unknown";
+export type OwnerStatus = "confirmed" | "likely" | "previous" | "bought" | "sold" | "listed" | "unknown";
 
 export interface DsProperty {
   community: string | null;
@@ -111,6 +111,7 @@ export const STATUS_LABEL: Record<OwnerStatus, string> = {
   previous: "Sold since",
   bought: "Bought",
   sold: "Sold",
+  listed: "Owner on record",
   unknown: "Side not recorded",
 };
 
@@ -121,6 +122,7 @@ export const STATUS_STYLE: Record<OwnerStatus, string> = {
   previous: "bg-[#f1f0ed] text-[#62615b] border-[#e1dfda]",
   bought: "bg-[#eef2f7] text-[#3d5a7a] border-[#d3dde9]",
   sold: "bg-[#f1f0ed] text-[#62615b] border-[#e1dfda]",
+  listed: "bg-[#eef2f7] text-[#3d5a7a] border-[#d3dde9]",
   unknown: "bg-[#f1f0ed] text-[#62615b] border-[#e1dfda]",
 };
 
