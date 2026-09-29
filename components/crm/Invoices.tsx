@@ -5,6 +5,7 @@ import { Plus, Printer, Download, FilePlus2 } from "lucide-react";
 import { commissionOf, type CrmContact, type CrmDeal, type CrmInvoice } from "@/lib/crm";
 import { money, shortDate, downloadCsv, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
 import type { Table } from "./useTable";
+import { CountText } from "./Motion";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const inDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
@@ -91,8 +92,8 @@ export function InvoicesView({ t, deals, contacts }: { t: Table<CrmInvoice>; dea
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {kpis.map((k) => (
           <Card key={k.label} className="px-5 py-4">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{k.label}</div>
-            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none text-[var(--accent)] sm:text-[22px]">{k.value}</div>
+            <div className="text-[12px] font-medium text-[var(--text-secondary)]">{k.label}</div>
+            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none text-[var(--accent)] sm:text-[22px]"><CountText text={k.value} /></div>
           </Card>
         ))}
       </div>

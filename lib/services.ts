@@ -1,5 +1,5 @@
 /**
- * Service catalogue: maintenance tiers and relocation pricing.
+ * Service catalogue: maintenance tiers.
  * All prices are AED and are converted for display only.
  */
 
@@ -108,13 +108,3 @@ export function planPrice(plan: Plan, billing: "monthly" | "annual"): {
   return { monthlyAed: monthly, annualAed: monthly * 12 };
 }
 
-/** Indicative relocation ranges, AED. Shown as ranges because the real
-    number depends on volume and floor access — quoting a single figure we
-    can't honour would be worse than an honest band. */
-export const RELOCATION_ESTIMATES = {
-  move: { from: 2_500, to: 14_000 },
-  utilities: { from: 900, to: 2_800 },
-  handover: { from: 1_500, to: 4_500 },
-} as const;
-
-export type RelocationCardId = keyof typeof RELOCATION_ESTIMATES;

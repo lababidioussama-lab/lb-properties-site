@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Image from "next/image";
+import { WELCOME_FLAG } from "./Greeting";
 
 const MESSAGES: Record<string, string> = {
   rate_limited: "Too many attempts. Wait fifteen minutes.",
@@ -16,9 +17,32 @@ const MESSAGES: Record<string, string> = {
   account_disabled: "Your account is switched off. Ask the admin to turn it on (Team page).",
   invalid: "Enter your email and password.",
   bad_origin: "Blocked as a cross-site request. Open the CRM from its own address.",
+  admin_only: "The Documents are for the admin account only.",
 };
 
-export function CrmLogin({ configured }: { configured: boolean }) {
+/* The same sign-in serves the CRM and the Documents suite; only the words
+   change, so the two never drift apart in look or in behaviour. */
+const COPY = {
+  crm: {
+    kicker: "Private workspace",
+    headline: <>Every lead, listing and deal, <em className="text-[#e3cc9f]">in one place</em>.</>,
+    blurb: "For the Lababidi Properties team only. Access is logged; sessions expire after ten hours.",
+    title: "Sign in",
+    intro: "Use the email and password your admin gave you. We will then email you a security code.",
+    mark: "Properties CRM",
+  },
+  documents: {
+    kicker: "Documents · Admin only",
+    headline: <>The document suite, <em className="text-[#e3cc9f]">behind its own key</em>.</>,
+    blurb: "Offers, receipts and forms. Opens with the admin account and a code emailed as a Documents sign-in; stays open for four hours.",
+    title: "Documents sign-in",
+    intro: "Use the admin email and password. We will email you a code marked “Documents sign-in”.",
+    mark: "Documents",
+  },
+};
+
+export function CrmLogin({ configured, purpose = "crm" }: { configured: boolean; purpose?: "crm" | "documents" }) {
+  const copy = COPY[purpose];
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -36,7 +60,7 @@ export function CrmLogin({ configured }: { configured: boolean }) {
       const res = await fetch("/api/crm/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, purpose }),
       });
       return (await res.json()) as { ok: boolean; error?: string; step?: string; hint?: string };
     } catch {
@@ -55,7 +79,12 @@ export function CrmLogin({ configured }: { configured: boolean }) {
       setCode("");
       return;
     }
-    if (r.ok) return window.location.reload();
+    if (r.ok) {
+      // Documents: back to the suite, keeping any #LP-H01 the link carried.
+      if (purpose === "documents") return window.location.assign(`/documents${window.location.hash}`);
+      try { sessionStorage.setItem(WELCOME_FLAG, "1"); } catch {}
+      return window.location.reload();
+    }
     if (r.error === "code_locked" || r.error === "code_expired") { setStep("password"); setPassword(""); }
     setError(r.error === "network" ? "Could not reach the server." : MESSAGES[r.error ?? ""] ?? `Could not sign in (${r.error ?? "unknown error"}).`);
   }
@@ -80,12 +109,12 @@ export function CrmLogin({ configured }: { configured: boolean }) {
             </div>
           </div>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d4b87f]">Private workspace</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d4b87f]">{copy.kicker}</p>
             <h2 className="mt-4 max-w-[16ch] font-[family-name:var(--font-display)] text-[46px] font-medium leading-[1.05]">
-              Every lead, listing and deal, <em className="text-[#e3cc9f]">in one place</em>.
+              {copy.headline}
             </h2>
             <p className="mt-5 max-w-[46ch] text-[14px] leading-[1.8] text-white/70">
-              For the Lababidi Properties team only. Access is logged; sessions expire after ten hours.
+              {copy.blurb}
             </p>
           </div>
         </div>
@@ -97,13 +126,13 @@ export function CrmLogin({ configured }: { configured: boolean }) {
             <Image src="/logo-icon.png" alt="" width={38} height={38} priority />
             <div className="leading-none">
               <div className="font-[family-name:var(--font-wordmark)] text-[17px] tracking-[0.16em] text-[var(--text-primary)]">LABABIDI</div>
-              <div className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.34em] text-[var(--gold)]">Properties CRM</div>
+              <div className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.34em] text-[var(--gold)]">{copy.mark}</div>
             </div>
           </div>
           <h1 className="mt-10 font-[family-name:var(--font-display)] text-[38px] font-semibold leading-none text-[var(--text-primary)] lg:mt-0">
-            {step === "password" ? "Sign in" : "Check your email"}
+            {step === "password" ? copy.title : "Check your email"}
           </h1>
-          <p className="mt-3 text-[13.5px] text-[var(--text-muted)]">{step === "password" ? "Use the email and password your admin gave you. We will then email you a security code." : "Enter the security code from your email."}</p>
+          <p className="mt-3 text-[13.5px] text-[var(--text-muted)]">{step === "password" ? copy.intro : purpose === "documents" ? "Enter the code from the email marked “Documents sign-in”." : "Enter the security code from your email."}</p>
 
           {!configured ? (
             <p className="mt-8 rounded-xl border border-[var(--hairline)] bg-white p-5 text-[13px] leading-[1.8] text-[var(--text-secondary)]">
@@ -146,7 +175,7 @@ export function CrmLogin({ configured }: { configured: boolean }) {
                 disabled={busy || (step === "password" ? !email || !password : code.length !== 6)}
                 className="h-11 w-full rounded-lg bg-[var(--accent-solid)] text-[14px] font-semibold text-white shadow-[0_1px_2px_rgb(11_42_74/0.3)] transition hover:bg-[var(--accent-solid-hover)] disabled:opacity-50"
               >
-                {busy ? "Checking…" : step === "password" ? "Continue" : "Verify and sign in"}
+                {busy ? "Checking…" : step === "password" ? "Continue" : purpose === "documents" ? "Open the documents" : "Verify and sign in"}
               </button>
               {step === "otp" && (
                 <div className="flex items-center justify-between text-[12.5px]">

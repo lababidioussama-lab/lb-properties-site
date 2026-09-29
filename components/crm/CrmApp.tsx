@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { Activity, ShieldCheck, Receipt, KeyRound, Calculator, Menu, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList } from "lucide-react";
+import { motion } from "motion/react";
+import { DbSearch, DS_VIEWS, type DsView } from "./dbsearch/DbSearch";
+import { Activity, Lock, LayoutGrid, Search, History, ShieldCheck, Receipt, KeyRound, Calculator, Menu, X, ChevronDown, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList } from "lucide-react";
 
 import type { CrmContact, CrmDeal, CrmInvoice, CrmKyc, CrmSourceSpend, CrmTenancy, CrmLead, CrmListing, CrmTask, CrmTemplate, CrmUser } from "@/lib/crm";
 import type { SessionUser } from "@/lib/crm-auth";
@@ -34,9 +36,10 @@ import { InvoicesView } from "./Invoices";
 import { RentalsView } from "./Rentals";
 import { ComplianceView } from "./Compliance";
 import { TargetMeter } from "./TargetMeter";
+import { HeaderClock, WELCOME_FLAG, WelcomeCard } from "./Greeting";
 import type { CrmAgentRequest } from "@/lib/crm";
 
-type View = "compliance" | "invoices" | "rentals" | "integrations" | "today" | "tools" | "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
+type View = DsView | "compliance" | "invoices" | "rentals" | "integrations" | "today" | "tools" | "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
 
 function upsert<T extends { id: string }>(list: T[], item: T, prepend = false): T[] {
   if (list.some((x) => x.id === item.id)) return list.map((x) => (x.id === item.id ? item : x));
@@ -46,7 +49,26 @@ function upsert<T extends { id: string }>(list: T[], item: T, prepend = false): 
 export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }) {
   if (demo && typeof window !== "undefined") (window as { __CRM_DEMO__?: boolean }).__CRM_DEMO__ = true;
   const isAdmin = me.role === "admin";
-  const [view, setView] = useState<View>("today");
+  const [view, setViewState] = useState<View>("today");
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [welcome, setWelcome] = useState(false);
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(WELCOME_FLAG)) {
+        sessionStorage.removeItem(WELCOME_FLAG);
+        setWelcome(true);
+      }
+    } catch {}
+  }, []);
+  /* The open screen lives in the URL (#deals), so a refresh keeps you where
+     you were, the browser's Back button steps through screens, and a link
+     to a screen can be shared. */
+  const setView = useCallback((v: View) => {
+    setViewState(v);
+    setMoreOpen(false);
+    if (window.location.hash !== `#${v}`) history.pushState(null, "", `#${v}`);
+    window.scrollTo({ top: 0 });
+  }, []);
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [contacts, setContacts] = useState<CrmContact[]>([]);
   const [tasks, setTasks] = useState<CrmTask[]>([]);
@@ -108,6 +130,16 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   const nav: { id: View; label: string; icon: typeof Users; badge?: number; group: string; desc: string }[] = [
     { id: "today", label: "My day", icon: Sun, badge: todayCount, group: "Overview", desc: "What to do first today, in order." },
     { id: "reports", label: "Dashboard", icon: BarChart3, group: "Overview", desc: "Performance across leads, pipeline and commission." },
+    { id: "ds_home", label: "All tools", icon: LayoutGrid, group: "DB Search", desc: "Owners, units, prices and checks, from the land registry records." },
+    { id: "ds_search", label: "Owner search", icon: Search, group: "DB Search", desc: "Find who owns a unit, a building or a phone number." },
+    { id: "ds_unit", label: "Unit history", icon: History, group: "DB Search", desc: "Every owner of one unit, with dates and prices." },
+    { id: "ds_portfolio", label: "Portfolio owners", icon: Search, group: "DB Search", desc: "People who own several units — the investors." },
+    { id: "ds_area", label: "Area prospecting", icon: Search, group: "DB Search", desc: "A building or community, turned into a calling list." },
+    { id: "ds_market", label: "Market & valuation", icon: Search, group: "DB Search", desc: "Registered sales and rents, and a value range from comparables." },
+    { id: "ds_checks", label: "Property checks", icon: Search, group: "DB Search", desc: "DLD permits, live portal listings, and property numbers." },
+    { id: "ds_vastu", label: "Vastu & sun map", icon: Search, group: "DB Search", desc: "Which way a unit faces, its sunlight by season, and its Vastu reading." },
+    { id: "ds_brokers", label: "Broker directory", icon: Search, group: "DB Search", desc: "Registered brokers and agencies from public listings." },
+    ...(isAdmin ? [{ id: "ds_access" as View, label: "Access & activity", icon: ShieldCheck, group: "DB Search", desc: "Who can use DB Search, their daily limits, and everything they did." }] : []),
     { id: "pipeline", label: "Leads", icon: KanbanSquare, badge: leads.filter((l) => l.stage === "new").length, group: "Sales", desc: "Every enquiry, from first contact to closed deal." },
     { id: "temp_leads", label: "Temp leads", icon: PhoneCall, group: "Sales", desc: "Raw calling list, promoted to Leads once qualified." },
     { id: "contacts", label: "Contacts", icon: Users, group: "Sales", desc: "Clients, owners and their properties." },
@@ -132,8 +164,55 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     ] : []),
     { id: "profile", label: "My profile", icon: UserCircle, group: "Account", desc: "Your details, targets, documents and requests." },
   ];
-  const groups = [...new Set(nav.map((n) => n.group))];
+  /* "My profile" lives in the top bar beside the bell, so it is left out of
+     the side menu and the phone sheet; Ctrl+K and #profile still reach it. */
+  /* "My profile" and DB Search live in the top bar, not the side menu or the
+     phone sheet; Ctrl+K and their #addresses still reach them. */
+  const groups = [...new Set(nav.map((n) => n.group))].filter((g) => g !== "Account" && g !== "DB Search");
+  const inDbSearch = view.startsWith("ds_");
+  const initials = (me_?.full_name ?? "?").split(" ").map((w) => w[0]).slice(0, 2).join("");
   const current = nav.find((n) => n.id === view);
+
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    const fromHash = () => {
+      const id = window.location.hash.slice(1) as View;
+      if (nav.some((n) => n.id === id)) setViewState(id);
+    };
+    fromHash();
+    setHydrated(true);
+    window.addEventListener("popstate", fromHash);
+    window.addEventListener("hashchange", fromHash);
+    return () => {
+      window.removeEventListener("popstate", fromHash);
+      window.removeEventListener("hashchange", fromHash);
+    };
+    // nav only changes with the role, which is fixed for the session
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /* The address always names the screen on show, whatever changed it —
+     but only once the screen has been read FROM the address, or a refresh
+     would overwrite #deals with the default before reading it. */
+  useEffect(() => {
+    if (hydrated && window.location.hash !== `#${view}`) history.replaceState(null, "", `#${view}`);
+  }, [view, hydrated]);
+
+  /* Twenty-odd screens do not fit one sidebar, so the less-used groups fold.
+     What is folded is remembered per browser; the group holding the open
+     screen always shows. */
+  const [folded, setFolded] = useState<string[]>(["WhatsApp", "Admin"]);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("crm:folded") ?? "null");
+      if (Array.isArray(saved)) setFolded(saved);
+    } catch {}
+  }, []);
+  const toggleGroup = (g: string) =>
+    setFolded((f) => {
+      const next = f.includes(g) ? f.filter((x) => x !== g) : [...f, g];
+      try { localStorage.setItem("crm:folded", JSON.stringify(next)); } catch {}
+      return next;
+    });
   const requestsTable = useTable<CrmAgentRequest>("requests");
 
   const digits = (p: string | null) => (p ?? "").replace(/\D/g, "").slice(-9);
@@ -166,26 +245,40 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             leads={leads}
             contacts={contacts}
             listings={listings.rows}
+            screens={nav.map(({ id, label, group, icon }) => ({ id, label, group, icon }))}
             onPick={(hit) => {
               if (hit.kind === "lead") setLeadId(hit.id);
               else if (hit.kind === "contact") setContactId(hit.id);
+              else if (hit.kind === "screen") setView(hit.id as View);
               else setView("listings");
             }}
           />
         </div>
         <nav className="mt-3 flex-1 overflow-y-auto px-3 pb-4">
-          {groups.map((g) => (
-            <div key={g} className="mt-4 first:mt-2">
-              <div className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">{g}</div>
-              {nav.filter((n) => n.group === g).map((n) => {
+          {groups.map((g) => {
+            const items = nav.filter((n) => n.group === g);
+            const open = !folded.includes(g) || items.some((n) => n.id === view);
+            const waiting = items.reduce((sum, n) => sum + (n.badge ?? 0), 0);
+            return (
+            <div key={g} className="mt-3 first:mt-1">
+              <button
+                onClick={() => toggleGroup(g)}
+                aria-expanded={open}
+                className="flex w-full items-center gap-2 px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-white/50 transition-colors hover:text-white/80"
+              >
+                <span className="flex-1 text-start">{g}</span>
+                {!open && waiting > 0 && <span className="h-1.5 w-1.5 rounded-full bg-[#c8a96e]" />}
+                <ChevronDown size={12} className={`transition-transform duration-300 ${open ? "" : "-rotate-90"}`} />
+              </button>
+              {open && items.map((n) => {
                 const on = view === n.id;
                 return (
                   <button
                     key={n.id}
                     onClick={() => setView(n.id)}
-                    className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-[7px] text-[13px] transition-colors ${on ? "bg-white/[0.09] font-medium text-white" : "text-white/65 hover:bg-white/[0.05] hover:text-white"}`}
+                    className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-[6px] text-[13px] transition-colors ${on ? "bg-white/[0.1] font-medium text-white" : "text-white/75 hover:bg-white/[0.06] hover:text-white"}`}
                   >
-                    {on && <span className="absolute -start-3 top-1.5 bottom-1.5 w-[3px] rounded-e bg-[#c8a96e]" />}
+                    {on && <motion.span layoutId="crm-nav-marker" transition={{ type: "spring", stiffness: 420, damping: 36 }} className="absolute -start-3 top-1.5 bottom-1.5 w-[3px] rounded-e bg-[#c8a96e]" />}
                     <n.icon size={16} strokeWidth={1.7} className={on ? "text-[#d4b87f]" : "text-white/50 group-hover:text-white/80"} />
                     <span className="flex-1 text-start">{n.label}</span>
                     {!!n.badge && <span className="min-w-5 rounded-full bg-[#c8a96e] px-1.5 text-center text-[10.5px] font-semibold leading-5 text-[#0b1a2b]">{n.badge}</span>}
@@ -193,9 +286,10 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
                 );
               })}
             </div>
-          ))}
-          <a
-            href="/documents/index.html"
+            );
+          })}
+          {isAdmin && <a
+            href="/documents"
             target="_blank"
             rel="noopener noreferrer"
             className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-[7px] text-[13px] text-white/65 transition-colors hover:bg-white/[0.05] hover:text-white"
@@ -203,7 +297,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             <FileText size={16} strokeWidth={1.7} className="text-white/50" />
             <span className="flex-1 text-start">Documents</span>
             <ExternalLink size={12} className="text-white/40" />
-          </a>
+          </a>}
         </nav>
         {!isAdmin && <TargetMeter me={me_} deals={deals.rows} variant="sidebar" />}
         <div className="border-t border-white/10 p-3">
@@ -245,17 +339,48 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
         </div>
         {!isAdmin && <div className="sticky top-[60px] z-30"><TargetMeter me={me_} deals={deals.rows} variant="bar" /></div>}
 
-        <main className="mx-auto w-full max-w-[1480px] flex-1 px-4 pb-24 pt-5 md:px-10 md:py-9">
-          <div className="mb-5 flex items-start justify-between gap-4 border-b border-[var(--hairline)] pb-4 md:mb-7 md:pb-6">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--gold)]">{current?.group}</p>
-              <h1 className="mt-1.5 font-[family-name:var(--font-display)] text-[28px] font-semibold leading-none tracking-[-0.01em] md:text-[34px]">
+        {/* One slim bar: where you are on the left, time / alerts / you on the
+            right. It stays put while the screen scrolls underneath. */}
+        <header className="z-20 border-b border-[var(--hairline)] bg-[var(--surface)]/90 backdrop-blur-md md:sticky md:top-0">
+          <div className="mx-auto flex w-full max-w-[1480px] items-center justify-between gap-4 px-4 py-3 md:px-10 md:py-4">
+            <div className="min-w-0">
+              <h1 className="truncate font-[family-name:var(--font-display)] text-[26px] font-semibold leading-tight tracking-[-0.01em] text-[var(--text-primary)] md:text-[30px]">
                 {current?.label}
               </h1>
-              <p className="mt-2 hidden text-[13.5px] text-[var(--text-muted)] sm:block">{current?.desc}</p>
+              <p className="hidden truncate text-[13px] text-[var(--text-muted)] sm:block">{current?.desc}</p>
             </div>
-            <NotificationBell leads={leads} tasks={tasks} listings={listings.rows} isAdmin={isAdmin} meId={me.id} onOpenLead={setLeadId} />
+            <div className="flex shrink-0 items-center gap-3">
+              <HeaderClock />
+              <span className="hidden h-6 w-px bg-[var(--hairline-strong)] lg:block" />
+              <NotificationBell leads={leads} tasks={tasks} listings={listings.rows} isAdmin={isAdmin} meId={me.id} onOpenLead={setLeadId} />
+              <button
+                onClick={() => setView(inDbSearch ? view : "ds_home")}
+                aria-label="DB Search"
+                title="DB Search — owners, units and prices (separate secure sign-in)"
+                className={`flex h-10 items-center gap-2 rounded-full border px-3 text-[13px] font-semibold transition-colors sm:px-4 ${inDbSearch ? "border-[#0b2a4a] bg-[#0b2a4a] text-white" : "border-[var(--hairline-strong)] bg-[var(--surface-raised)] text-[var(--text-primary)] hover:border-[var(--accent)]"}`}
+              >
+                <Lock size={15} className={inDbSearch ? "text-[#d4b87f]" : "text-[var(--accent)]"} />
+                <span className="hidden sm:inline">DB Search</span>
+              </button>
+              <button
+                onClick={() => setView("profile")}
+                aria-label="My profile"
+                title="My profile"
+                className={`flex h-10 items-center gap-2.5 rounded-full border ps-1 pe-1 transition-colors sm:pe-4 ${view === "profile" ? "border-[var(--accent)] bg-[var(--accent-wash)]" : "border-[var(--hairline-strong)] bg-[var(--surface-raised)] hover:border-[var(--accent)]"}`}
+              >
+                {me_?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={me_.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+                ) : (
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-[#0b1a2b] text-[11px] font-semibold text-[#e3cc9f]">{initials}</span>
+                )}
+                <span className="hidden text-[13px] font-medium text-[var(--text-primary)] sm:block">My profile</span>
+              </button>
+            </div>
           </div>
+        </header>
+
+        <main className="mx-auto w-full max-w-[1480px] flex-1 px-4 pb-24 pt-5 md:px-10 md:pt-7">
 
           {problem && (
             <Card className="mb-5 border-[#c0392b]/40 p-4 text-[13px] text-[var(--text-secondary)]">
@@ -264,9 +389,15 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             </Card>
           )}
 
+          {/* A new key replays the entrance on every screen change. DB Search's
+              tabs share one key, so its session and state survive moving between them. */}
+          <div key={inDbSearch ? "db_search" : view} className="crm-stagger">
           {view === "today" && (
             <MyDay loaded={loaded} me={me_} isAdmin={isAdmin} leads={leads} tasks={tasks} tenancies={tenancies.rows} onOpenRentals={() => setView("rentals")} userName={userName}
               onOpenLead={setLeadId} onTask={onTask} onRemoveTask={onRemoveTask} />
+          )}
+          {(DS_VIEWS as string[]).includes(view) && (
+            <DbSearch view={view as DsView} onView={setView} meEmail={me_?.email ?? ""} isAdmin={isAdmin} onOpenLead={setLeadId} />
           )}
           {view === "tools" && <ToolsView />}
           {view === "reports" && <ReportsView leads={leads} deals={deals.rows} users={users} userName={userName} spend={isAdmin ? spend : null} />}
@@ -331,6 +462,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
               onOpenContact={setContactId} onGo={setView} />
           )}
           {view === "integrations" && isAdmin && <IntegrationsView onLeadsChanged={() => void load()} />}
+          </div>
         </main>
       </div>
 
@@ -348,18 +480,50 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             </button>
           );
         })}
-        <label className="relative flex h-16 flex-col items-center justify-center gap-1 text-[10.5px] font-medium text-[var(--text-muted)]">
+        <button onClick={() => setMoreOpen(true)} className="relative flex h-16 flex-col items-center justify-center gap-1 text-[10.5px] font-medium text-[var(--text-muted)]" aria-label="More screens">
           <Menu size={20} strokeWidth={1.6} />
           More
-          <select value={view} onChange={(e) => setView(e.target.value as View)} className="absolute inset-0 opacity-0" aria-label="More screens">
-            {groups.map((g) => (
-              <optgroup key={g} label={g}>
-                {nav.filter((n) => n.group === g).map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
-              </optgroup>
-            ))}
-          </select>
-        </label>
+        </button>
       </nav>
+
+      {moreOpen && (
+        <div className="fixed inset-0 z-[55] md:hidden" role="dialog" aria-modal="true" aria-label="All screens">
+          <button aria-label="Close" onClick={() => setMoreOpen(false)} className="crm-backdrop absolute inset-0 bg-[rgb(11_26_43/0.45)]" />
+          <div className="crm-sheet absolute inset-x-0 bottom-0 max-h-[82vh] overflow-y-auto rounded-t-2xl bg-[var(--surface)] px-4 pt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)" }}>
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--hairline-strong)]" />
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-[family-name:var(--font-display)] text-[22px] font-semibold">All screens</span>
+              <button onClick={() => setMoreOpen(false)} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg text-[var(--text-muted)]"><X size={18} /></button>
+            </div>
+            {groups.map((g) => (
+              <div key={g} className="mt-4">
+                <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">{g}</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {nav.filter((n) => n.group === g).map((n) => {
+                    const on = view === n.id;
+                    return (
+                      <button
+                        key={n.id}
+                        onClick={() => setView(n.id)}
+                        className={`relative flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-center text-[11.5px] leading-tight ${on ? "border-[var(--accent)] bg-[var(--accent-wash)] font-semibold text-[var(--accent)]" : "border-[var(--hairline)] bg-white text-[var(--text-secondary)]"}`}
+                      >
+                        <n.icon size={19} strokeWidth={1.6} />
+                        {n.label}
+                        {!!n.badge && <span className="absolute end-1.5 top-1.5 min-w-4 rounded-full bg-[#c0392b] px-1 text-center text-[9.5px] font-semibold leading-4 text-white">{n.badge}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            {isAdmin && <a href="/documents" target="_blank" rel="noopener noreferrer" className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-[var(--hairline)] bg-white py-3 text-[13px] text-[var(--text-secondary)]">
+              <FileText size={16} /> Documents <ExternalLink size={12} />
+            </a>}
+          </div>
+        </div>
+      )}
+
+      {welcome && loaded && <WelcomeCard name={me_?.full_name} avatarUrl={me_?.avatar_url} onDone={() => setWelcome(false)} />}
 
       {lead && (
         <LeadPanel

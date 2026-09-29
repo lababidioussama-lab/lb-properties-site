@@ -32,7 +32,7 @@ export const SITE = {
 export const SECTION_IDS = {
   advisory: "investor-advisory",
   netRoi: "net-roi-service-charges",
-  relocation: "relocation-utilities",
+  relocation: "key-handover-inspection",
   maintenance: "home-maintenance",
   fitout: "interior-fitout",
   construction: "construction-renovations",

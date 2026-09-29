@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { fontVariables } from "../fonts";
+import "lenis/dist/lenis.css";
 import "../globals.css";
 
 import { LOCALES, dirFor, type Locale } from "@/lib/i18n/types";
@@ -12,6 +13,7 @@ import { Footer } from "@/components/layout/Footer";
 import { MobileDock } from "@/components/layout/MobileDock";
 import { LeadDrawer } from "@/components/ui/LeadDrawer";
 import { SupportAgent } from "@/components/ui/SupportAgent";
+import { SmoothScroll, ScrollProgress } from "@/components/motion";
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
@@ -138,6 +140,8 @@ export default async function LocaleLayout({
           >
             Skip to content
           </a>
+          <SmoothScroll />
+          <ScrollProgress />
           <Header />
           <main id="main">{children}</main>
           <Footer />

@@ -8,6 +8,8 @@ import { money, Card, Empty } from "./shared";
 import { TaskGroup } from "./TaskList";
 import { useTable } from "./useTable";
 import { serviceLabel } from "./LeadPanel";
+import { CountText } from "./Motion";
+import { clockTime, firstName, greetingFor, useClock } from "./Greeting";
 
 const OPEN = ["new", "contacted", "viewing", "offer"];
 const hours = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000);
@@ -53,6 +55,7 @@ export function MyDay({ me, isAdmin, leads, tasks, tenancies = [], userName, onO
   onRemoveTask: (id: string) => void;
 }) {
   const events = useTable<CrmEvent>("events");
+  const clock = useClock();
   const meId = me?.id;
   const now = Date.now();
   const endOfDay = new Date(); endOfDay.setHours(23, 59, 59, 999);
@@ -83,16 +86,19 @@ export function MyDay({ me, isAdmin, leads, tasks, tenancies = [], userName, onO
     );
   }
 
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const first = me?.full_name?.split(" ")[0] ?? "";
+  const clockNow = clock ?? new Date();
+  const greeting = greetingFor(clockNow.getHours());
+  const first = firstName(me?.full_name);
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-x-8 gap-y-4 rounded-xl bg-[#0b1a2b] px-6 py-5 text-white shadow-[var(--shadow-card)]">
         <div>
           <div className="font-[family-name:var(--font-display)] text-[26px] font-semibold leading-none">{greeting}{first ? `, ${first}` : ""}</div>
-          <div className="mt-1.5 text-[13px] text-white/60">{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</div>
+          <div className="mt-1.5 text-[13px] text-white/60">
+            {clockNow.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+            {clock && <> · <span className="figure text-white/85">{clockTime(clock)}</span></>}
+          </div>
         </div>
         {[
           ["Waiting for first reply", waiting.length],
@@ -102,8 +108,8 @@ export function MyDay({ me, isAdmin, leads, tasks, tenancies = [], userName, onO
           ["Need an update", expiring.length],
         ].map(([k, v]) => (
           <div key={k as string} className="border-s border-white/15 ps-5">
-            <div className="figure text-[24px] font-semibold leading-none text-[#e3cc9f]">{v}</div>
-            <div className="mt-1 text-[11.5px] text-white/60">{k}</div>
+            <div className="figure text-[24px] font-semibold leading-none text-[#e3cc9f]"><CountText text={String(v)} /></div>
+            <div className="mt-1 text-[12.5px] text-white/75">{k}</div>
           </div>
         ))}
       </div>

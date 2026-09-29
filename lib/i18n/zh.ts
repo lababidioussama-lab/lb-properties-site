@@ -16,7 +16,7 @@ export const zh: Dictionary = {
   meta: {
     title: "Lababidi Properties — 迪拜房产顾问、期房与投资",
     description:
-      "迪拜高端资产的全流程管理：楼花开发商房源、黄金签证顾问、搬迁管家服务、室内设计与别墅建造。",
+      "迪拜高端资产的全流程管理：楼花开发商房源、黄金签证顾问、室内设计、别墅建造与交房验收。",
   },
 
   nav: {
@@ -24,8 +24,8 @@ export const zh: Dictionary = {
     advisoryDesc: "楼花房源、回报分析、黄金签证",
     netRoi: "净回报与物业费",
     netRoiDesc: "扣除 DLD、中介费与 Mollak 后的二手市场收益",
-    relocation: "搬迁与公共事业",
-    relocationDesc: "搬家、DEWA 开通、远程交房",
+    relocation: "交房验收",
+    relocationDesc: "代领钥匙与验房报告",
     maintenance: "家居维护",
     maintenanceDesc: "空调、水管、年度养护套餐",
     fitout: "室内精装",
@@ -43,7 +43,7 @@ export const zh: Dictionary = {
     netRoiShort: "净回报",
     fitoutShort: "精装",
     constructionShort: "建造",
-    relocationShort: "搬迁",
+    relocationShort: "交房",
     maintenanceShort: "维护",
 
     home: "首页",
@@ -52,7 +52,7 @@ export const zh: Dictionary = {
     investors: "投资者",
     investorsDesc: "收益、净回报、按揭与市场数据工具",
     services: "服务",
-    servicesDesc: "搬迁、装修与建造",
+    servicesDesc: "装修、建造与交房验收",
     contact: "联系我们",
     contactDesc: "预约私人咨询",
   },
@@ -82,14 +82,14 @@ export const zh: Dictionary = {
       advisory: "楼花投资顾问",
       netRoi: "净回报与物业费工具",
       fitout: "精装与翻新",
-      relocation: "搬迁与入住",
+      relocation: "交房验收",
       maintenance: "年度维护",
     },
     cta: {
       advisory: "查看在售房源",
       netRoi: "获取净回报报告",
       fitout: "获取精装报价",
-      relocation: "规划我的搬迁",
+      relocation: "预约交房验收",
       maintenance: "预约别墅检查",
       construction: "洽谈我的项目",
       mortgage: "测算我的贷款额度",
@@ -396,44 +396,18 @@ export const zh: Dictionary = {
   },
 
   relocation: {
-    eyebrow: "搬迁与公共事业",
-    title: "抵达迪拜时[[一切已经开通]]",
+    eyebrow: "交房验收",
+    title: "钥匙由我们代领，[[房屋由我们代验]]",
     subtitle:
-      "入住当天应该只有钥匙和一个能用的家。搬运、文件与政府门户由我们处理 — 包括仍在海外的业主。",
-    cards: {
-      move: {
-        title: "VIP 搬家与墙面修复",
-        desc: "白手套式同城搬迁，含全套打包、退租墙面修复，并在您开箱前完成深度消毒。",
-        items: [
-          "全套打包、包裹与木箱加固",
-          "家具拆卸与复装",
-          "退租重新粉刷与墙面修复",
-          "深度消毒与交房清洁",
-        ],
-      },
-      utilities: {
-        title: "公共事业与政府登记",
-        desc: "所有账户、门户与合同在您抵达前以您的名义办妥，第一天不会有任何待办。",
-        items: [
-          "DEWA 水电开通",
-          "Empower / Emicool 区域供冷",
-          "Ejari 租赁合同登记",
-          "网络、冷气与社区门禁卡",
-        ],
-      },
-      handover: {
-        title: "远程交房与验房",
-        desc: "我们亲自到场接收，完整验收单元并在您签署任何文件前把报告发给您。",
-        items: [
-          "陪同开发商领取钥匙",
-          "附照片的完整验房报告",
-          "缺陷跟进直至全部闭环",
-          "钥匙安全保管与快递",
-        ],
-        tag: "适合海外业主",
-      },
-    },
-    cta: "索取搬迁报价",
+      "我们亲自出席开发商交房，专业验房，并在您签署任何文件之前把报告发给您——专为仍在海外的业主设计。",
+    items: [
+      "陪同开发商领取钥匙",
+      "附照片的完整验房报告",
+      "缺陷跟进直至全部闭环",
+      "钥匙安全保管与快递",
+    ],
+    tag: "适合海外业主",
+    cta: "预约交房验收",
   },
 
   maintenance: {
@@ -720,7 +694,7 @@ export const zh: Dictionary = {
   form: {
     title: "咨询顾问",
     subtitleAdvisory: "告诉我们把楼花房源与回报分析发送到哪里。",
-    subtitleRelocation: "说明您的搬迁需求，我们会给出固定报价。",
+    subtitleRelocation: "告诉我们房号和交房日期，我们会确认验收安排。",
     subtitleMaintenance: "确认您的房产，我们即刻安排检查。",
     subtitleFitout: "介绍您的空间，我们会回复概念方案与造价。",
     subtitleConstruction: "概述项目内容，我们会就许可与预算提供建议。",
@@ -869,18 +843,18 @@ export const zh: Dictionary = {
     services: {
       kicker: "交房之后",
       title: "[[业主]]服务",
-      subtitle: "搬迁、室内设计与建造，由为您提供购房咨询的同一团队负责。",
+      subtitle: "室内设计、建造与交房验收，由为您提供购房咨询的同一团队负责。",
     },
   },
 
   footer: {
-    blurb: "一家私人客户事务所，覆盖迪拜资产的完整生命周期：购置、搬迁、精装、建造与长期养护。",
+    blurb: "一家私人客户事务所，覆盖迪拜资产的完整生命周期：购置、精装、建造、交房验收与长期养护。",
     services: "服务",
     contact: "联系方式",
     hours: "周日至周五，9:00–20:00（海湾时间）",
     rights: "版权所有。",
     legalName: "Lababidi For Real Estate Buying & Selling Brokerage CO. L.L.C S.O.C",
-    address: "Office 327, Al Mansoori Building, Hor Al Anz, Deira, Dubai",
+    address: "Office 327, Al Mansoori Building, Hor Al Anz, Dubai",
     disclaimerTitle: "重要提示",
     disclaimer:
       "本网站所示投资数字为参考性说明，并非估值、预测或个性化财务建议。居留门槛由阿联酋联邦主管机构规定，可能调整。投资前请务必取得独立的专业意见。",

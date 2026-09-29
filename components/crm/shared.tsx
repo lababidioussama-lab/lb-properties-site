@@ -46,13 +46,16 @@ export const isOverdue = (iso: string | null) => !!iso && new Date(iso).getTime(
 
 export const whatsapp = (phone: string) => `https://wa.me/${phone.replace(/\D/g, "")}`;
 
+/* Stages walk from pale to deep within the house palette — slate, navy,
+   gold — so the colour itself reads as progress. Won is the one green;
+   lost is plain grey. */
 export const STAGE_STYLE: Record<Stage, string> = {
-  new: "bg-sky-50 text-sky-700 border-sky-200",
-  contacted: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  viewing: "bg-amber-50 text-amber-700 border-amber-200",
-  offer: "bg-violet-50 text-violet-700 border-violet-200",
-  won: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  lost: "bg-zinc-100 text-zinc-600 border-zinc-200",
+  new: "bg-[#eef2f7] text-[#4a6788] border-[#d3dde9]",
+  contacted: "bg-[#e6ecf3] text-[#1b3a5c] border-[#c4d1e0]",
+  viewing: "bg-[#f7f0e2] text-[#8a6a2f] border-[#e6d5b0]",
+  offer: "bg-[#0b2a4a] text-white border-[#0b2a4a]",
+  won: "bg-[#e8f3ec] text-[#2e6b47] border-[#bfdcca]",
+  lost: "bg-[#f1f0ed] text-[#7c7a73] border-[#e1dfda]",
 };
 
 export const INPUT =
@@ -103,8 +106,8 @@ export function SidePanel({ title, subtitle, onClose, children }: {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <button aria-label="Close" onClick={close} className="absolute inset-0 bg-[rgb(11_26_43/0.35)] backdrop-blur-[2px]" />
-      <aside className="relative flex h-full w-full max-w-[580px] flex-col bg-[var(--surface)] shadow-[-24px_0_60px_-20px_rgb(15_23_42/0.35)]">
+      <button aria-label="Close" onClick={close} className="crm-backdrop absolute inset-0 bg-[rgb(11_26_43/0.35)] backdrop-blur-[2px]" />
+      <aside className="crm-panel relative flex h-full w-full max-w-[580px] flex-col bg-[var(--surface)] shadow-[-24px_0_60px_-20px_rgb(15_23_42/0.35)]">
         <header className="flex items-start justify-between gap-4 border-b border-[var(--hairline)] bg-white px-6 py-5">
           <div className="min-w-0">
             <h2 className="truncate font-[family-name:var(--font-display)] text-[28px] font-semibold leading-tight text-[var(--text-primary)]">

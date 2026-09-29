@@ -2,7 +2,7 @@ export const en = {
   meta: {
     title: "Lababidi Properties — Dubai Real Estate Advisory, Off-Plan & Investment",
     description:
-      "End-to-end luxury asset management in Dubai: off-plan developer deals, Golden Visa advisory, relocation, interiors and villa construction.",
+      "End-to-end luxury asset management in Dubai: off-plan developer deals, Golden Visa advisory, interiors, villa construction and key handover.",
   },
 
   nav: {
@@ -10,8 +10,8 @@ export const en = {
     advisoryDesc: "Off-plan deals, ROI analysis, Golden Visa",
     netRoi: "Net ROI & Service Charges",
     netRoiDesc: "Secondary market yields after DLD, agency and Mollak",
-    relocation: "Relocation & Utilities",
-    relocationDesc: "Home moving, DEWA setup, remote key handover",
+    relocation: "Key Handover & Inspection",
+    relocationDesc: "Attended key collection and snagging report",
     maintenance: "Home Maintenance",
     maintenanceDesc: "AC, plumbing, annual care subscriptions",
     fitout: "Interior Fit-Out",
@@ -31,7 +31,7 @@ export const en = {
     netRoiShort: "Net ROI",
     fitoutShort: "Fit-Out",
     constructionShort: "Construction",
-    relocationShort: "Relocation",
+    relocationShort: "Handover",
     maintenanceShort: "Maintenance",
 
     home: "Home",
@@ -40,7 +40,7 @@ export const en = {
     investors: "Investors",
     investorsDesc: "Yield, net ROI, mortgage and market data tools",
     services: "Services",
-    servicesDesc: "Relocation, fit-out and construction",
+    servicesDesc: "Fit-out, construction and key handover",
     contact: "Contact",
     contactDesc: "Book a private consultation",
   },
@@ -70,14 +70,14 @@ export const en = {
       advisory: "Off-Plan Advisory",
       netRoi: "Net ROI & Service Charge Tool",
       fitout: "Fit-Out & Renovation",
-      relocation: "Relocate & Move",
+      relocation: "Key Handover",
       maintenance: "Annual Maintenance",
     },
     cta: {
       advisory: "See Available Deals",
       netRoi: "Get My Net ROI Report",
       fitout: "Start My Fit-Out Quote",
-      relocation: "Plan My Relocation",
+      relocation: "Book My Handover Inspection",
       maintenance: "Book a Villa Inspection",
       construction: "Discuss My Project",
       mortgage: "Check My Borrowing Power",
@@ -408,44 +408,18 @@ export const en = {
   },
 
   relocation: {
-    eyebrow: "Relocation & Utilities",
-    title: "Land in Dubai with [[everything already switched on]]",
+    eyebrow: "Key Handover & Inspection",
+    title: "Your keys, collected and [[checked for you]]",
     subtitle:
-      "Move-in day should be a key and a working home. We handle the trucks, the paperwork and the government portals — including for owners who are still overseas.",
-    cards: {
-      move: {
-        title: "VIP Home Move & Painting",
-        desc: "White-glove local moving with full packing, move-out wall restoration and a deep sanitisation pass before you unpack.",
-        items: [
-          "Full packing, wrapping and crating",
-          "Furniture dismantle and reassembly",
-          "Move-out repaint and wall restoration",
-          "Deep sanitisation and handover clean",
-        ],
-      },
-      utilities: {
-        title: "Utility & Government Registration",
-        desc: "Every account, portal and contract set up in your name before you arrive, so nothing is pending on day one.",
-        items: [
-          "DEWA water and electricity activation",
-          "Empower / Emicool district cooling",
-          "Ejari tenancy contract registration",
-          "Internet, chiller and community access cards",
-        ],
-      },
-      handover: {
-        title: "Remote Key Handover & Defect Inspection",
-        desc: "We attend your handover in person, snag the unit properly and send you the report before you sign anything.",
-        items: [
-          "Attended developer key collection",
-          "Full snagging report with photographs",
-          "Defect follow-up until closed out",
-          "Secure key holding and courier",
-        ],
-        tag: "For overseas owners",
-      },
-    },
-    cta: "Request a Relocation Quote",
+      "We attend the developer handover in person, snag the unit properly and send you the report before you sign anything — built for owners who are still overseas.",
+    items: [
+      "Attended developer key collection",
+      "Full snagging report with photographs",
+      "Defect follow-up until closed out",
+      "Secure key holding and courier",
+    ],
+    tag: "For overseas owners",
+    cta: "Book a Handover Inspection",
   },
 
   maintenance: {
@@ -735,7 +709,7 @@ export const en = {
   form: {
     title: "Speak to an advisor",
     subtitleAdvisory: "Tell us where to send your off-plan deal flow and ROI analysis.",
-    subtitleRelocation: "Tell us about your move and we will come back with a fixed quote.",
+    subtitleRelocation: "Tell us the unit and the handover date and we will confirm the inspection.",
     subtitleMaintenance: "Confirm your property and we will book the inspection.",
     subtitleFitout: "Share your space and we will come back with a concept and a cost.",
     subtitleConstruction: "Outline the project and we will advise on permits and budget.",
@@ -909,19 +883,19 @@ export const en = {
       kicker: "After the keys",
       title: "Services for [[owners]]",
       subtitle:
-        "Relocation, interiors and construction, run by the same team that advised on the purchase.",
+        "Interiors, construction and key handover, run by the same team that advised on the purchase.",
     },
   },
 
   footer: {
     blurb:
-      "A private-client practice covering the full life of a Dubai asset: acquisition, relocation, fit-out, construction and ongoing care.",
+      "A private-client practice covering the full life of a Dubai asset: acquisition, fit-out, construction, key handover and ongoing care.",
     services: "Services",
     contact: "Contact",
     hours: "Sunday–Friday, 9:00–20:00 GST",
     rights: "All rights reserved.",
     legalName: "Lababidi For Real Estate Buying & Selling Brokerage CO. L.L.C S.O.C",
-    address: "Office 327, Al Mansoori Building, Hor Al Anz, Deira, Dubai",
+    address: "Office 327, Al Mansoori Building, Hor Al Anz, Dubai",
     disclaimerTitle: "Important",
     disclaimer:
       "Investment figures shown on this site are indicative illustrations, not valuations, forecasts or personalised financial advice. Residency thresholds are set by UAE federal authorities and can change. Always take independent professional advice before investing.",

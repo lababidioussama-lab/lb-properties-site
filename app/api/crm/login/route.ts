@@ -1,14 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   CRM_COOKIE,
+  DOCS_COOKIE,
+  DOCS_COOKIE_OPTIONS,
   SESSION_COOKIE_OPTIONS,
+  createDocsSession,
   authenticate,
   createSession,
   isCrmConfigured,
   sessionFromRequest,
 } from "@/lib/crm-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { OTP_COOKIE, OTP_TTL_MS, canResend, checkCode, issueTicket, maskEmail, otpConfigured, otpDisabled, readTicket, sendCode } from "@/lib/crm-otp";
+import { OTP_COOKIE, OTP_TTL_MS, canResend, checkCode, deviceOf, issueTicket, maskEmail, otpConfigured, otpDisabled, readTicket, sendCode, type OtpPurpose } from "@/lib/crm-otp";
+import { DS_COOKIE, DS_COOKIE_OPTIONS, audit as dsAudit, createDsSession, getSettings as dsSettings } from "@/lib/dbsearch/guard";
 
 const OTP_COOKIE_OPTIONS = { ...SESSION_COOKIE_OPTIONS, maxAge: OTP_TTL_MS / 1000 };
 
@@ -35,12 +39,12 @@ const MAX_WRONG_PASSWORDS = 8;
 const MAX_WRONG_CODES = 5;
 
 /** Send a sign-in code, at most five per account per 15 minutes and one per 30 seconds. */
-async function sendLimited(userId: string, email: string, ticket: { code: string; cookie: string }, nonce: string) {
+async function sendLimited(userId: string, email: string, ticket: { code: string; cookie: string }, nonce: string, purpose: OtpPurpose = "crm", device?: string) {
   const sent = await countRecent("otp_sent", { userId }, 15 * 60_000);
   if (sent.count >= MAX_CODE_EMAILS) return "rate_limited";
   if (Date.now() - sent.last < 30_000) return "wait";
-  if (!(await sendCode(email, ticket.code))) return "email_failed";
-  await logSession(userId, "otp_sent", { nonce });
+  if (!(await sendCode(email, ticket.code, purpose, { device }))) return "email_failed";
+  await logSession(userId, "otp_sent", { nonce, purpose });
   return null;
 }
 
@@ -69,8 +73,42 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as { email?: unknown; password?: unknown; code?: unknown; resend?: unknown };
+  const body = (await request.json().catch(() => ({}))) as { email?: unknown; password?: unknown; code?: unknown; resend?: unknown; purpose?: unknown };
+  /* The same two steps open the Documents suite, but for the admin only, and
+     the second step hands out a Documents session instead of a CRM one. */
+  const purpose: OtpPurpose = body.purpose === "documents" ? "documents" : body.purpose === "dbsearch" ? "dbsearch" : "crm";
   const agent = request.headers.get("user-agent")?.slice(0, 160) ?? null;
+  const device = deviceOf(agent);
+
+  /** The cookie that step 2 sets, depending on what the code was issued for. */
+  const signedIn = (user: { id: string; role: "admin" | "agent" }, forWhat: OtpPurpose) => {
+    const response = NextResponse.json({ ok: true });
+    if (forWhat === "documents") {
+      const value = createDocsSession(user.id);
+      if (!value) return null;
+      response.cookies.set(DOCS_COOKIE, value, DOCS_COOKIE_OPTIONS);
+    } else if (forWhat === "dbsearch") {
+      const value = createDsSession(user);
+      if (!value) return null;
+      response.cookies.set(DS_COOKIE, value, DS_COOKIE_OPTIONS);
+    } else {
+      const value = createSession(user);
+      if (!value) return null;
+      response.cookies.set(CRM_COOKIE, value, SESSION_COOKIE_OPTIONS);
+    }
+    return response;
+  };
+
+  /* DB Search opens from inside the CRM, for the person already signed in
+     there, and only if the admin has given them access. */
+  const dbSearchRefusal = async (user: { id: string; role: "admin" | "agent" }) => {
+    if (sessionFromRequest(request)?.id !== user.id) return "crm_session_required";
+    if (user.role === "admin") return null;
+    const s = await dsSettings(getSupabaseAdmin()!, user.id);
+    if (!s.access) return "no_access";
+    if (s.lockedAt) return "locked";
+    return null;
+  };
 
   // Step 2: the emailed code.
   if (typeof body.code === "string" || body.resend === true) {
@@ -79,9 +117,9 @@ export async function POST(request: NextRequest) {
 
     if (body.resend === true) {
       if (!canResend(ticket)) return NextResponse.json({ ok: false, error: "wait" }, { status: 429 });
-      const next = issueTicket({ id: ticket.id, role: ticket.role }, ticket.email);
+      const next = issueTicket({ id: ticket.id, role: ticket.role }, ticket.email, ticket.p);
       if (!next) return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
-      const problem = await sendLimited(ticket.id, ticket.email, next, readTicket(next.cookie)!.nonce);
+      const problem = await sendLimited(ticket.id, ticket.email, next, readTicket(next.cookie)!.nonce, ticket.p, device);
       if (problem) return NextResponse.json({ ok: false, error: problem }, { status: problem === "email_failed" ? 502 : 429 });
       const response = NextResponse.json({ ok: true, step: "otp", hint: maskEmail(ticket.email) });
       response.cookies.set(OTP_COOKIE, next.cookie, OTP_COOKIE_OPTIONS);
@@ -101,11 +139,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: result === "locked" ? "code_locked" : "code_wrong" }, { status: 401 });
     }
     await logSession(ticket.id, "otp_used", { nonce: ticket.nonce });
-    const value = createSession({ id: ticket.id, role: ticket.role });
-    if (!value) return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
-    await logSession(ticket.id, "login", { ip, agent });
-    const response = NextResponse.json({ ok: true });
-    response.cookies.set(CRM_COOKIE, value, SESSION_COOKIE_OPTIONS);
+    const forWhat: OtpPurpose = ticket.p === "documents" ? "documents" : ticket.p === "dbsearch" ? "dbsearch" : "crm";
+    if (forWhat === "dbsearch") {
+      const refusal = await dbSearchRefusal({ id: ticket.id, role: ticket.role });
+      if (refusal) return NextResponse.json({ ok: false, error: refusal }, { status: 403 });
+    }
+    const response = signedIn({ id: ticket.id, role: ticket.role }, forWhat);
+    if (!response) return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
+    await logSession(ticket.id, forWhat === "documents" ? "docs_login" : forWhat === "dbsearch" ? "ds_login" : "login", { ip, agent });
+    if (forWhat === "dbsearch") await dsAudit(getSupabaseAdmin()!, { id: ticket.id }, "signin", { detail: { device }, request });
     response.cookies.set(OTP_COOKIE, "", { ...SESSION_COOKIE_OPTIONS, maxAge: 0 });
     return response;
   }
@@ -123,23 +165,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "account_disabled" }, { status: 403 });
   }
   if (!user) {
-    await logSession(null, "login_failed", { email: email.slice(0, 120), ip });
+    await logSession(null, "login_failed", { email: email.slice(0, 120), ip, purpose });
     return NextResponse.json({ ok: false, error: "invalid_credentials" }, { status: 401 });
+  }
+  // Agents have their own CRM login, but the Documents suite is the owner's.
+  if (purpose === "documents" && user.role !== "admin") {
+    await logSession(user.id, "docs_denied", { ip });
+    return NextResponse.json({ ok: false, error: "admin_only" }, { status: 403 });
+  }
+  if (purpose === "dbsearch") {
+    const refusal = await dbSearchRefusal(user);
+    if (refusal) {
+      await logSession(user.id, "ds_denied", { ip, reason: refusal });
+      return NextResponse.json({ ok: false, error: refusal }, { status: 403 });
+    }
   }
 
   if (otpDisabled()) {
-    const value = createSession(user);
-    if (!value) return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
-    await logSession(user.id, "login", { ip, agent, otp: false });
-    const response = NextResponse.json({ ok: true });
-    response.cookies.set(CRM_COOKIE, value, SESSION_COOKIE_OPTIONS);
+    const response = signedIn(user, purpose);
+    if (!response) return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
+    await logSession(user.id, purpose === "documents" ? "docs_login" : purpose === "dbsearch" ? "ds_login" : "login", { ip, agent, otp: false });
     return response;
   }
 
   if (!otpConfigured()) return NextResponse.json({ ok: false, error: "otp_not_configured" }, { status: 503 });
-  const ticket = issueTicket(user, email);
+  const ticket = issueTicket(user, email, purpose);
   if (!ticket) return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
-  const problem = await sendLimited(user.id, email, ticket, readTicket(ticket.cookie)!.nonce);
+  const problem = await sendLimited(user.id, email, ticket, readTicket(ticket.cookie)!.nonce, purpose, device);
   if (problem) return NextResponse.json({ ok: false, error: problem }, { status: problem === "email_failed" ? 502 : 429 });
   const response = NextResponse.json({ ok: true, step: "otp", hint: maskEmail(email) });
   response.cookies.set(OTP_COOKIE, ticket.cookie, OTP_COOKIE_OPTIONS);

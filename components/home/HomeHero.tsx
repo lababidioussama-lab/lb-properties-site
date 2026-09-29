@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion, useTransform } from "motion/react";
 import { ArrowRight } from "lucide-react";
 import { useSite } from "@/lib/context/site-context";
-import { emphasize } from "@/lib/i18n/emphasis";
+import { SplitWords, useHeroScroll } from "@/components/motion";
 import { interpolate } from "@/lib/i18n";
 import { SITE, pageHref } from "@/lib/site-config";
 import { PROJECTS, DEVELOPERS } from "@/lib/projects";
@@ -25,6 +25,15 @@ export function HomeHero() {
   const rise = (d: number) =>
     reduce ? {} : { initial: { opacity: 0, y: 22 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.9, delay: d, ease: [0.2, 0.8, 0.2, 1] as const } };
 
+  /* As the hero scrolls away the photograph sinks and slowly enlarges while
+     the copy lifts and fades — depth, without moving the section itself. */
+  const sectionRef = useRef<HTMLElement>(null);
+  const progress = useHeroScroll(sectionRef);
+  const bgY = useTransform(progress, [0, 1], ["0%", "22%"]);
+  const bgScale = useTransform(progress, [0, 1], [1, 1.1]);
+  const copyY = useTransform(progress, [0, 1], [0, -90]);
+  const copyOpacity = useTransform(progress, [0, 0.75], [1, 0]);
+
   const [index, setIndex] = useState(0);
   useEffect(() => {
     if (reduce) return;
@@ -41,8 +50,8 @@ export function HomeHero() {
   ];
 
   return (
-    <section className="relative isolate flex min-h-[100svh] flex-col overflow-hidden bg-[#07192b]">
-      <div className="absolute inset-0 -z-10">
+    <section ref={sectionRef} className="relative isolate flex min-h-[100svh] flex-col overflow-hidden bg-[#07192b]">
+      <motion.div className="absolute inset-0 -z-10" style={reduce ? undefined : { y: bgY, scale: bgScale }}>
         <AnimatePresence initial={false}>
           <motion.div
             key={slide.src}
@@ -64,20 +73,22 @@ export function HomeHero() {
         </AnimatePresence>
         <div className="photo-scrim absolute inset-0" />
         <div className="absolute inset-0 bg-[rgb(7_26_46/0.28)] sm:hidden" />
-      </div>
+      </motion.div>
 
-      <div className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col justify-end px-5 pb-10 pt-40 sm:px-8 sm:pb-14">
+      <motion.div
+        style={reduce ? undefined : { y: copyY, opacity: copyOpacity }}
+        className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col justify-end px-5 pb-10 pt-40 sm:px-8 sm:pb-14"
+      >
         <motion.p {...rise(0.1)} className="kicker flex items-center gap-3 !text-[#d4b87f]">
           <span className="h-px w-10 bg-[#c8a96e]/80" />
           {h.kicker}
         </motion.p>
 
-        <motion.h1
-          {...rise(0.22)}
+        <h1
           className="mt-6 max-w-[14ch] font-[family-name:var(--font-display)] text-[clamp(44px,8.4vw,112px)] font-medium leading-[0.98] tracking-[-0.015em] text-white [&_em]:font-medium [&_em]:italic [&_em]:text-[#ead6ad] [text-shadow:0_2px_30px_rgb(7_26_46/0.55)] rtl:font-[family-name:var(--font-display-ar)] rtl:leading-[1.25] rtl:[&_em]:not-italic"
         >
-          {emphasize(h.title)}
-        </motion.h1>
+          <SplitWords text={h.title} delay={0.2} stagger={0.08} />
+        </h1>
 
         <motion.p {...rise(0.36)} className="mt-7 max-w-[54ch] text-[16.5px] leading-[1.8] text-white/80 sm:text-[17px]">
           {h.subtitle}
@@ -106,7 +117,7 @@ export function HomeHero() {
             </div>
           ))}
         </motion.dl>
-      </div>
+      </motion.div>
 
       <div className="absolute bottom-5 end-5 hidden items-center gap-4 sm:flex sm:end-8">
         <span className="text-[10px] uppercase tracking-[0.24em] text-white/60">{slide.caption}</span>

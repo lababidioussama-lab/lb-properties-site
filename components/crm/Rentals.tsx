@@ -5,6 +5,7 @@ import { Plus, MessageCircle, Trash2, CalendarClock, Wand2 } from "lucide-react"
 import { daysLeft, type Cheque, type CrmContact, type CrmDeal, type CrmListing, type CrmTenancy, type CrmUser } from "@/lib/crm";
 import { money, shortDate, whatsapp, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
 import type { Table } from "./useTable";
+import { CountText } from "./Motion";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const addMonths = (iso: string, n: number) => {
@@ -72,8 +73,8 @@ export function RentalsView({ t, isAdmin, users, contacts, listings, deals, user
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {kpis.map((k) => (
           <Card key={k.label} className="px-5 py-4">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{k.label}</div>
-            <div className="figure mt-2 text-[22px] font-semibold leading-none text-[var(--accent)]">{k.value}</div>
+            <div className="text-[12px] font-medium text-[var(--text-secondary)]">{k.label}</div>
+            <div className="figure mt-2 text-[22px] font-semibold leading-none text-[var(--accent)]"><CountText text={String(k.value)} /></div>
           </Card>
         ))}
       </div>

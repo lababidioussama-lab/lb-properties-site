@@ -65,7 +65,7 @@ export interface LeadPayload {
 const SERVICE_LABEL: Record<ServiceKey, string> = {
   advisory: "Investor Advisory",
   netRoi: "Net ROI & Service Charges",
-  relocation: "Relocation & Utilities",
+  relocation: "Key Handover & Inspection",
   maintenance: "Home Maintenance",
   fitout: "Interior Fit-Out",
   construction: "Construction & Renovations",

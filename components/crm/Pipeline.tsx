@@ -6,6 +6,7 @@ import { LEAD_SOURCES, STAGES, STAGE_LABEL, SOURCE_LABEL, sourceKey, type CrmLea
 import { api, money, shortDate, isOverdue, downloadCsv, STAGE_STYLE, INPUT, BTN, BTN_GHOST, Card } from "./shared";
 import { ImportLeads, autoAssign } from "./LeadTools";
 import { serviceLabel } from "./LeadPanel";
+import { CountText } from "./Motion";
 
 export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpen }: {
   leads: CrmLead[];
@@ -59,8 +60,8 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
       <div className="hidden grid-cols-2 gap-3 sm:grid md:grid-cols-5">
         {stats.map((s) => (
           <Card key={s.label} className="px-5 py-4">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{s.label}</div>
-            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]">{s.value}</div>
+            <div className="text-[12px] font-medium text-[var(--text-secondary)]">{s.label}</div>
+            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]"><CountText text={s.value} /></div>
           </Card>
         ))}
       </div>

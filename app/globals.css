@@ -222,6 +222,12 @@ html {
   scroll-padding-top: 88px;
 }
 
+/* Lenis drives the scroll itself; CSS smoothing on top of it makes every
+   frame's scrollTo animate again, which reads as a rubbery lag. */
+html.lenis {
+  scroll-behavior: auto;
+}
+
 body {
   margin: 0;
   /* Explicit ground: the artifact/browser paints its own background behind
@@ -793,6 +799,27 @@ html.crm-shell {
   --gold: #b8955a;
 }
 html.crm-shell body { font-size: 14px; }
+
+/* CRM motion: quick and quiet. It is a working tool, so nothing here is
+   slower than ~0.45s and nothing moves more than 10px. */
+@keyframes crm-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes crm-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes crm-slide-in { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes crm-pop { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
+/* Each screen's top-level blocks arrive one after another. */
+html.crm-shell .crm-stagger > * { animation: crm-rise 0.45s var(--ease-lux) both; }
+html.crm-shell .crm-stagger > *:nth-child(2) { animation-delay: 0.05s; }
+html.crm-shell .crm-stagger > *:nth-child(3) { animation-delay: 0.1s; }
+html.crm-shell .crm-stagger > *:nth-child(4) { animation-delay: 0.15s; }
+html.crm-shell .crm-stagger > *:nth-child(n + 5) { animation-delay: 0.2s; }
+html.crm-shell .crm-panel { animation: crm-slide-in 0.38s var(--ease-lux) both; }
+html.crm-shell .crm-backdrop { animation: crm-fade 0.3s ease both; }
+html.crm-shell .crm-pop { animation: crm-pop 0.22s var(--ease-lux) both; }
+html.crm-shell .crm-sheet { animation: crm-rise 0.3s var(--ease-lux) both; }
+@media (prefers-reduced-motion: reduce) {
+  html.crm-shell .crm-stagger > *, html.crm-shell .crm-panel, html.crm-shell .crm-backdrop,
+  html.crm-shell .crm-pop, html.crm-shell .crm-sheet { animation: none; }
+}
 html.crm-shell ::-webkit-scrollbar { width: 10px; height: 10px; }
 html.crm-shell ::-webkit-scrollbar-thumb { background: rgb(15 23 42 / 0.15); border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
 html.crm-shell select { cursor: pointer; }
