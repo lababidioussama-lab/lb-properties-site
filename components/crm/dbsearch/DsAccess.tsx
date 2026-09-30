@@ -48,17 +48,17 @@ export function DsAccess({ onExpired }: { onExpired: () => void }) {
     </label>
   );
 
-  if (error) return <Card className="p-5 text-[13px] text-[#a3261e]">{error}</Card>;
+  if (error) return <Card className="p-5 text-[13px] text-[var(--bad)]">{error}</Card>;
   if (!users) return <div className="h-64 animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" />;
 
   const locked = users.filter((u) => u.ds_locked_at);
   return (
     <div className="space-y-5">
       {locked.map((u) => (
-        <div key={u.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-[#efc9c5] bg-[#fbeceb] px-4 py-3 text-[13px] text-[#7a1f19]">
+        <div key={u.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--bad-bd)] bg-[var(--bad-bg)] px-4 py-3 text-[13px] text-[var(--bad)]">
           <Lock size={16} />
           <span className="flex-1"><strong>{u.full_name}</strong>: DB Search locked — {u.ds_lock_reason ?? "no reason recorded"}.</span>
-          <button onClick={() => change(u.id, { unlock: true })} className="rounded-lg bg-white px-3 py-1.5 font-semibold text-[#0b2a4a]">Unlock</button>
+          <button onClick={() => change(u.id, { unlock: true })} className="rounded-lg bg-white px-3 py-1.5 font-semibold text-[var(--accent-solid)]">Unlock</button>
         </div>
       ))}
 
@@ -75,7 +75,7 @@ export function DsAccess({ onExpired }: { onExpired: () => void }) {
                 <td className="px-4 py-3">
                   {u.role === "admin" ? <span className="text-[12.5px] text-[var(--text-muted)]">Always on</span> : (
                     <button role="switch" aria-checked={u.ds_access} aria-label={`DB Search access for ${u.full_name}`} onClick={() => change(u.id, { ds_access: !u.ds_access })}
-                      className={`relative h-6 w-10 rounded-full transition ${u.ds_access ? "bg-[#0b2a4a]" : "bg-[rgb(15_23_42/0.2)]"}`}>
+                      className={`relative h-6 w-10 rounded-full transition ${u.ds_access ? "bg-[var(--accent-solid)]" : "bg-[rgb(15_23_42/0.2)]"}`}>
                       <span className={`absolute top-[3px] h-[18px] w-[18px] rounded-full bg-white transition-all ${u.ds_access ? "left-[19px]" : "left-[3px]"}`} />
                     </button>
                   )}
@@ -85,8 +85,8 @@ export function DsAccess({ onExpired }: { onExpired: () => void }) {
                 <td className="px-4 py-3">{limitInput(u, "ds_lists_per_day", u.usage.lists)}</td>
                 <td className="px-4 py-3">
                   {u.role === "admin" ? <span className="text-[12.5px] text-[var(--text-muted)]">—</span>
-                    : u.ds_locked_at ? <button onClick={() => change(u.id, { unlock: true })} className="inline-flex items-center gap-1.5 rounded-full border border-[#efc9c5] bg-[#fbeceb] px-2.5 py-1 text-[11.5px] font-semibold text-[#a3261e]"><Unlock size={12} /> Locked · unlock</button>
-                    : <button onClick={() => change(u.id, { lock: true })} className="inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline-strong)] px-2.5 py-1 text-[11.5px] font-semibold text-[var(--text-secondary)] hover:border-[#a3261e] hover:text-[#a3261e]"><Lock size={12} /> Lock now</button>}
+                    : u.ds_locked_at ? <button onClick={() => change(u.id, { unlock: true })} className="inline-flex items-center gap-1.5 rounded-full border border-[var(--bad-bd)] bg-[var(--bad-bg)] px-2.5 py-1 text-[11.5px] font-semibold text-[var(--bad)]"><Unlock size={12} /> Locked · unlock</button>
+                    : <button onClick={() => change(u.id, { lock: true })} className="inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline-strong)] px-2.5 py-1 text-[11.5px] font-semibold text-[var(--text-secondary)] hover:border-[var(--bad)] hover:text-[var(--bad)]"><Lock size={12} /> Lock now</button>}
                 </td>
               </tr>
             ))}
@@ -107,7 +107,7 @@ export function DsAccess({ onExpired }: { onExpired: () => void }) {
                   {a.query ? <> “<span className="font-medium">{a.query}</span>”</> : null}
                   {a.detail && typeof a.detail.reason === "string" ? <span className="text-[var(--text-muted)]"> · {String(a.detail.reason).replace(/_/g, " ")}</span> : null}
                 </span>
-                {(a.action === "locked" || a.action === "denied") && <span className="rounded-full border border-[#efc9c5] bg-[#fbeceb] px-2 py-0.5 text-[11px] font-semibold text-[#a3261e]">Alert</span>}
+                {(a.action === "locked" || a.action === "denied") && <span className="rounded-full border border-[var(--bad-bd)] bg-[var(--bad-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--bad)]">Alert</span>}
               </li>
             ))}
           </ul>

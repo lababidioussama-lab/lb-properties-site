@@ -77,7 +77,7 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
           </div>
           <input ref={picker} type="file" accept="image/jpeg,image/png,image/webp,image/heic" hidden onChange={(e) => onPhoto(e.target.files?.[0])} />
         </div>
-        {photoError && <p className="mt-2 text-[12px] text-[#c0392b]">{photoError}</p>}
+        {photoError && <p className="mt-2 text-[12px] text-[var(--bad)]">{photoError}</p>}
 
         <div className="mt-5 grid grid-cols-2 gap-3">
           <label><Label>Phone</Label><input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} className={INPUT} /></label>

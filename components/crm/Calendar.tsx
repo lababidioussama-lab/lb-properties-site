@@ -188,7 +188,7 @@ function EventForm({ event, defaultStart, isAdmin, users, leads, listings, error
         )}
       </div>
       <label className="block"><Label>Notes</Label><textarea rows={3} value={f.notes} onChange={set("notes")} className={`${INPUT} resize-none`} /></label>
-      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--bad)]">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button onClick={() => save()} disabled={!f.title.trim() || !f.starts_at} className={BTN}>Save</button>
         {event && event.status === "scheduled" && <button onClick={() => save({ status: "done" })} className={BTN_GHOST}>Mark done</button>}

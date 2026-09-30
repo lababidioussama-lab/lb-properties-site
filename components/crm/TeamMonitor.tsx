@@ -109,13 +109,13 @@ export function TeamMonitor({ users, leads, tasks, deals }: { users: CrmUser[]; 
 
   return (
     <div className="space-y-6">
-      {error && <Card className="p-4 text-[13px] text-[#c0392b]">Could not load activity ({error}).</Card>}
+      {error && <Card className="p-4 text-[13px] text-[var(--bad)]">Could not load activity ({error}).</Card>}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
           <Card key={k.label} className="px-5 py-4">
             <div className="text-[12px] font-medium text-[var(--text-secondary)]">{k.label}</div>
-            <div className={`figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] ${k.alert ? "text-[#c0392b]" : "text-[var(--accent)]"}`}><CountText text={String(k.value)} /></div>
+            <div className={`figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] ${k.alert ? "text-[var(--bad)]" : "text-[var(--accent)]"}`}><CountText text={String(k.value)} /></div>
           </Card>
         ))}
       </div>
@@ -207,7 +207,7 @@ export function TeamMonitor({ users, leads, tasks, deals }: { users: CrmUser[]; 
 
 function Num({ v, warn, bad }: { v: number; warn?: boolean; bad?: boolean }) {
   return (
-    <td className={`figure px-3 py-3 text-center ${bad ? "font-semibold text-[#c0392b]" : warn ? "font-semibold text-amber-700" : v === 0 ? "text-[var(--text-muted)]" : ""}`}>{v}</td>
+    <td className={`figure px-3 py-3 text-center ${bad ? "font-semibold text-[var(--bad)]" : warn ? "font-semibold text-amber-700" : v === 0 ? "text-[var(--text-muted)]" : ""}`}>{v}</td>
   );
 }
 

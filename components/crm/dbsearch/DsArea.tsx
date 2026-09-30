@@ -73,7 +73,7 @@ export function DsArea({ onExpired, onUsage, onOpenOwner }: { onExpired: () => v
           </ul>
         )}
       </form>
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[#a3261e]">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
       {result && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[13px] text-emerald-800">{result}</p>}
       {busy && !data && <div className="h-64 animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" />}
 
@@ -111,7 +111,7 @@ export function DsArea({ onExpired, onUsage, onOpenOwner }: { onExpired: () => v
           </Card>
 
           <Card className="space-y-4 p-5">
-            <div><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9a7a44]">Send to Temp leads</p>
+            <div><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--violet)]">Send to Temp leads</p>
               <h2 className="mt-1 font-[family-name:var(--font-display)] text-[24px] font-semibold leading-tight">Make a calling list</h2></div>
             <label className="block"><span className="mb-1.5 block text-[12px] font-semibold text-[var(--text-secondary)]">List name</span>
               <input value={list} onChange={(e) => setList(e.target.value)} maxLength={80} className="h-10 w-full rounded-lg border border-[var(--hairline-strong)] px-3 text-[13px] outline-none focus:border-[var(--accent)]" /></label>

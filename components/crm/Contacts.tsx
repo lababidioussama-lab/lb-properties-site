@@ -242,7 +242,7 @@ export function ContactPanel({ contact, kyc, listings, leads, tasks, users, isAd
                   {[p.community, p.building, p.unit && `Unit ${p.unit}`, p.bedrooms].filter(Boolean).join(" · ") || "—"}
                 </span>
                 <span className="figure text-[var(--text-secondary)]">{money(p.price_aed)}</span>
-                <button onClick={() => removeProperty(p.id)} aria-label="Remove" className="text-[var(--text-muted)] hover:text-[#c0392b]"><Trash2 size={13} /></button>
+                <button onClick={() => removeProperty(p.id)} aria-label="Remove" className="text-[var(--text-muted)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>
               </li>
             ))}
           </ul>

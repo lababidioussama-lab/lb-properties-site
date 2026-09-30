@@ -127,7 +127,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
                       <div className="truncate text-[12px] text-[var(--text-muted)]">
                         {SOURCE_LABEL[sourceKey(l.source)]} · {l.owner_id ? userName(l.owner_id) : "Open pool"}
                         {l.stage === "new" && Date.now() - new Date(l.created_at).getTime() > 3_600_000 && (
-                          <span className="font-semibold text-[#c0392b]"> · {Math.floor((Date.now() - new Date(l.created_at).getTime()) / 3_600_000)}h no reply</span>
+                          <span className="font-semibold text-[var(--bad)]"> · {Math.floor((Date.now() - new Date(l.created_at).getTime()) / 3_600_000)}h no reply</span>
                         )}
                       </div>
                     </button>
@@ -192,7 +192,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
                     </div>
                     <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">{SOURCE_LABEL[sourceKey(l.source)]} · {serviceLabel(l.service)} · {shortDate(l.created_at)}</div>
                     {l.stage === "new" && Date.now() - new Date(l.created_at).getTime() > 3_600_000 && (
-                      <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-[#c0392b]">
+                      <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-[var(--bad)]">
                         <Timer size={12} /> No reply for {Math.floor((Date.now() - new Date(l.created_at).getTime()) / 3_600_000)}h
                       </div>
                     )}
@@ -200,7 +200,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
                       <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-amber-700"><Hand size={12} /> Open pool: claim it</div>
                     )}
                     {l.expires_at && (
-                      <div className={`mt-1.5 flex items-center gap-1 text-[11px] ${new Date(l.expires_at).getTime() - Date.now() < 12 * 3_600_000 ? "text-[#c0392b]" : "text-[var(--text-muted)]"}`}>
+                      <div className={`mt-1.5 flex items-center gap-1 text-[11px] ${new Date(l.expires_at).getTime() - Date.now() < 12 * 3_600_000 ? "text-[var(--bad)]" : "text-[var(--text-muted)]"}`}>
                         <Timer size={12} /> {Math.max(0, Math.floor((new Date(l.expires_at).getTime() - Date.now()) / 3_600_000))}h to update
                       </div>
                     )}
@@ -209,7 +209,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
                       {l.deal_value_aed != null && <span className="figure text-[var(--text-secondary)]">{money(l.deal_value_aed)}</span>}
                     </div>
                     {l.next_follow_up_at && (
-                      <div className={`mt-1.5 flex items-center gap-1 text-[11px] ${isOverdue(l.next_follow_up_at) ? "text-[#c0392b]" : "text-[var(--text-muted)]"}`}>
+                      <div className={`mt-1.5 flex items-center gap-1 text-[11px] ${isOverdue(l.next_follow_up_at) ? "text-[var(--bad)]" : "text-[var(--text-muted)]"}`}>
                         <CalendarClock size={12} /> {shortDate(l.next_follow_up_at)}
                       </div>
                     )}

@@ -124,7 +124,7 @@ export function KycSection({ contact, t, isAdmin, userName }: { contact: CrmCont
           {preview.length > 0
             ? <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12.5px] text-amber-800">Still needed: {preview.join(", ")}</p>
             : <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[12.5px] text-emerald-800">Everything required is filled in.</p>}
-          {t.error && <p className="text-[12.5px] text-[#c0392b]">{t.error}</p>}
+          {t.error && <p className="text-[12.5px] text-[var(--bad)]">{t.error}</p>}
           {saved && <p className="text-[12.5px] font-medium text-emerald-700">{saved}</p>}
 
           <div className="flex flex-wrap gap-2">

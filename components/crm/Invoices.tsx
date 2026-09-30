@@ -114,7 +114,7 @@ export function InvoicesView({ t, deals, contacts }: { t: Table<CrmInvoice>; dea
                 {debtors.map((d) => (
                   <tr key={d.name} className="border-t border-[var(--hairline)]">
                     <td className="py-2 pe-3 font-medium">{d.name}</td>
-                    {d.b.map((v, i) => <td key={i} className={`figure py-2 pe-3 ${v && i >= 2 ? "text-[#c0392b]" : v && i === 1 ? "text-amber-700" : ""}`}>{v ? money(v) : "—"}</td>)}
+                    {d.b.map((v, i) => <td key={i} className={`figure py-2 pe-3 ${v && i >= 2 ? "text-[var(--bad)]" : v && i === 1 ? "text-amber-700" : ""}`}>{v ? money(v) : "—"}</td>)}
                     <td className="figure py-2 pe-3 font-semibold">{money(d.total)}</td>
                   </tr>
                 ))}
@@ -154,7 +154,7 @@ export function InvoicesView({ t, deals, contacts }: { t: Table<CrmInvoice>; dea
                   <td className="figure px-3 py-2.5 font-medium">{i.number}</td>
                   <td className="px-3 py-2.5">{i.bill_to_name}</td>
                   <td className="px-3 py-2.5 text-[var(--text-muted)]">{shortDate(i.issue_date)}</td>
-                  <td className={`px-3 py-2.5 ${late ? "font-medium text-[#c0392b]" : "text-[var(--text-muted)]"}`}>{shortDate(i.due_date)}{late && ` · ${daysOverdue(i)}d late`}</td>
+                  <td className={`px-3 py-2.5 ${late ? "font-medium text-[var(--bad)]" : "text-[var(--text-muted)]"}`}>{shortDate(i.due_date)}{late && ` · ${daysOverdue(i)}d late`}</td>
                   <td className="figure px-3 py-2.5">{money(i.net_aed)}</td>
                   <td className="figure px-3 py-2.5">{money(i.vat_aed)}</td>
                   <td className="figure px-3 py-2.5">{money(i.total_aed)}</td>
@@ -235,7 +235,7 @@ function InvoiceForm({ invoice, prefill, deals, error, onClose, onSave }: {
         <div><Label>Total</Label><div className="figure text-[14px] font-semibold">{money(net + vat)}</div></div>
       </Card>
       <label className="block"><Label>Notes (bank details, terms)</Label><textarea rows={2} value={f.notes} onChange={set("notes")} className={`${INPUT} resize-none`} /></label>
-      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--bad)]">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => onSave({
@@ -261,16 +261,16 @@ function printInvoice(i: CrmInvoice) {
   const w = window.open("", "_blank", "width=820,height=1000");
   if (!w) return;
   w.document.write(`<!doctype html><html><head><title>${esc(i.number)}</title><style>
-    body{font-family:Helvetica,Arial,sans-serif;color:#1c2330;margin:48px;font-size:13px}
-    .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0b1a2b;padding-bottom:18px}
-    h1{font-size:26px;letter-spacing:.08em;margin:0;color:#0b1a2b} .brand{font-size:18px;letter-spacing:.18em;color:#0b1a2b}
-    .muted{color:#6b7280} table{width:100%;border-collapse:collapse;margin-top:28px} th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left}
-    th{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#6b7280} td.n,th.n{text-align:right}
-    .tot td{border:none;padding:6px 10px} .grand td{font-size:16px;font-weight:700;border-top:2px solid #0b1a2b}
+    body{font-family:Helvetica,Arial,sans-serif;color:var(--accent-solid);margin:48px;font-size:13px}
+    .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid var(--accent-solid);padding-bottom:18px}
+    h1{font-size:26px;letter-spacing:.08em;margin:0;color:var(--accent-solid)} .brand{font-size:18px;letter-spacing:.18em;color:var(--accent-solid)}
+    .muted{color:var(--text-muted)} table{width:100%;border-collapse:collapse;margin-top:28px} th,td{padding:10px;border-bottom:1px solid var(--hairline);text-align:left}
+    th{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted)} td.n,th.n{text-align:right}
+    .tot td{border:none;padding:6px 10px} .grand td{font-size:16px;font-weight:700;border-top:2px solid var(--accent-solid)}
     .cols{display:flex;gap:40px;margin-top:24px} .cols div{flex:1}
     @media print{body{margin:24px}}
   </style></head><body>
-    <div class="top"><div><div class="brand">LABABIDI <small style="color:#b8975a;font-size:10px;letter-spacing:.3em">PROPERTIES</small></div>
+    <div class="top"><div><div class="brand">LABABIDI <small style="color:var(--accent);font-size:10px;letter-spacing:.3em">PROPERTIES</small></div>
       <div class="muted" style="margin-top:8px">${esc(COMPANY.address)}${COMPANY.orn ? `<br>ORN ${esc(COMPANY.orn)}` : ""}<br>TRN ${esc(COMPANY.trn || "—")}</div></div>
       <div style="text-align:right"><h1>TAX INVOICE</h1><div style="margin-top:8px">No. <b>${esc(i.number)}</b><br>Date ${esc(i.issue_date)}${i.due_date ? `<br>Due ${esc(i.due_date)}` : ""}</div></div></div>
     <div class="cols"><div><div class="muted" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase">Bill to</div>

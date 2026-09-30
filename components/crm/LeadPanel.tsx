@@ -76,7 +76,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
         </p>
         <div className="figure text-[14px] text-[var(--text-muted)]">{lead.phone}</div>
         {lead.notes && <p className="rounded-lg border border-[var(--hairline)] bg-[var(--surface)] p-3 text-[13px]">{lead.notes}</p>}
-        {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
+        {error && <p className="text-[12px] text-[var(--bad)]">{error}</p>}
         <button onClick={() => save({ claim: true })} className={BTN}><Hand size={14} /> Claim this lead</button>
       </SidePanel>
     );
@@ -230,7 +230,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
             onBlur={(e) => save({ deal_value_aed: e.target.value })} className={`${INPUT} figure`} />
         </label>
       </div>
-      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--bad)]">{error}</p>}
 
       <Requirements lead={lead} onSave={save} />
       <Matches lead={lead} listings={listings} />

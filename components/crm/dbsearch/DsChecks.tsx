@@ -54,7 +54,7 @@ export function DsChecks({ mode, onMode, onExpired, onOpenOwner }: { mode: Check
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={m.placeholder} maxLength={120} className="h-full flex-1 bg-transparent text-[14px] outline-none" aria-label={m.placeholder} /></label>
         <button disabled={busy} className="bg-[var(--accent-solid)] px-7 text-[13px] font-semibold text-white disabled:opacity-60">{busy ? "Checking…" : "Check"}</button>
       </form>
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[#a3261e]">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
       {busy && <div className="h-40 animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" />}
 
       {mode === "permit" && permits && (
@@ -63,7 +63,7 @@ export function DsChecks({ mode, onMode, onExpired, onOpenOwner }: { mode: Check
           {permits.permits.map((p) => (
             <Card key={p.permit_number} className="p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9a7a44]">Trakheesi permit</p><p className="figure mt-1 text-[22px] font-semibold">{p.permit_number}</p></div>
+                <div><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--violet)]">Trakheesi permit</p><p className="figure mt-1 text-[22px] font-semibold">{p.permit_number}</p></div>
                 {p.validation_url && <a href={p.validation_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--accent)] hover:underline">Verify on DLD <ExternalLink size={13} /></a>}
               </div>
               <dl className="mt-4 grid gap-x-6 gap-y-2 text-[13px] sm:grid-cols-2">

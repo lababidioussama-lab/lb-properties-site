@@ -61,7 +61,7 @@ export function DsOwnerPanel({ refId, onClose, onExpired, onUsage, onOpenLead, o
       onClose={onClose}
     >
       {!owner && !error && <div className="h-48 animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" />}
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[#a3261e]">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
       {added && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[13px] text-emerald-800">{added}</p>}
 
       {owner && (
@@ -73,7 +73,7 @@ export function DsOwnerPanel({ refId, onClose, onExpired, onUsage, onOpenLead, o
           </div>
 
           {link && (
-            <div className="flex items-center gap-3 rounded-xl border border-[#e6d5b0] bg-[#f7f0e2] px-4 py-3 text-[12.5px] text-[#5c451c]">
+            <div className="flex items-center gap-3 rounded-xl border border-[var(--violet-bd)] bg-[var(--violet-bg)] px-4 py-3 text-[12.5px] text-[var(--violet)]">
               <Users size={16} className="shrink-0" />
               <span className="flex-1">Already in the CRM: {link.kind === "temp" ? "temp lead" : link.kind} <strong>{link.name}</strong>{link.stage ? `, ${link.stage}` : ""}{link.ownerName ? `, handled by ${link.mine ? "you" : link.ownerName}` : ""}.</span>
               {link.kind === "lead" && (link.mine || link.ownerName == null) && <button onClick={() => { onClose(); onOpenLead(link.id); }} className="font-bold underline">Open lead</button>}
@@ -95,7 +95,7 @@ export function DsOwnerPanel({ refId, onClose, onExpired, onUsage, onOpenLead, o
                   {r ? (
                     <span className="flex gap-1.5">
                       <a href={`tel:+${r.dial}`} className={`${BTN} !h-8 !px-3 !text-[12px]`}>Call</a>
-                      <a href={`https://wa.me/${r.dial}`} target="_blank" rel="noopener noreferrer" className={`${BTN} !h-8 !bg-[#0a6b38] !px-3 !text-[12px]`}>WhatsApp</a>
+                      <a href={`https://wa.me/${r.dial}`} target="_blank" rel="noopener noreferrer" className={`${BTN} !h-8 !bg-[var(--ok)] !px-3 !text-[12px]`}>WhatsApp</a>
                     </span>
                   ) : (
                     <button onClick={() => setAsking({ kind: "phone", index: i })} className={`${BTN_GHOST} !h-8 !px-3 !text-[12px]`}><Eye size={14} /> Reveal</button>
@@ -120,7 +120,7 @@ export function DsOwnerPanel({ refId, onClose, onExpired, onUsage, onOpenLead, o
           <section className="space-y-2.5">
             <h3 className="text-[13.5px] font-bold">Properties <span className="font-medium text-[var(--text-muted)]">· {owner.properties.length}</span></h3>
             {owner.properties.map((pr, i) => (
-              <div key={pr.ref + i} className={`flex items-center gap-3 rounded-xl border border-[var(--hairline)] bg-white px-4 py-3 ${i === 0 ? "shadow-[inset_3px_0_0_#0b2a4a]" : ""}`}>
+              <div key={pr.ref + i} className={`flex items-center gap-3 rounded-xl border border-[var(--hairline)] bg-white px-4 py-3 ${i === 0 ? "shadow-[inset_3px_0_0_var(--accent-solid)]" : ""}`}>
                 <div className="min-w-0 flex-1">
                   <div className="text-[13.5px] font-bold">{placeText(pr.property)}</div>
                   <div className="mt-0.5 text-[12.5px] text-[var(--text-secondary)]">{[pr.property.type, pr.property.beds, sizeText(pr.property.size)].filter(Boolean).join(" · ") || "Details not recorded"}</div>
@@ -187,7 +187,7 @@ function RevealDialog({ owner, target, onCancel, onDone, onExpired, onUsage }: {
       <div className="crm-pop w-full max-w-[480px] rounded-xl border border-[var(--hairline)] bg-white p-6 shadow-[0_30px_70px_-20px_rgb(15_23_42/0.45)]">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9a7a44]">Reveal {target.kind === "email" ? "an email" : "a number"}</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--violet)]">Reveal {target.kind === "email" ? "an email" : "a number"}</p>
             <h2 id="ds-reveal-title" className="mt-1 font-[family-name:var(--font-display)] text-[28px] font-semibold">Reveal this {target.kind === "email" ? "email" : "number"}?</h2>
           </div>
           <button onClick={onCancel} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]"><X size={16} /></button>
@@ -206,7 +206,7 @@ function RevealDialog({ owner, target, onCancel, onDone, onExpired, onUsage }: {
           <li>· The reveal, the reason and the time are recorded against your name.</li>
           <li>· It counts towards your daily reveal limit.</li>
         </ul>
-        {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-[12.5px] text-[#a3261e]">{error}</p>}
+        {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-[12.5px] text-[var(--bad)]">{error}</p>}
         <div className="mt-6 flex justify-end gap-2">
           <button onClick={onCancel} className={BTN_GHOST}>Cancel</button>
           <button onClick={reveal} disabled={!reason || busy} className={BTN}><Eye size={15} /> {busy ? "Revealing…" : `Reveal ${target.kind === "email" ? "email" : "number"}`}</button>

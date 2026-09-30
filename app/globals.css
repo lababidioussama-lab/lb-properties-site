@@ -775,30 +775,109 @@ select {
    CRM SHELL — a light, calm workspace for a data app read for hours:
    white cards on warm grey, brand navy for actions, gold only as a marker.
    ========================================================================= */
+/* CRM theme: design A's layout in DB Search's colours (dbsearchdubai.com).
+   Light: soft grey and the deep DB Search blue. Dark: near-black, glass
+   panels, the bright DB Search blue and the star field. Switched in the top
+   bar and remembered per browser (localStorage "crm:theme"). */
 html.crm-shell {
   color-scheme: light;
-  --surface: #f4f3ef;
+  --surface: #f3f3f3;
   --surface-raised: #ffffff;
-  --surface-sunken: #f8f7f4;
-  --glass-bg: rgb(255 255 255 / 0.9);
-  --glass-bg-strong: rgb(255 255 255 / 0.97);
-  --glass-border: rgb(15 23 42 / 0.08);
-  --hairline: rgb(15 23 42 / 0.08);
-  --hairline-strong: rgb(15 23 42 / 0.15);
-  --text-primary: #14171c;
-  --text-secondary: #464c55;
-  --text-muted: #7b8089;
-  --accent: #0b2a4a;
-  --accent-bright: #1f4e7a;
-  --accent-wash: rgb(11 42 74 / 0.06);
-  --accent-dim: rgb(11 42 74 / 0.2);
-  --accent-solid: #0b2a4a;
-  --accent-solid-hover: #173f68;
-  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 1px rgb(15 23 42 / 0.02);
-  --shadow-lift: 0 12px 40px -12px rgb(15 23 42 / 0.25);
-  --gold: #b8955a;
+  --surface-sunken: #f0f0f0;
+  --surface-hover: #f6f7f9;
+  --glass-bg: rgb(255 255 255 / 0.85);
+  --glass-bg-strong: rgb(255 255 255 / 0.95);
+  --glass-border: rgb(0 0 0 / 0.08);
+  --hairline: rgb(0 0 0 / 0.08);
+  --hairline-soft: rgb(0 0 0 / 0.05);
+  --hairline-strong: rgb(0 0 0 / 0.16);
+  --text-primary: #111111;
+  --text-secondary: #444444;
+  --text-muted: #666666;
+  --text-disabled: #a3a3a3;
+  --accent: #2158d0;
+  --accent-bright: #3d7dff;
+  --accent-wash: rgb(33 88 208 / 0.08);
+  --accent-dim: rgb(33 88 208 / 0.4);
+  --accent-solid: #2158d0;
+  --accent-solid-hover: #1a48b0;
+  --accent-glow: rgb(33 88 208 / 0.35);
+  --violet: #7c5ce0; --violet-bg: rgb(139 92 246 / 0.08); --violet-bd: rgb(139 92 246 / 0.35);
+  --shadow-card: none;
+  --shadow-pop: 0 10px 30px rgb(0 0 0 / 0.12);
+  --shadow-lift: 0 20px 50px rgb(0 0 0 / 0.18);
+  --side-bg: #ffffff;
+  --side-border: rgb(0 0 0 / 0.08);
+  --side-fg: #111111;
+  --side-muted: #555555;
+  --side-faint: #8a8a8a;
+  --side-hover: rgb(0 0 0 / 0.04);
+  --side-active: rgb(33 88 208 / 0.1);
+  --side-active-fg: #2158d0;
+  --side-field: rgb(0 0 0 / 0.03);
+  --ok: #228844; --ok-bg: rgb(34 136 68 / 0.1); --ok-bd: rgb(34 136 68 / 0.3);
+  --warn: #9a6400; --warn-bg: rgb(245 158 11 / 0.14); --warn-bd: rgb(245 158 11 / 0.4);
+  --bad: #cc2222; --bad-bg: rgb(204 34 34 / 0.08); --bad-bd: rgb(204 34 34 / 0.3);
+  --info: #2158d0; --info-bg: rgb(33 88 208 / 0.08); --info-bd: rgb(33 88 208 / 0.3);
+  --neutral: #555555; --neutral-bg: rgb(0 0 0 / 0.05); --neutral-bd: rgb(0 0 0 / 0.1);
+  --wa: #1c9f4f;
+  --font-display: var(--font-crm), system-ui, sans-serif;
+  --font-sans: var(--font-crm), system-ui, sans-serif;
+  --font-body: var(--font-crm), system-ui, sans-serif;
 }
-html.crm-shell body { font-size: 14px; }
+html.crm-shell[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #050505;
+  --surface-raised: rgb(22 22 22 / 0.78);
+  --surface-sunken: rgb(31 31 31 / 0.85);
+  --surface-hover: rgb(255 255 255 / 0.04);
+  --glass-bg: rgb(22 22 22 / 0.78);
+  --glass-bg-strong: rgb(22 22 22 / 0.94);
+  --glass-border: rgb(255 255 255 / 0.07);
+  --hairline: rgb(255 255 255 / 0.08);
+  --hairline-soft: rgb(255 255 255 / 0.05);
+  --hairline-strong: rgb(255 255 255 / 0.16);
+  --text-primary: #ffffff;
+  --text-secondary: #c9c9c9;
+  --text-muted: #a0a0a0;
+  --text-disabled: #6b6b6b;
+  --accent: #5b92ff;
+  --accent-bright: #86afff;
+  --accent-wash: rgb(61 125 255 / 0.12);
+  --accent-dim: rgb(61 125 255 / 0.45);
+  --accent-solid: #3d7dff;
+  --accent-solid-hover: #2f6be6;
+  --accent-glow: rgb(61 125 255 / 0.8);
+  --violet: #a78bfa; --violet-bg: rgb(139 92 246 / 0.15); --violet-bd: rgb(139 92 246 / 0.4);
+  --shadow-pop: 0 10px 30px rgb(0 0 0 / 0.5);
+  --shadow-lift: 0 20px 50px rgb(0 0 0 / 0.6);
+  --side-bg: rgb(12 12 14 / 0.82);
+  --side-border: rgb(255 255 255 / 0.07);
+  --side-fg: #ffffff;
+  --side-muted: #b5b5b5;
+  --side-faint: #7d7d7d;
+  --side-hover: rgb(255 255 255 / 0.05);
+  --side-active: rgb(61 125 255 / 0.16);
+  --side-active-fg: #86afff;
+  --side-field: rgb(0 0 0 / 0.6);
+  --ok: #4ade80; --ok-bg: rgb(74 222 128 / 0.12); --ok-bd: rgb(74 222 128 / 0.4);
+  --warn: #fbbf24; --warn-bg: rgb(251 191 36 / 0.12); --warn-bd: rgb(251 191 36 / 0.4);
+  --bad: #ff6b6b; --bad-bg: rgb(255 77 77 / 0.12); --bad-bd: rgb(255 77 77 / 0.4);
+  --info: #5b92ff; --info-bg: rgb(61 125 255 / 0.12); --info-bd: rgb(61 125 255 / 0.45);
+  --neutral: #b5b5b5; --neutral-bg: rgb(255 255 255 / 0.06); --neutral-bd: rgb(255 255 255 / 0.12);
+  --wa: #25d366;
+}
+/* Glass panels over the stars, as on DB Search. */
+html.crm-shell[data-theme="dark"] main .rounded-lg.border,
+html.crm-shell[data-theme="dark"] main .rounded-xl.border { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+/* Components written with literal white follow the theme. */
+html.crm-shell[data-theme="dark"] .bg-white { background-color: var(--surface-raised); }
+html.crm-shell[data-theme="dark"] header.bg-white { background-color: rgb(8 8 10 / 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+html.crm-shell[data-theme="dark"] input, html.crm-shell[data-theme="dark"] select, html.crm-shell[data-theme="dark"] textarea { color: var(--text-primary); background-color: rgb(0 0 0 / 0.6); }
+html.crm-shell[data-theme="dark"] option { background: #151515; }
+html.crm-shell[data-theme="dark"] ::-webkit-scrollbar-thumb { background: rgb(255 255 255 / 0.14); background-clip: content-box; }
+html.crm-shell .crm-stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+html.crm-shell body { font-family: var(--font-crm), system-ui, sans-serif; line-height: 1.45; -webkit-font-smoothing: antialiased; font-feature-settings: "tnum" 1; }
 
 /* CRM motion: quick and quiet. It is a working tool, so nothing here is
    slower than ~0.45s and nothing moves more than 10px. */
@@ -826,9 +905,9 @@ html.crm-shell select { cursor: pointer; }
 
 /* Tables: one treatment everywhere. */
 html.crm-shell main table thead tr { background: var(--surface-sunken); }
-html.crm-shell main table thead th { color: var(--text-muted); font-weight: 600; font-size: 10.5px; letter-spacing: 0.08em; }
+html.crm-shell main table thead th { color: var(--text-muted); font-weight: 500; font-size: 11px; letter-spacing: 0.04em; }
 html.crm-shell main table tbody tr { transition: background-color 0.15s; }
-html.crm-shell main table tbody tr:hover { background: rgb(11 42 74 / 0.025); }
+html.crm-shell main table tbody tr:hover { background: var(--surface-hover); }
 @media (max-width: 767px) {
   html.crm-shell main table th,
   html.crm-shell main table td { white-space: nowrap; }

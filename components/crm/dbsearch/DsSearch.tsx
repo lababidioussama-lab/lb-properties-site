@@ -104,9 +104,9 @@ export function DsSearch({ onExpired, onUsage, onOpenLead, onPhone, initialQuery
     if (!result || !mode) return null;
     if (result.kind === "community" && mode.kind === "community") {
       return (
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#d3dde9] bg-[#eef2f7] px-4 py-3">
-          <MapPin size={16} className="text-[#3d5a7a]" />
-          <span className="text-[14px] font-semibold text-[#2c4561]">{mode.name}</span>
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--info-bd)] bg-[var(--info-bg)] px-4 py-3">
+          <MapPin size={16} className="text-[var(--info)]" />
+          <span className="text-[14px] font-semibold text-[var(--info)]">{mode.name}</span>
           {mode.from && <button onClick={() => { setQ(mode.from!); void load({ kind: "search", q: mode.from!, includeEmpty: false }); }} className="ms-auto inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--accent)] hover:underline"><ArrowLeft size={13} /> Back to “{mode.from}”</button>}
         </div>
       );
@@ -180,7 +180,7 @@ export function DsSearch({ onExpired, onUsage, onOpenLead, onPhone, initialQuery
         )}
       </div>
 
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[#a3261e]">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
 
       {!result && !busy && (
         <div className="rounded-xl border border-[var(--hairline)] bg-white p-4">

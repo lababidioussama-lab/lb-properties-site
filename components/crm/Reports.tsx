@@ -150,7 +150,7 @@ export function ReportsView({ leads, deals, users, userName, spend }: {
                   </td>
                   <td className="figure py-2">{a.leads}</td>
                   <td className="figure py-2">{a.won}</td>
-                  <td className={`figure py-2 ${a.overdue ? "text-[#c0392b]" : ""}`}>{a.overdue}</td>
+                  <td className={`figure py-2 ${a.overdue ? "text-[var(--bad)]" : ""}`}>{a.overdue}</td>
                   <td className="figure py-2">{duration(a.response)}</td>
                   <td className="figure py-2">{a.deals}</td>
                   <td className="figure py-2">{money(a.earned)}</td>
@@ -204,7 +204,7 @@ function PortalRoi({ leads, deals, spend, since }: { leads: CrmLead[]; deals: Cr
                   <td className="figure py-2 pe-3">{r.cost ? money(r.cost) : "—"}</td>
                   <td className="figure py-2 pe-3">{r.cost && r.leads ? money(r.cost / r.leads) : "—"}</td>
                   <td className="figure py-2 pe-3">{r.cost && r.deals ? money(r.cost / r.deals) : "—"}</td>
-                  <td className={`figure py-2 pe-3 ${r.cost && r.commission >= r.cost ? "text-emerald-700" : r.cost ? "text-[#c0392b]" : ""}`}>{r.cost ? `${(r.commission / r.cost).toFixed(1)}×` : "—"}</td>
+                  <td className={`figure py-2 pe-3 ${r.cost && r.commission >= r.cost ? "text-emerald-700" : r.cost ? "text-[var(--bad)]" : ""}`}>{r.cost ? `${(r.commission / r.cost).toFixed(1)}×` : "—"}</td>
                 </>}
               </tr>
             ))}
@@ -234,7 +234,7 @@ function PortalRoi({ leads, deals, spend, since }: { leads: CrmLead[]; deals: Cr
             Save monthly spend
           </button>
           <span className="text-[11.5px] text-[var(--text-muted)]">Portal subscriptions and paid ads per month. Only admins see spend.</span>
-          {spend.error && <span className="text-[12px] text-[#c0392b]">{spend.error}</span>}
+          {spend.error && <span className="text-[12px] text-[var(--bad)]">{spend.error}</span>}
         </div>
       )}
     </Panel>

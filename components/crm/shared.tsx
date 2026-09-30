@@ -46,47 +46,139 @@ export const isOverdue = (iso: string | null) => !!iso && new Date(iso).getTime(
 
 export const whatsapp = (phone: string) => `https://wa.me/${phone.replace(/\D/g, "")}`;
 
-/* Stages walk from pale to deep within the house palette — slate, navy,
-   gold — so the colour itself reads as progress. Won is the one green;
-   lost is plain grey. */
+/* Design A · Ledger. Stages are ordinal, so they share one neutral chip and
+   differ only by the dot: grey, blue, navy; won green; lost faded. */
+export const STAGE_DOT: Record<Stage, string> = {
+  new: "var(--text-muted)",
+  contacted: "var(--info)",
+  viewing: "var(--info)",
+  offer: "var(--accent-solid)",
+  won: "var(--ok)",
+  lost: "var(--text-disabled)",
+};
 export const STAGE_STYLE: Record<Stage, string> = {
-  new: "bg-[#eef2f7] text-[#4a6788] border-[#d3dde9]",
-  contacted: "bg-[#e6ecf3] text-[#1b3a5c] border-[#c4d1e0]",
-  viewing: "bg-[#f7f0e2] text-[#8a6a2f] border-[#e6d5b0]",
-  offer: "bg-[#0b2a4a] text-white border-[#0b2a4a]",
-  won: "bg-[#e8f3ec] text-[#2e6b47] border-[#bfdcca]",
-  lost: "bg-[#f1f0ed] text-[#7c7a73] border-[#e1dfda]",
+  new: "bg-[var(--neutral-bg)] text-[var(--text-primary)] border-transparent",
+  contacted: "bg-[var(--neutral-bg)] text-[var(--text-primary)] border-transparent",
+  viewing: "bg-[var(--neutral-bg)] text-[var(--text-primary)] border-transparent",
+  offer: "bg-[var(--neutral-bg)] text-[var(--text-primary)] border-transparent",
+  won: "bg-[var(--ok-bg)] text-[var(--ok)] border-transparent",
+  lost: "bg-[var(--neutral-bg)] text-[var(--text-muted)] border-transparent",
 };
 
-export const INPUT =
-  "w-full h-11 sm:h-9 rounded-lg border border-[var(--hairline-strong)] bg-white px-3 text-[13px] text-[var(--text-primary)] shadow-[0_1px_1px_rgb(15_23_42/0.03)] outline-none transition placeholder:text-[var(--text-muted)] hover:border-[rgb(15_23_42/0.25)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[rgb(11_42_74/0.12)] disabled:bg-[var(--surface-sunken)] disabled:text-[var(--text-muted)] [&:is(textarea)]:h-auto [&:is(textarea)]:py-2";
+/** The five status tones, each with one fixed meaning:
+ *  bad = a deadline passed or a legal item missing · warn = approaching ·
+ *  ok = done and clean · info = a fact · neutral = inactive. */
+export type Tone = "ok" | "warn" | "bad" | "info" | "neutral";
+export const TONE: Record<Tone, string> = {
+  ok: "bg-[var(--ok-bg)] text-[var(--ok)]",
+  warn: "bg-[var(--warn-bg)] text-[var(--warn)]",
+  bad: "bg-[var(--bad-bg)] text-[var(--bad)]",
+  info: "bg-[var(--info-bg)] text-[var(--info)]",
+  neutral: "bg-[var(--neutral-bg)] text-[var(--neutral)]",
+};
 
-export const BTN =
-  "inline-flex h-11 sm:h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[var(--accent-solid)] px-3.5 text-[13px] font-semibold text-white shadow-[0_1px_2px_rgb(11_42_74/0.25),inset_0_1px_0_rgb(255_255_255/0.08)] transition hover:bg-[var(--accent-solid-hover)] active:translate-y-px disabled:pointer-events-none disabled:opacity-45";
-
-export const BTN_GHOST =
-  "inline-flex h-11 sm:h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[var(--hairline-strong)] bg-white px-3 text-[13px] font-medium text-[var(--text-secondary)] shadow-[0_1px_1px_rgb(15_23_42/0.03)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] active:translate-y-px disabled:pointer-events-none disabled:opacity-45";
-
-export function Label({ children }: { children: ReactNode }) {
+/** 22px chip: sentence case, one tone, at most one dot. */
+export function Chip({ tone = "neutral", dot, children, className = "" }: { tone?: Tone; dot?: string; children: ReactNode; className?: string }) {
   return (
-    <span className="mb-1.5 block text-[11px] font-semibold text-[var(--text-secondary)]">
+    <span className={`inline-flex h-[22px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-[11px] font-medium ${TONE[tone]} ${className}`}>
+      {dot && <span className="h-1.5 w-1.5 rounded-full" style={{ background: dot }} />}
       {children}
     </span>
   );
 }
 
+export function StageChip({ stage, label }: { stage: Stage; label: string }) {
+  return (
+    <span className={`inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-[11px] font-medium ${STAGE_STYLE[stage]}`}>
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: STAGE_DOT[stage] }} />
+      {label}
+    </span>
+  );
+}
+
+/* Controls: 32px on desktop, 40px on phones; radius 6; one primary per screen. */
+export const INPUT =
+  "w-full h-10 sm:h-8 rounded-md border border-[var(--hairline-strong)] bg-white px-2.5 text-[13px] text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] hover:border-[var(--hairline-strong)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[rgb(11_42_74/0.14)] disabled:bg-[var(--surface-sunken)] disabled:text-[var(--text-muted)] [&:is(textarea)]:h-auto [&:is(textarea)]:py-2";
+
+export const BTN =
+  "inline-flex h-10 sm:h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-[var(--accent-solid)] bg-[var(--accent-solid)] px-3 text-[13px] font-medium text-white transition hover:bg-[var(--accent-solid-hover)] active:translate-y-px disabled:pointer-events-none disabled:opacity-45";
+
+export const BTN_GHOST =
+  "inline-flex h-10 sm:h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-[var(--hairline-strong)] bg-white px-3 text-[13px] font-medium text-[var(--text-primary)] transition hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-hover)] active:translate-y-px disabled:pointer-events-none disabled:opacity-45";
+
+/** Square icon button; always give it an aria-label. */
+export const BTN_ICON =
+  "inline-flex h-10 w-10 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-md border border-[var(--hairline-strong)] bg-white text-[var(--text-secondary)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]";
+
+/** The one line under a page title that replaces rows of KPI tiles. */
+export function StatusLine({ children }: { children: ReactNode }) {
+  return <p className="text-[13px] text-[var(--text-secondary)] [&_b]:font-semibold [&_b]:text-[var(--text-primary)] [&_.bad]:text-[var(--bad)]">{children}</p>;
+}
+
+/** Segmented control: Table / Board, Sales / Rentals. */
+export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
+  return (
+    <div role="tablist" className="inline-flex shrink-0 gap-0.5 rounded-lg bg-[var(--surface-sunken)] p-0.5">
+      {options.map((o) => (
+        <button key={o.id} role="tab" aria-selected={value === o.id} onClick={() => onChange(o.id)}
+          className={`h-7 rounded-md px-2.5 text-[12px] font-medium transition ${value === o.id ? "bg-white text-[var(--text-primary)] shadow-[0_1px_2px_rgb(21_25_31/0.08)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Underlined saved-view tabs with counts ("My open 18", "Pool 3"). */
+export function ViewTabs<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string; count?: number }[]; onChange: (v: T) => void }) {
+  return (
+    <div className="flex gap-1 overflow-x-auto border-b border-[var(--hairline)] [scrollbar-width:none]">
+      {options.map((o) => (
+        <button key={o.id} onClick={() => onChange(o.id)}
+          className={`h-9 shrink-0 px-3 text-[13px] font-medium transition ${value === o.id ? "text-[var(--text-primary)] shadow-[inset_0_-2px_0_var(--accent)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}>
+          {o.label}{o.count != null && <span className="ms-1.5 font-normal text-[var(--text-muted)]">{o.count}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Card section header: 44px, title, optional count and action. */
+export function CardHead({ title, count, action }: { title: ReactNode; count?: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="flex h-11 items-center gap-2 border-b border-[var(--hairline)] px-4">
+      <h2 className="flex-1 truncate text-[14px] font-medium text-[var(--text-primary)]">{title}</h2>
+      {count != null && <span className="text-[12px] text-[var(--text-muted)]">{count}</span>}
+      {action}
+    </div>
+  );
+}
+
+export function Label({ children }: { children: ReactNode }) {
+  return (
+    <span className="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">
+      {children}
+    </span>
+  );
+}
+
+/** White, 1px hairline, radius 8, no shadow: a border or a shadow, never both. */
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-xl border border-[var(--hairline)] bg-[var(--surface-raised)] shadow-[var(--shadow-card)] ${className}`}>{children}</div>
+    <div className={`rounded-lg border border-[var(--hairline)] bg-[var(--surface-raised)] ${className}`}>{children}</div>
   );
 }
 
 /** Right-hand slide-over used for lead and contact details. */
-export function SidePanel({ title, subtitle, onClose, children }: {
+export function SidePanel({ title, subtitle, onClose, children, actions, wide = false }: {
   title: string;
   subtitle?: ReactNode;
   onClose: () => void;
   children: ReactNode;
+  /** Buttons shown beside the title (Call, WhatsApp…). */
+  actions?: ReactNode;
+  /** A record page: 1080px, and the children lay out their own columns. */
+  wide?: boolean;
 }) {
   /* Fields save on blur, so blur the focused one before closing — otherwise
      Escape or the backdrop would throw away whatever was just typed. */
@@ -106,27 +198,35 @@ export function SidePanel({ title, subtitle, onClose, children }: {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <button aria-label="Close" onClick={close} className="crm-backdrop absolute inset-0 bg-[rgb(11_26_43/0.35)] backdrop-blur-[2px]" />
-      <aside className="crm-panel relative flex h-full w-full max-w-[580px] flex-col bg-[var(--surface)] shadow-[-24px_0_60px_-20px_rgb(15_23_42/0.35)]">
-        <header className="flex items-start justify-between gap-4 border-b border-[var(--hairline)] bg-white px-6 py-5">
-          <div className="min-w-0">
-            <h2 className="truncate font-[family-name:var(--font-display)] text-[28px] font-semibold leading-tight text-[var(--text-primary)]">
+      <button aria-label="Close" onClick={close} className="crm-backdrop absolute inset-0 bg-[rgb(11_26_43/0.3)]" />
+      <aside className={`crm-panel relative flex h-full w-full flex-col bg-[var(--surface)] shadow-[-8px_0_24px_rgb(21_25_31/0.12)] ${wide ? "max-w-[1080px]" : "max-w-[560px]"}`}>
+        <header className="flex flex-wrap items-center gap-3 border-b border-[var(--hairline)] bg-white px-5 py-3.5">
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-[18px] font-semibold leading-tight tracking-[-0.01em] text-[var(--text-primary)]">
               {title}
             </h2>
-            {subtitle && <div className="mt-1 text-[12.5px] text-[var(--text-muted)]">{subtitle}</div>}
+            {subtitle && <div className="mt-1 text-[12px] text-[var(--text-muted)]">{subtitle}</div>}
           </div>
-          <button onClick={close} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--hairline-strong)] bg-white text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+          <button onClick={close} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
             <X size={16} />
           </button>
         </header>
-        <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">{children}</div>
+        <div className={wide ? "flex min-h-0 flex-1 flex-col lg:flex-row" : "flex-1 space-y-6 overflow-y-auto px-5 py-5"}>{children}</div>
       </aside>
     </div>
   );
 }
 
-export function Empty({ children }: { children: ReactNode }) {
-  return <p className="py-10 text-center text-[13px] text-[var(--text-muted)]">{children}</p>;
+/** One empty state everywhere: optional icon, one sentence, optional action. */
+export function Empty({ children, icon, action }: { children: ReactNode; icon?: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+      {icon && <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--surface-sunken)] text-[var(--text-muted)]">{icon}</span>}
+      <p className="text-[13px] text-[var(--text-muted)]">{children}</p>
+      {action}
+    </div>
+  );
 }
 
 /** Download rows as a CSV that Excel opens cleanly (UTF-8 BOM, quoted cells). */

@@ -30,10 +30,10 @@ export function TaskRow({ task, onChange, onRemove, userName, showAssignee }: {
         {task.title}
       </span>
       {showAssignee && <span className="text-[11px] text-[var(--text-muted)]">{userName(task.assignee_id)}</span>}
-      <span className={`figure text-[11px] ${!done && isOverdue(task.due_at) ? "text-[#c0392b]" : "text-[var(--text-muted)]"}`}>
+      <span className={`figure text-[11px] ${!done && isOverdue(task.due_at) ? "text-[var(--bad)]" : "text-[var(--text-muted)]"}`}>
         {shortDate(task.due_at)}
       </span>
-      <button onClick={remove} aria-label="Delete task" className="p-1.5 text-[var(--text-muted)] transition-opacity hover:text-[#c0392b] sm:opacity-0 sm:group-hover:opacity-100">
+      <button onClick={remove} aria-label="Delete task" className="p-1.5 text-[var(--text-muted)] transition-opacity hover:text-[var(--bad)] sm:opacity-0 sm:group-hover:opacity-100">
         <Trash2 size={14} />
       </button>
     </li>
@@ -96,10 +96,10 @@ export function TaskGroup({ title, tasks, ...row }: {
 }) {
   return (
     <div>
-      <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+      {title && <h3 className="mb-1 text-[11px] font-medium uppercase tracking-[0.04em] text-[var(--text-muted)]">
         {title} <span className="text-[var(--text-secondary)]">{tasks.length}</span>
-      </h3>
-      {tasks.length === 0 ? <Empty>Nothing here.</Empty> : (
+      </h3>}
+      {tasks.length === 0 ? <p className="py-2 text-[12px] text-[var(--text-muted)]">None</p> : (
         <ul>{tasks.map((t) => <TaskRow key={t.id} task={t} {...row} />)}</ul>
       )}
     </div>

@@ -46,8 +46,8 @@ function CrmTag({ link, onOpenLead }: { link: DsCrmLink; onOpenLead: (id: string
   const kind = link.kind === "lead" ? "Lead" : link.kind === "contact" ? "Contact" : "Temp lead";
   const who = link.mine ? "yours" : link.ownerName ?? "unassigned";
   return link.kind === "lead"
-    ? <button onClick={() => onOpenLead(link.id)} className={`${BADGE} border-[#e6d5b0] bg-[#f7f0e2] text-[#7a5c26] hover:underline`}>In CRM · {kind} · {who}</button>
-    : <span className={`${BADGE} border-[#e6d5b0] bg-[#f7f0e2] text-[#7a5c26]`}>In CRM · {kind} · {who}</span>;
+    ? <button onClick={() => onOpenLead(link.id)} className={`${BADGE} border-[var(--violet-bd)] bg-[var(--violet-bg)] text-[var(--violet)] hover:underline`}>In CRM · {kind} · {who}</button>
+    : <span className={`${BADGE} border-[var(--violet-bd)] bg-[var(--violet-bg)] text-[var(--violet)]`}>In CRM · {kind} · {who}</span>;
 }
 
 /** The reason picker every reveal goes through. */
@@ -104,9 +104,9 @@ export function DsCardView({ card, also, soldFlag, actions }: { card: DsCard; al
 
   const side = m.tx.party;
   const dLbl = m.tx.date ? ` · ${m.tx.date}` : "";
-  const ownerTag = side === "buyer" ? <span className={`${BADGE} border-[#bfdcca] bg-[#e8f3ec] text-[#285f3f]`}>BOUGHT{dLbl}</span>
-    : side === "seller" ? <span className={`${BADGE} border-[#e1dfda] bg-[#f1f0ed] text-[#62615b]`}>SOLD{dLbl}</span>
-    : side === "mortgagee" ? <span className={`${BADGE} border-[#e1dfda] bg-[#f1f0ed] text-[#62615b]`}><Landmark size={11} /> MORTGAGEE{dLbl}</span>
+  const ownerTag = side === "buyer" ? <span className={`${BADGE} border-[var(--ok-bd)] bg-[var(--ok-bg)] text-[var(--ok)]`}>BOUGHT{dLbl}</span>
+    : side === "seller" ? <span className={`${BADGE} border-[var(--neutral-bd)] bg-[var(--neutral-bg)] text-[var(--neutral)]`}>SOLD{dLbl}</span>
+    : side === "mortgagee" ? <span className={`${BADGE} border-[var(--neutral-bd)] bg-[var(--neutral-bg)] text-[var(--neutral)]`}><Landmark size={11} /> MORTGAGEE{dLbl}</span>
     : null;
   const noUnit = <span className={MUTED}> (unit not stated in source)</span>;
   const noDetails = !m.badge && !m.lines.length && !m.size && !m.plotArea && !m.tx.date && !m.tx.value;
@@ -126,12 +126,12 @@ export function DsCardView({ card, also, soldFlag, actions }: { card: DsCard; al
 
       {/* owner tag + badges */}
       <div className="flex flex-wrap gap-1.5">
-        {card.buildingRecord && <span className={`${BADGE} border-[#e1dfda] bg-[#f1f0ed] text-[#62615b]`}>NO OWNER ON RECORD — property entry</span>}
+        {card.buildingRecord && <span className={`${BADGE} border-[var(--neutral-bd)] bg-[var(--neutral-bg)] text-[var(--neutral)]`}>NO OWNER ON RECORD — property entry</span>}
         {ownerTag}
         {m.pMatch && <span className={`${BADGE} border-[var(--hairline-strong)] bg-white`} title="Found by its P-number"><Search size={11} /> P-number match</span>}
-        {m.community && <span className={`${BADGE} border-[#d3dde9] bg-[#eef2f7] text-[#3d5a7a]`}><MapPin size={11} /> {m.community}</span>}
+        {m.community && <span className={`${BADGE} border-[var(--info-bd)] bg-[var(--info-bg)] text-[var(--info)]`}><MapPin size={11} /> {m.community}</span>}
         {m.building && <span className={`${BADGE} border-[var(--hairline-strong)] bg-white`}><Building2 size={11} /> {m.building}</span>}
-        {m.badge && <span className={`${BADGE} border-[#e6d5b0] bg-[#f7f0e2] text-[#6b5122]`}><Hash size={11} /> {m.badge.label} {m.badge.v}</span>}
+        {m.badge && <span className={`${BADGE} border-[var(--violet-bd)] bg-[var(--violet-bg)] text-[var(--violet)]`}><Hash size={11} /> {m.badge.label} {m.badge.v}</span>}
         {m.nat && <span className={`${BADGE} border-[var(--hairline-strong)] bg-white`}><Globe2 size={11} /> {m.nat}</span>}
         {m.nRec > 1 && <span className={`${BADGE} border-[var(--hairline-strong)] bg-white`} title={`Same person + same unit found in ${m.nRec} source records`}><FileStack size={11} /> {m.nRec} records</span>}
         {card.inCrm && <CrmTag link={card.inCrm} onOpenLead={actions.onOpenLead} />}
@@ -145,12 +145,12 @@ export function DsCardView({ card, also, soldFlag, actions }: { card: DsCard; al
               {numbers.map((n) => (
                 <div key={n.index} className="flex flex-wrap items-center gap-2 px-3 py-2">
                   <span className="figure text-[14px] font-semibold tracking-wide">{n.value}</span>
-                  {n.dnc ? <span className={`${BADGE} border-[#f3c9c6] bg-[#fdecec] text-[#a3261e]`}>Do not contact</span> : (
+                  {n.dnc ? <span className={`${BADGE} border-[var(--bad-bd)] bg-[var(--bad-bg)] text-[var(--bad)]`}>Do not contact</span> : (
                     <>
                       <a href={`tel:+${n.dial}`} className="inline-flex h-7 items-center gap-1 rounded-md border border-[var(--hairline-strong)] px-2 text-[12px] font-semibold hover:border-[var(--accent)] hover:text-[var(--accent)]"><Phone size={12} /> Call</a>
-                      <a href={`https://api.whatsapp.com/send?phone=${n.dial}`} target="_blank" rel="noopener noreferrer" className="inline-flex h-7 items-center gap-1 rounded-md border border-[#bfdcca] bg-[#e8f3ec] px-2 text-[12px] font-semibold text-[#1f6b3f] hover:bg-[#dcefe3]"><MessageCircle size={12} /> WhatsApp</a>
+                      <a href={`https://api.whatsapp.com/send?phone=${n.dial}`} target="_blank" rel="noopener noreferrer" className="inline-flex h-7 items-center gap-1 rounded-md border border-[var(--ok-bd)] bg-[var(--ok-bg)] px-2 text-[12px] font-semibold text-[var(--ok)] hover:bg-[var(--ok-bg)]"><MessageCircle size={12} /> WhatsApp</a>
                       {n.inCrm ? <CrmTag link={n.inCrm} onOpenLead={actions.onOpenLead} />
-                        : added[n.index] ? <span className={`${BADGE} border-[#bfdcca] bg-[#e8f3ec] text-[#285f3f]`}><Check size={11} /> {added[n.index]}</span>
+                        : added[n.index] ? <span className={`${BADGE} border-[var(--ok-bd)] bg-[var(--ok-bg)] text-[var(--ok)]`}><Check size={11} /> {added[n.index]}</span>
                         : (
                           <span className="ms-auto inline-flex items-center gap-1 text-[12px]">
                             <Plus size={12} className={MUTED} />
@@ -175,25 +175,25 @@ export function DsCardView({ card, also, soldFlag, actions }: { card: DsCard; al
       ) : (
         <p className={`text-[12.5px] ${MUTED}`}>{card.buildingRecord ? "This is a property record from a building price list — it never had an owner name or contact." : "No phones on file"}</p>
       )}
-      {error && <p role="alert" className="rounded-md bg-red-50 px-2.5 py-1.5 text-[12.5px] text-[#a3261e]">{error}</p>}
+      {error && <p role="alert" className="rounded-md bg-red-50 px-2.5 py-1.5 text-[12.5px] text-[var(--bad)]">{error}</p>}
 
       {/* why it matched */}
       {card.match && (
-        <p className="flex items-center gap-1.5 rounded-lg border border-[#d3dde9] bg-[#eef2f7] px-2.5 py-1.5 text-[12.5px] font-semibold text-[#3d5a7a]">
+        <p className="flex items-center gap-1.5 rounded-lg border border-[var(--info-bd)] bg-[var(--info-bg)] px-2.5 py-1.5 text-[12.5px] font-semibold text-[var(--info)]">
           <Link2 size={13} /> Matched {card.match.name} — also named on this record{card.match.more > 0 ? ` (+${card.match.more} more)` : ""}
         </p>
       )}
 
       {/* Portofino sold list */}
       {card.sold && (
-        <p className="rounded-lg border border-[#f3c9c6] bg-[#fdecec] px-2.5 py-1.5 text-[12.5px] font-semibold text-[#a3261e]">
+        <p className="rounded-lg border border-[var(--bad-bd)] bg-[var(--bad-bg)] px-2.5 py-1.5 text-[12.5px] font-semibold text-[var(--bad)]">
           UNIT {card.sold.unit} SOLD {monLabel(card.sold.date)}{card.sold.price ? ` for ${fmtM(card.sold.price)}${card.sold.gain != null ? ` (${card.sold.gain >= 0 ? "+" : ""}${Math.round(card.sold.gain * 100)}%)` : ""}` : ""}
           {card.sold.stale ? <> — this person is likely <u>NOT the owner anymore</u></> : " — unit recently transacted"}
         </p>
       )}
       {/* registered sales (Damac Lagoons) */}
       {!card.sold && soldFlag && (
-        <p className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12.5px] font-semibold ${soldFlag.confidence === "medium" ? "border-[#ecd9ad] bg-[#fff7e6] text-[#8a5a00]" : "border-[#f3c9c6] bg-[#fdecec] text-[#a3261e]"}`}>
+        <p className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12.5px] font-semibold ${soldFlag.confidence === "medium" ? "border-[var(--warn-bd)] bg-[var(--warn-bg)] text-[var(--warn)]" : "border-[var(--bad-bd)] bg-[var(--bad-bg)] text-[var(--bad)]"}`}>
           <Tag size={13} /> UNIT {soldFlag.unit ?? m.badge?.v} ALREADY SOLD
           <span className="font-normal"> — {[soldFlag.project, monLabel(soldFlag.date), fmtM(soldFlag.price), soldFlag.payment === "cash" ? "cash" : soldFlag.payment === "mortgage" ? "mortgaged" : ""].filter(Boolean).join(" · ")}</span>
         </p>
@@ -217,7 +217,7 @@ export function DsCardView({ card, also, soldFlag, actions }: { card: DsCard; al
         {m.more.length > 0 && <div className={`text-[12px] ${MUTED}`}>{m.more.map((x) => `${x.label} ${typeof x.v === "number" ? x.v.toLocaleString("en-US") : x.v}${x.suffix}`).join(" · ")}</div>}
         {also && also.length > 0 && <div className={`text-[12px] ${MUTED}`}>Also contacted regarding: {also.join(", ")} (no unit on file)</div>}
         {m.notes.map((n, i) => (
-          <div key={i} className="flex gap-1.5 text-[12px] text-[#8a5a00]" title={n}><AlertTriangle size={12} className="mt-[3px] shrink-0" /> {n.length > 160 ? `${n.slice(0, 157)}…` : n}</div>
+          <div key={i} className="flex gap-1.5 text-[12px] text-[var(--warn)]" title={n}><AlertTriangle size={12} className="mt-[3px] shrink-0" /> {n.length > 160 ? `${n.slice(0, 157)}…` : n}</div>
         ))}
         {m.unreadable.length > 0 && <div className={`text-[12px] ${MUTED}`}>Unreadable in source (Excel converted the value): {m.unreadable.join(", ")}</div>}
         {noDetails

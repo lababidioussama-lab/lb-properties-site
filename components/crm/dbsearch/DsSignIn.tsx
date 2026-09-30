@@ -73,13 +73,13 @@ export function DsSignIn({ email: meEmail, onDone, expired = false }: { email: s
 
   return (
     <div className="grid min-h-[620px] overflow-hidden rounded-xl border border-[var(--hairline)] bg-[var(--surface)] shadow-[var(--shadow-card)] lg:grid-cols-[1.05fr_1fr]">
-      <section className="relative hidden overflow-hidden bg-[#0b1a2b] lg:block">
+      <section className="relative hidden overflow-hidden bg-[var(--accent-solid)] lg:block">
         <Image src="/brand/reception.jpg" alt="" fill sizes="45vw" className="object-cover opacity-55" />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgb(11_26_43/0.55),rgb(11_26_43/0.2)_40%,rgb(11_26_43/0.94))]" />
         <div className="relative flex h-full flex-col justify-end p-10 text-white">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d4b87f]">DB Search · secure access</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">DB Search · secure access</p>
           <h2 className="mt-4 max-w-[15ch] font-[family-name:var(--font-display)] text-[42px] font-medium leading-[1.05]">
-            Owner data, <em className="text-[#e3cc9f]">behind its own key</em>.
+            Owner data, <em className="text-[var(--accent)]">behind its own key</em>.
           </h2>
           <p className="mt-4 max-w-[44ch] text-[13.5px] leading-[1.8] text-white/75">
             Your CRM email and password, then a code emailed as a “DB Search sign-in”. The session ends after two hours, or twenty minutes without activity.
@@ -118,7 +118,7 @@ export function DsSignIn({ email: meEmail, onDone, expired = false }: { email: s
                     className={`${INPUT} figure text-center !text-[22px] tracking-[0.5em]`} /></label>
               </>
             )}
-            {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[12.5px] text-[#a3261e]">{error}</p>}
+            {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[12.5px] text-[var(--bad)]">{error}</p>}
             {note && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[12.5px] text-emerald-700">{note}</p>}
             <button type="submit" disabled={busy || (step === "password" ? !email || !password : code.length !== 6)}
               className="h-11 w-full rounded-lg bg-[var(--accent-solid)] text-[14px] font-semibold text-white transition hover:bg-[var(--accent-solid-hover)] disabled:opacity-50">

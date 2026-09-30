@@ -1,44 +1,17 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { CalendarClock, PhoneIncoming, AlarmClock, Hand, MapPin, Hourglass, KeyRound, IdCard } from "lucide-react";
-import { licenceAlerts, type CrmEvent, type CrmLead, type CrmTask, type CrmTenancy, type CrmUser } from "@/lib/crm";
+import { Hand, MapPin, IdCard, MessageCircle, Phone } from "lucide-react";
+import { SOURCE_LABEL, STAGE_LABEL, leadBrief, licenceAlerts, sourceKey, type CrmEvent, type CrmLead, type CrmTask, type CrmTenancy, type CrmUser } from "@/lib/crm";
 import { renewalState } from "./Rentals";
-import { money, Card, Empty } from "./shared";
+import { BTN_GHOST, BTN_ICON, Card, CardHead, Chip, Empty, StatusLine, whatsapp, type Tone } from "./shared";
 import { TaskGroup } from "./TaskList";
 import { useTable } from "./useTable";
-import { serviceLabel } from "./LeadPanel";
-import { CountText } from "./Motion";
 import { clockTime, firstName, greetingFor, useClock } from "./Greeting";
 
 const OPEN = ["new", "contacted", "viewing", "offer"];
 const hours = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000);
 const time = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-
-function Panel({ icon: Icon, title, count, tone = "", children }: { icon: typeof Hand; title: string; count: number; tone?: string; children: ReactNode }) {
-  return (
-    <Card className="flex min-w-0 flex-col">
-      <div className="flex items-center gap-2.5 border-b border-[var(--hairline)] px-5 py-3.5">
-        <Icon size={16} className={tone || "text-[var(--accent)]"} />
-        <h3 className="text-[14px] font-semibold">{title}</h3>
-        <span className={`ms-auto rounded-full px-2 text-[11.5px] font-semibold leading-5 ${count ? "bg-[var(--accent-wash)] text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>{count}</span>
-      </div>
-      <div className="flex-1">{children}</div>
-    </Card>
-  );
-}
-
-function LeadRow({ lead, meta, onOpen }: { lead: CrmLead; meta: ReactNode; onOpen: () => void }) {
-  return (
-    <button onClick={onOpen} className="flex w-full items-center gap-3 border-b border-[var(--hairline)] px-5 py-3 text-start transition last:border-0 hover:bg-[rgb(11_42_74/0.025)]">
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[13.5px] font-medium">{lead.full_name}</div>
-        <div className="truncate text-[12px] text-[var(--text-muted)]">{serviceLabel(lead.service)}{lead.budget_aed ? ` · ${money(lead.budget_aed)}` : ""}</div>
-      </div>
-      <div className="shrink-0 text-end text-[12px]">{meta}</div>
-    </button>
-  );
-}
 
 /** An agent's day on one screen: what to do first, in order. */
 export function MyDay({ me, isAdmin, leads, tasks, tenancies = [], userName, onOpenLead, onOpenRentals, onTask, onRemoveTask, loaded = true }: {
@@ -90,33 +63,49 @@ export function MyDay({ me, isAdmin, leads, tasks, tenancies = [], userName, onO
   const greeting = greetingFor(clockNow.getHours());
   const first = firstName(me?.full_name);
 
+  /* One list, in the order an agent should work it: an unanswered enquiry
+     first, then promises already broken, then what is about to happen, then
+     leads about to fall back to the pool. */
+  type Row = { key: string; lead: CrmLead | null; name: string; kind: string; why: string; due: string; tone: Tone; rank: number; phone: string | null; onOpen: () => void };
+  const rows: Row[] = [];
+  for (const l of waiting) {
+    const h = hours(l.created_at);
+    rows.push({ key: `w${l.id}`, lead: l, name: l.full_name, kind: `New · ${SOURCE_LABEL[sourceKey(l.source)]}`, why: leadBrief(l), due: h < 1 ? "Just in" : `${h}h no reply`, tone: h >= 1 ? "bad" : "warn", rank: 0 + h / 1000, phone: l.phone, onOpen: () => onOpenLead(l.id) });
+  }
+  for (const l of followUps) {
+    const at = new Date(l.next_follow_up_at!).getTime();
+    const late = at < now;
+    const days = Math.floor((now - at) / 86_400_000);
+    rows.push({ key: `f${l.id}`, lead: l, name: l.full_name, kind: STAGE_LABEL[l.stage], why: leadBrief(l), due: late ? (days >= 1 ? `Overdue ${days} day${days > 1 ? "s" : ""}` : "Overdue") : `Follow up ${time(l.next_follow_up_at!)}`, tone: late ? "bad" : "info", rank: late ? 1 : 2, phone: l.phone, onOpen: () => onOpenLead(l.id) });
+  }
+  for (const e of today.filter((x) => new Date(x.ends_at ?? x.starts_at).getTime() >= now)) {
+    const l = e.lead_id ? leads.find((x) => x.id === e.lead_id) ?? null : null;
+    rows.push({ key: `e${e.id}`, lead: l, name: l?.full_name ?? e.title, kind: e.kind.charAt(0).toUpperCase() + e.kind.slice(1), why: [e.title, e.location].filter(Boolean).join(" · "), due: time(e.starts_at), tone: "info", rank: 2 + new Date(e.starts_at).getTime() / 1e15, phone: l?.phone ?? null, onOpen: () => (l ? onOpenLead(l.id) : undefined) });
+  }
+  for (const l of expiring) {
+    if (rows.some((r) => r.lead?.id === l.id)) continue;
+    const left = Math.max(0, Math.round((new Date(l.expires_at!).getTime() - now) / 3_600_000));
+    rows.push({ key: `x${l.id}`, lead: l, name: l.full_name, kind: STAGE_LABEL[l.stage], why: `Needs an update or it returns to the pool · ${leadBrief(l)}`, due: left === 0 ? "Update now" : `Update in ${left}h`, tone: "warn", rank: 3, phone: l.phone, onOpen: () => onOpenLead(l.id) });
+  }
+  rows.sort((x, y) => x.rank - y.rank);
+  const lateCount = followUps.filter((l) => new Date(l.next_follow_up_at!).getTime() < now).length;
+
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-x-8 gap-y-4 rounded-xl bg-[#0b1a2b] px-6 py-5 text-white shadow-[var(--shadow-card)]">
-        <div>
-          <div className="font-[family-name:var(--font-display)] text-[26px] font-semibold leading-none">{greeting}{first ? `, ${first}` : ""}</div>
-          <div className="mt-1.5 text-[13px] text-white/60">
-            {clockNow.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
-            {clock && <> · <span className="figure text-white/85">{clockTime(clock)}</span></>}
-          </div>
-        </div>
-        {[
-          ["Waiting for first reply", waiting.length],
-          ["Follow-ups due", followUps.length],
-          ["On the calendar today", today.length],
-          ["Tasks due", myTasks.length],
-          ["Need an update", expiring.length],
-        ].map(([k, v]) => (
-          <div key={k as string} className="border-s border-white/15 ps-5">
-            <div className="figure text-[24px] font-semibold leading-none text-[#e3cc9f]"><CountText text={String(v)} /></div>
-            <div className="mt-1 text-[12.5px] text-white/75">{k}</div>
-          </div>
-        ))}
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end gap-x-4 gap-y-1">
+        <h2 className="text-[20px] font-semibold tracking-[-0.01em]">{greeting}{first ? `, ${first}` : ""}</h2>
+        <span className="text-[13px] text-[var(--text-muted)]">
+          {clockNow.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}{clock && <> · <span className="figure">{clockTime(clock)}</span></>}
+        </span>
       </div>
+      <StatusLine>
+        {waiting.length > 0 ? <b className="bad">{waiting.length} waiting for a first reply</b> : <>No one waiting for a reply</>}
+        {" · "}{lateCount} follow-up{lateCount === 1 ? "" : "s"} overdue · {today.length} on the calendar today · {myTasks.length} task{myTasks.length === 1 ? "" : "s"} due
+      </StatusLine>
 
       {myAlerts.length > 0 && (
-        <Card className={`flex items-start gap-3 px-5 py-4 ${myAlerts.some((a) => a.level !== "soon") ? "border-red-200 bg-red-50/60" : "border-amber-200 bg-amber-50/60"}`}>
-          <IdCard size={18} className={myAlerts.some((a) => a.level !== "soon") ? "text-red-600" : "text-amber-600"} />
+        <Card className={`flex items-start gap-3 px-4 py-3 ${myAlerts.some((a) => a.level !== "soon") ? "border-[var(--bad-bd)] bg-[var(--bad-bg)]" : "border-[var(--warn-bd)] bg-[var(--warn-bg)]"}`}>
+          <IdCard size={18} className={myAlerts.some((a) => a.level !== "soon") ? "text-[var(--bad)]" : "text-[var(--warn)]"} />
           <div className="text-[13px]">
             <div className="font-semibold">{myAlerts.map((a) => a.text).join(" · ")}</div>
             <div className="text-[12.5px] text-[var(--text-secondary)]">
@@ -126,92 +115,81 @@ export function MyDay({ me, isAdmin, leads, tasks, tenancies = [], userName, onO
         </Card>
       )}
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        <Panel icon={PhoneIncoming} title="New leads waiting for a first reply" count={waiting.length} tone="text-[#c0392b]">
-          {waiting.length === 0 ? <Empty>Everyone has been contacted.</Empty> : waiting.slice(0, 8).map((l) => (
-            <LeadRow key={l.id} lead={l} onOpen={() => onOpenLead(l.id)} meta={
-              <span className={hours(l.created_at) >= 1 ? "font-semibold text-[#c0392b]" : "text-[var(--text-muted)]"}>
-                {hours(l.created_at) < 1 ? "Just in" : `${hours(l.created_at)}h waiting`}
-                <span className="block text-[11px] font-medium text-[var(--accent)]">{l.owner_id ? (isAdmin ? userName(l.owner_id) : "Yours") : "Unclaimed · tap to claim"}</span>
-              </span>
-            } />
-          ))}
-        </Panel>
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0 space-y-4">
+          <Card>
+            <CardHead title="Do next" count="Ordered by urgency" />
+            {rows.length === 0 ? <Empty icon={<Hand size={18} />}>Nothing urgent. Good time to work the calling list.</Empty> : rows.slice(0, 12).map((r) => (
+              <div key={r.key} className="flex min-h-[60px] items-center gap-3 border-b border-[var(--hairline-soft)] px-4 py-2.5 last:border-0">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: `var(--${r.tone === "neutral" ? "text-muted" : r.tone})` }} />
+                <button onClick={r.onOpen} className="min-w-0 flex-1 text-start">
+                  <span className="flex items-baseline gap-2"><span className="truncate text-[14px] font-medium">{r.name}</span><span className="shrink-0 text-[12px] text-[var(--text-muted)]">{r.kind}</span></span>
+                  <span className="block truncate text-[12px] text-[var(--text-secondary)]">{r.why}</span>
+                </button>
+                <Chip tone={r.tone}>{r.due}</Chip>
+                {r.phone && <>
+                  <a href={`tel:${r.phone.replace(/\s/g, "")}`} aria-label={`Call ${r.name}`} className={BTN_ICON}><Phone size={15} /></a>
+                  <a href={whatsapp(r.phone)} target="_blank" rel="noopener noreferrer" aria-label={`WhatsApp ${r.name}`} className={`${BTN_ICON} !text-[var(--wa)]`}><MessageCircle size={15} /></a>
+                </>}
+                <button onClick={r.onOpen} className={`${BTN_GHOST} hidden sm:inline-flex`}>Open</button>
+              </div>
+            ))}
+          </Card>
+          <Card>
+            <CardHead title="Tasks due today or overdue" count={myTasks.length} />
+            <div className="p-4">
+              {myTasks.length === 0
+                ? <Empty>No tasks due today.</Empty>
+                : <TaskGroup title="" tasks={myTasks} onChange={onTask} onRemove={onRemoveTask} userName={userName} showAssignee={isAdmin} />}
+            </div>
+          </Card>
+        </div>
 
-        <Panel icon={AlarmClock} title="Follow-ups due today or overdue" count={followUps.length}>
-          {followUps.length === 0 ? <Empty>No follow-ups due.</Empty> : followUps.slice(0, 8).map((l) => {
-            const late = new Date(l.next_follow_up_at!).getTime() < now;
-            return (
-              <LeadRow key={l.id} lead={l} onOpen={() => onOpenLead(l.id)} meta={
-                <span className={late ? "font-semibold text-[#c0392b]" : "text-[var(--text-secondary)]"}>
-                  {late ? "Overdue" : time(l.next_follow_up_at!)}
-                  {isAdmin && <span className="block text-[11px] font-normal text-[var(--text-muted)]">{userName(l.owner_id)}</span>}
-                </span>
-              } />
-            );
-          })}
-        </Panel>
-
-        <Panel icon={CalendarClock} title="Today's calendar" count={today.length}>
-          {today.length === 0 ? <Empty>Nothing booked today.</Empty> : today.map((e) => (
-            <div key={e.id} className="flex items-start gap-4 border-b border-[var(--hairline)] px-5 py-3 last:border-0">
-              <div className="figure w-12 shrink-0 text-[13.5px] font-semibold text-[var(--accent)]">{time(e.starts_at)}</div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[13.5px] font-medium">{e.title}</div>
-                <div className="flex items-center gap-1 truncate text-[12px] text-[var(--text-muted)]">
-                  <span className="capitalize">{e.kind}</span>
-                  {e.location && <><span>·</span><MapPin size={11} />{e.location}</>}
-                  {isAdmin && <span>· {userName(e.agent_id)}</span>}
+        <aside className="space-y-4">
+          <Card>
+            <CardHead title="Today" count={today.length} />
+            {today.length === 0 ? <Empty>Nothing booked today.</Empty> : today.map((e) => (
+              <div key={e.id} className="flex gap-3 border-b border-[var(--hairline-soft)] px-4 py-2.5 last:border-0">
+                <span className="figure w-11 shrink-0 text-[13px] font-medium">{time(e.starts_at)}</span>
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-medium">{e.title}</div>
+                  <div className="flex items-center gap-1 truncate text-[12px] text-[var(--text-muted)]">
+                    <span className="capitalize">{e.kind}</span>
+                    {e.location && <><span>·</span><MapPin size={11} />{e.location}</>}
+                    {isAdmin && <span>· {userName(e.agent_id)}</span>}
+                  </div>
                 </div>
               </div>
-              {e.lead_id && <button onClick={() => onOpenLead(e.lead_id!)} className="text-[12px] font-medium text-[var(--accent)] hover:underline">Open lead</button>}
-            </div>
-          ))}
-        </Panel>
-
-        <Panel icon={Hourglass} title="Needs an update — about to return to the pool" count={expiring.length} tone="text-amber-600">
-          {expiring.length === 0 ? <Empty>All your leads are up to date.</Empty> : expiring.slice(0, 8).map((l) => {
-            const left = Math.max(0, Math.round((new Date(l.expires_at!).getTime() - now) / 3_600_000));
-            return (
-              <LeadRow key={l.id} lead={l} onOpen={() => onOpenLead(l.id)} meta={
-                <span className={left <= 3 ? "font-semibold text-[#c0392b]" : "font-medium text-amber-700"}>
-                  {left === 0 ? "Due now" : `${left}h left`}
-                  {isAdmin && <span className="block text-[11px] font-normal text-[var(--text-muted)]">{userName(l.owner_id)}</span>}
-                </span>
-              } />
-            );
-          })}
-        </Panel>
-
-        {renewals.length > 0 && (
-          <Panel icon={KeyRound} title="Tenancy renewals coming up" count={renewals.length} tone="text-amber-600">
-            {renewals.slice(0, 6).map((t) => {
-              const r = renewalState(t);
-              return (
-                <button key={t.id} onClick={onOpenRentals} className="flex w-full items-center gap-3 border-b border-[var(--hairline)] px-5 py-3 text-start last:border-0 hover:bg-[rgb(11_42_74/0.025)]">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13.5px] font-medium">{t.property_label}</div>
-                    <div className="text-[12px] text-[var(--text-muted)]">Ends {new Date(t.end_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}{t.renewal_notice_sent_at ? " · notice sent" : ""}</div>
-                  </div>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${r.tone}`}>{r.label}</span>
-                </button>
-              );
-            })}
-          </Panel>
-        )}
-
-        <Panel icon={Hand} title="Open pool — claim a lead" count={pool.length}>
-          {pool.length === 0 ? <Empty>The pool is empty.</Empty> : pool.slice(0, 6).map((l) => (
-            <LeadRow key={l.id} lead={l} onOpen={() => onOpenLead(l.id)} meta={<span className="font-medium text-[var(--accent)]">Claim →<span className="block text-[11px] font-normal text-[var(--text-muted)]">{hours(l.created_at)}h old</span></span>} />
-          ))}
-        </Panel>
+            ))}
+          </Card>
+          <Card>
+            <CardHead title="Open pool" action={pool.length ? <Chip tone="warn">{pool.length} unclaimed</Chip> : undefined} />
+            {pool.length === 0 ? <Empty>The pool is empty.</Empty> : pool.slice(0, 6).map((l) => (
+              <div key={l.id} className="flex items-center gap-3 border-b border-[var(--hairline-soft)] px-4 py-2 last:border-0">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[13px] font-medium">{l.full_name}</div>
+                  <div className="truncate text-[12px] text-[var(--text-muted)]">{SOURCE_LABEL[sourceKey(l.source)]} · {hours(l.created_at)}h waiting</div>
+                </div>
+                <button onClick={() => onOpenLead(l.id)} className={`${BTN_GHOST} !h-7`}>Claim</button>
+              </div>
+            ))}
+          </Card>
+          {renewals.length > 0 && (
+            <Card>
+              <CardHead title="Rentals needing action" count={renewals.length} />
+              {renewals.slice(0, 5).map((t) => {
+                const r = renewalState(t);
+                return (
+                  <button key={t.id} onClick={onOpenRentals} className="flex w-full items-center gap-3 border-b border-[var(--hairline-soft)] px-4 py-2.5 text-start last:border-0 hover:bg-[var(--surface-hover)]">
+                    <span className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium ${r.tone}`}>{r.label}</span>
+                    <span className="min-w-0 truncate text-[13px]">{t.property_label}</span>
+                  </button>
+                );
+              })}
+            </Card>
+          )}
+        </aside>
       </div>
-
-      <Card className="p-5">
-        {myTasks.length === 0
-          ? <Empty>No tasks due today.</Empty>
-          : <TaskGroup title="Tasks due today or overdue" tasks={myTasks} onChange={onTask} onRemove={onRemoveTask} userName={userName} showAssignee={isAdmin} />}
-      </Card>
     </div>
   );
 }

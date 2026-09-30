@@ -631,3 +631,23 @@ export interface CrmTenancy {
 export interface CrmSourceSpend { id: string; created_at: string; month: string; source: string; amount_aed: number; notes: string | null }
 
 export const daysLeft = daysUntil;
+
+/** AED in a few characters: 3,000,000 → 3M, 85,000 → 85k. */
+export const aedShort = (n: number) =>
+  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M` : n >= 1_000 ? `${Math.round(n / 1_000)}k` : String(n);
+
+/**
+ * What the client wants, in one line ("Buy · 2BR apartment · Dubai Marina ·
+ * up to 2M"). Every portal lead used to read "Investor Advisory" because
+ * that was the website form's service; the brief is what an agent needs.
+ */
+export function leadBrief(l: Pick<CrmLead, "deal_kind" | "beds" | "property_type" | "location" | "budget_aed" | "ready_status" | "payload" | "notes" | "service">): string {
+  const intent = l.deal_kind === "rent" ? "Rent" : l.deal_kind === "sale" ? "Buy" : null;
+  const what = [l.beds, l.property_type].filter(Boolean).join(" ") || null;
+  const parts = [intent, what, l.location, l.budget_aed ? `up to ${aedShort(l.budget_aed)}` : null, l.ready_status === "offplan" ? "off-plan" : null].filter(Boolean);
+  if (parts.length) return parts.join(" · ");
+  const p = (l.payload ?? {}) as Record<string, unknown>;
+  const msg = [p.message, p.goal, p.notes, l.notes].map((v) => (typeof v === "string" ? v.trim() : "")).find(Boolean);
+  if (msg) return msg.length > 70 ? `${msg.slice(0, 67)}…` : msg;
+  return l.service && l.service !== "advisory" ? l.service : "No brief yet";
+}

@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { DbSearch, DS_VIEWS, type DsView } from "./dbsearch/DbSearch";
-import { Activity, Lock, Search, History, ShieldCheck, Receipt, KeyRound, Calculator, Menu, X, ChevronDown, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList } from "lucide-react";
+import { DbSearch, DS_TOOLS, DS_VIEWS, type DsView } from "./dbsearch/DbSearch";
+import { Activity, Database, Home, Lock, Moon, Search, History, ShieldCheck, Receipt, KeyRound, Calculator, Menu, X, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList, SlidersHorizontal } from "lucide-react";
 
 import type { CrmContact, CrmDeal, CrmInvoice, CrmKyc, CrmSourceSpend, CrmTenancy, CrmLead, CrmListing, CrmTask, CrmTemplate, CrmUser } from "@/lib/crm";
 import type { SessionUser } from "@/lib/crm-auth";
-import { api, Card } from "./shared";
+import { api, Card, Segmented } from "./shared";
 import { Pipeline } from "./Pipeline";
 import { LeadPanel } from "./LeadPanel";
 import { ContactsView, ContactPanel } from "./Contacts";
@@ -36,7 +36,9 @@ import { InvoicesView } from "./Invoices";
 import { RentalsView } from "./Rentals";
 import { ComplianceView } from "./Compliance";
 import { TargetMeter } from "./TargetMeter";
-import { HeaderClock, WELCOME_FLAG, WelcomeCard } from "./Greeting";
+import { WELCOME_FLAG } from "./Greeting";
+import { Stars } from "./Stars";
+import { setCrmTheme, type CrmTheme } from "@/lib/crm-theme";
 import type { CrmAgentRequest } from "@/lib/crm";
 
 type View = DsView | "compliance" | "invoices" | "rentals" | "integrations" | "today" | "tools" | "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
@@ -164,14 +166,29 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     ] : []),
     { id: "profile", label: "My profile", icon: UserCircle, group: "Account", desc: "Your details, targets, documents and requests." },
   ];
-  /* "My profile" lives in the top bar beside the bell, so it is left out of
-     the side menu and the phone sheet; Ctrl+K and #profile still reach it. */
-  /* "My profile" and DB Search live in the top bar, not the side menu or the
-     phone sheet; Ctrl+K and their #addresses still reach them. */
-  const groups = [...new Set(nav.map((n) => n.group))].filter((g) => g !== "Account" && g !== "DB Search");
+  /* Design A: ten places in the sidebar. Screens that belong together are
+     tabs of one place (Deals: Sales · Rentals · Invoices), so the sidebar
+     stays short and nothing is more than one click away. */
+  const sections: { id: string; label: string; icon: typeof Users; views: { id: View; label: string }[]; badge?: number; badgeTone?: "bad" | "plain"; group?: "workspace" }[] = [
+    { id: "home", label: "Home", icon: Home, views: [{ id: "today", label: "Today" }], badge: todayCount, badgeTone: "bad" },
+    { id: "leads", label: "Leads", icon: KanbanSquare, views: [{ id: "pipeline", label: "Pipeline" }, { id: "temp_leads", label: "Calling list" }, { id: "owner_requests", label: "Owner requests" }], badge: leads.filter((l) => l.stage === "new" && !l.owner_id).length, badgeTone: "bad" },
+    { id: "people", label: "People", icon: Users, views: [{ id: "contacts", label: "People" }] },
+    { id: "listings", label: "Listings", icon: Building2, views: [{ id: "listings", label: "Listings" }] },
+    { id: "deals", label: "Deals", icon: HandCoins, views: [{ id: "deals", label: "Sales & off-plan" }, { id: "rentals", label: "Rentals" }, ...(isAdmin ? [{ id: "invoices" as View, label: "Invoices" }] : [])] },
+    { id: "calendar", label: "Calendar", icon: CalendarDays, views: [{ id: "calendar", label: "Calendar" }, { id: "tasks", label: "Tasks" }], badge: dueCount, badgeTone: "plain" },
+    { id: "dbsearch", label: "DB Search", icon: Database, views: DS_TOOLS.filter((t) => isAdmin || t.id !== "ds_access").map((t) => ({ id: t.id as View, label: t.label })) },
+    { id: "reports", label: "Reports", icon: BarChart3, views: [{ id: "reports", label: "Overview" }, ...(isAdmin ? [{ id: "monitor" as View, label: "Team" }] : [])] },
+    { id: "tools", label: "Tools", icon: Calculator, views: [{ id: "tools", label: "Calculators" }, { id: "templates", label: "WhatsApp templates" }, { id: "quick_wa", label: "Quick WhatsApp" }], group: "workspace" },
+    ...(isAdmin ? [{ id: "admin", label: "Team & rules", icon: SlidersHorizontal, group: "workspace" as const, views: [
+      { id: "team" as View, label: "Team" }, { id: "integrations" as View, label: "Lead sources" }, { id: "compliance" as View, label: "Compliance" },
+      { id: "requests" as View, label: "Requests" }, { id: "team_docs" as View, label: "Documents" }, { id: "audit" as View, label: "Audit log" },
+    ] }] : []),
+  ];
   const inDbSearch = view.startsWith("ds_");
+  /* DB Search lives on its own link and opens in its own tab. */
+  const dbSearchHref = demo ? "/admin/db-search?demo" : "/admin/db-search";
   const initials = (me_?.full_name ?? "?").split(" ").map((w) => w[0]).slice(0, 2).join("");
-  const current = nav.find((n) => n.id === view);
+  const section = sections.find((sec) => sec.views.some((v) => v.id === view)) ?? (view === "profile" ? { id: "profile", label: "My profile", icon: UserCircle, views: [{ id: "profile" as View, label: "My profile" }] } : sections[0]);
 
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
@@ -183,6 +200,13 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     };
     fromHash();
     setHydrated(true);
+    const wanted = new URLSearchParams(window.location.search).get("lead");
+    if (wanted) {
+      setLeadId(wanted);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("lead");
+      history.replaceState(null, "", url.toString());
+    }
     window.addEventListener("popstate", fromHash);
     window.addEventListener("hashchange", fromHash);
     return () => {
@@ -199,22 +223,6 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     if (hydrated && window.location.hash !== `#${view}`) history.replaceState(null, "", `#${view}`);
   }, [view, hydrated]);
 
-  /* Twenty-odd screens do not fit one sidebar, so the less-used groups fold.
-     What is folded is remembered per browser; the group holding the open
-     screen always shows. */
-  const [folded, setFolded] = useState<string[]>(["WhatsApp", "Admin"]);
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("crm:folded") ?? "null");
-      if (Array.isArray(saved)) setFolded(saved);
-    } catch {}
-  }, []);
-  const toggleGroup = (g: string) =>
-    setFolded((f) => {
-      const next = f.includes(g) ? f.filter((x) => x !== g) : [...f, g];
-      try { localStorage.setItem("crm:folded", JSON.stringify(next)); } catch {}
-      return next;
-    });
   const requestsTable = useTable<CrmAgentRequest>("requests");
 
   const digits = (p: string | null) => (p ?? "").replace(/\D/g, "").slice(-9);
@@ -232,17 +240,26 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     window.location.reload();
   }
 
+  const sideItem = (on: boolean) =>
+    `relative flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-[13px] font-medium transition-colors ${on ? "bg-[var(--side-active)] text-[var(--side-active-fg)] shadow-[inset_3px_0_0_var(--accent-solid)]" : "text-[var(--side-muted)] hover:bg-[var(--side-hover)] hover:text-[var(--side-fg)]"}`;
+  const badge = (n: number, tone?: "bad" | "plain") =>
+    <span className={`grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[11px] font-semibold ${tone === "bad" ? "bg-[var(--bad)] text-white" : "bg-[var(--accent-solid)] text-white"}`}>{n}</span>;
+  const [theme, setTheme] = useState<CrmTheme>("dark");
+  useEffect(() => { setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark"); }, []);
+  const flipTheme = () => { const next = theme === "dark" ? "light" : "dark"; setCrmTheme(next); setTheme(next); };
+
   return (
-    <div className="flex min-h-screen text-[var(--text-primary)]">
-      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col bg-[#0b1a2b] text-white md:flex">
-        <div className="flex items-center gap-3 px-5 pb-5 pt-6">
-          <Image src="/logo-icon-white.png" alt="" width={34} height={34} />
+    <div className="relative flex min-h-screen text-[var(--text-primary)]">
+      <Stars />
+      <aside className="sticky top-0 z-10 hidden h-screen w-[232px] shrink-0 flex-col gap-4 border-e border-[var(--side-border)] bg-[var(--side-bg)] px-3 pb-3 pt-5 text-[var(--side-fg)] backdrop-blur-xl md:flex">
+        <div className="flex items-center gap-2.5 px-2">
+          <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="" width={26} height={26} />
           <div className="leading-none">
-            <div className="font-[family-name:var(--font-wordmark)] text-[16px] tracking-[0.16em]">LABABIDI</div>
-            <div className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.34em] text-[#d4b87f]">Properties CRM</div>
+            <div className="font-[family-name:var(--font-wordmark)] text-[15px] tracking-[0.14em]">LABABIDI</div>
+            <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--side-faint)]">Properties CRM</div>
           </div>
         </div>
-        <div className="px-3 [&_button]:!border-white/10 [&_button]:!bg-white/[0.06] [&_button]:!text-white/60 hover:[&_button]:!text-white">
+        <div className="[&_button]:!h-8 [&_button]:!rounded-md [&_button]:!border-[var(--side-border)] [&_button]:!bg-[var(--side-field)] [&_button]:!text-[var(--side-muted)] hover:[&_button]:!text-[var(--side-fg)]">
           <CommandSearch
             leads={leads}
             contacts={contacts}
@@ -256,136 +273,99 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             }}
           />
         </div>
-        <nav className="mt-3 flex-1 overflow-y-auto px-3 pb-4">
-          {groups.map((g) => {
-            const items = nav.filter((n) => n.group === g);
-            const open = !folded.includes(g) || items.some((n) => n.id === view);
-            const waiting = items.reduce((sum, n) => sum + (n.badge ?? 0), 0);
+        <nav aria-label="Main" className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
+          {sections.filter((sec) => !sec.group).map((sec) => {
+            const on = section.id === sec.id;
+            if (sec.id === "dbsearch") {
+              return (
+                <a key={sec.id} href={dbSearchHref} target="lababidi-db-search" rel="opener" className={sideItem(false)} title="Opens DB Search in its own tab">
+                  <sec.icon size={16} strokeWidth={1.75} />
+                  <span className="flex-1 text-start">DB Search</span>
+                  <ExternalLink size={12} className="opacity-60" />
+                </a>
+              );
+            }
             return (
-            <div key={g} className="mt-3 first:mt-1">
-              <button
-                onClick={() => toggleGroup(g)}
-                aria-expanded={open}
-                className="flex w-full items-center gap-2 px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-white/50 transition-colors hover:text-white/80"
-              >
-                <span className="flex-1 text-start">{g}</span>
-                {!open && waiting > 0 && <span className="h-1.5 w-1.5 rounded-full bg-[#c8a96e]" />}
-                <ChevronDown size={12} className={`transition-transform duration-300 ${open ? "" : "-rotate-90"}`} />
-              </button>
-              {open && items.map((n) => {
-                const on = view === n.id;
-                return (
-                  <button
-                    key={n.id}
-                    onClick={() => setView(n.id)}
-                    className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-[6px] text-[13px] transition-colors ${on ? "bg-white/[0.1] font-medium text-white" : "text-white/75 hover:bg-white/[0.06] hover:text-white"}`}
-                  >
-                    {on && <motion.span layoutId="crm-nav-marker" transition={{ type: "spring", stiffness: 420, damping: 36 }} className="absolute -start-3 top-1.5 bottom-1.5 w-[3px] rounded-e bg-[#c8a96e]" />}
-                    <n.icon size={16} strokeWidth={1.7} className={on ? "text-[#d4b87f]" : "text-white/50 group-hover:text-white/80"} />
-                    <span className="flex-1 text-start">{n.label}</span>
-                    {!!n.badge && <span className="min-w-5 rounded-full bg-[#c8a96e] px-1.5 text-center text-[10.5px] font-semibold leading-5 text-[#0b1a2b]">{n.badge}</span>}
-                  </button>
-                );
-              })}
-            </div>
+              <div key={sec.id}>
+                <button onClick={() => setView(on ? view : sec.views[0].id)} aria-current={on ? "page" : undefined} className={sideItem(on)}>
+                  <sec.icon size={16} strokeWidth={1.75} />
+                  <span className="flex-1 text-start">{sec.label}</span>
+                  {sec.id === "dbsearch" && <Lock size={12} className="opacity-60" />}
+                  {!!sec.badge && badge(sec.badge, sec.badgeTone)}
+                </button>
+              </div>
             );
           })}
-          {isAdmin && <a
-            href="/documents"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-[7px] text-[13px] text-white/65 transition-colors hover:bg-white/[0.05] hover:text-white"
-          >
-            <FileText size={16} strokeWidth={1.7} className="text-white/50" />
-            <span className="flex-1 text-start">Documents</span>
-            <ExternalLink size={12} className="text-white/40" />
+          <div className="px-2.5 pb-1.5 pt-5 text-[11px] font-medium text-[var(--side-faint)]">Workspace</div>
+          {sections.filter((sec) => sec.group === "workspace").map((sec) => (
+            <button key={sec.id} onClick={() => setView(section.id === sec.id ? view : sec.views[0].id)} aria-current={section.id === sec.id ? "page" : undefined} className={sideItem(section.id === sec.id)}>
+              <sec.icon size={16} strokeWidth={1.75} />
+              <span className="flex-1 text-start">{sec.label}</span>
+            </button>
+          ))}
+          {isAdmin && <a href="/documents" target="_blank" rel="noopener noreferrer" className={sideItem(false)}>
+            <FileText size={16} strokeWidth={1.75} />
+            <span className="flex-1 text-start">Company documents</span>
+            <ExternalLink size={12} className="opacity-50" />
           </a>}
         </nav>
-        {!isAdmin && <TargetMeter me={me_} deals={deals.rows} variant="sidebar" />}
-        <div className="border-t border-white/10 p-3">
-          <div className="flex items-center gap-3 rounded-lg px-2 py-2">
+        <TargetMeter me={me_} deals={deals.rows} variant="sidebar" />
+        <div className="flex items-center gap-2.5 px-2">
+          <button onClick={() => setView("profile")} className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md py-1 text-start" title="My profile">
             {me_?.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={me_.avatar_url} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+              <img src={me_.avatar_url} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
             ) : (
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#c8a96e]/20 text-[12px] font-semibold text-[#e3cc9f]">
-                {(me_?.full_name ?? "?").split(" ").map((w) => w[0]).slice(0, 2).join("")}
-              </div>
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--accent-solid)] text-[11px] font-semibold text-white">{initials}</span>
             )}
-            <div className="min-w-0 flex-1 leading-tight">
-              <div className="truncate text-[13px] font-medium">{me_?.full_name ?? "Signed in"}</div>
-              <div className="text-[11px] capitalize text-white/45">{me.role}</div>
-            </div>
-            <button onClick={signOut} aria-label="Sign out" title="Sign out" className="grid h-8 w-8 place-items-center rounded-lg text-white/50 transition hover:bg-white/10 hover:text-white">
-              <LogOut size={15} />
-            </button>
-          </div>
+            <span className="min-w-0 leading-tight">
+              <span className="block truncate text-[13px] font-medium">{me_?.full_name ?? "Signed in"}</span>
+              <span className="block text-[11px] capitalize text-[var(--side-faint)]">{me.role}</span>
+            </span>
+          </button>
+          <button onClick={signOut} aria-label="Sign out" title="Sign out" className="grid h-8 w-8 place-items-center rounded-md text-[var(--side-faint)] transition hover:bg-[var(--side-hover)] hover:text-[var(--side-fg)]">
+            <LogOut size={15} />
+          </button>
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="sticky top-0 z-30 flex items-center gap-3 bg-[#0b1a2b] px-4 py-3 text-white md:hidden">
-          <Image src="/logo-icon-white.png" alt="" width={26} height={26} />
-          <select
-            value={view}
-            onChange={(e) => setView(e.target.value as View)}
-            className="h-9 flex-1 rounded-lg border border-white/15 bg-white/[0.06] px-3 text-[13px] text-white outline-none"
-          >
-            {groups.map((g) => (
-              <optgroup key={g} label={g}>
-                {nav.filter((n) => n.group === g).map((n) => <option key={n.id} value={n.id} className="text-black">{n.label}</option>)}
-              </optgroup>
-            ))}
-          </select>
-          <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-lg text-white/60" aria-label="Sign out"><LogOut size={16} /></button>
-        </div>
-        {!isAdmin && <div className="sticky top-[60px] z-30"><TargetMeter me={me_} deals={deals.rows} variant="bar" /></div>}
-
-        {/* One slim bar: where you are on the left, time / alerts / you on the
-            right. It stays put while the screen scrolls underneath. */}
-        <header className="z-20 border-b border-[var(--hairline)] bg-[var(--surface)]/90 backdrop-blur-md md:sticky md:top-0">
-          <div className="mx-auto flex w-full max-w-[1480px] items-center justify-between gap-4 px-4 py-3 md:px-10 md:py-4">
-            <div className="min-w-0">
-              <h1 className="truncate font-[family-name:var(--font-display)] text-[26px] font-semibold leading-tight tracking-[-0.01em] text-[var(--text-primary)] md:text-[30px]">
-                {current?.label}
-              </h1>
-              <p className="hidden truncate text-[13px] text-[var(--text-muted)] sm:block">{current?.desc}</p>
-            </div>
-            <div className="flex shrink-0 items-center gap-3">
-              <HeaderClock />
-              <span className="hidden h-6 w-px bg-[var(--hairline-strong)] lg:block" />
-              <NotificationBell leads={leads} tasks={tasks} listings={listings.rows} isAdmin={isAdmin} meId={me.id} onOpenLead={setLeadId} />
-              <button
-                onClick={() => setView(inDbSearch ? view : "ds_search")}
-                aria-label="DB Search"
-                title="DB Search — owners, units and prices (separate secure sign-in)"
-                className={`flex h-10 items-center gap-2 rounded-full border px-3 text-[13px] font-semibold transition-colors sm:px-4 ${inDbSearch ? "border-[#0b2a4a] bg-[#0b2a4a] text-white" : "border-[var(--hairline-strong)] bg-[var(--surface-raised)] text-[var(--text-primary)] hover:border-[var(--accent)]"}`}
-              >
-                <Lock size={15} className={inDbSearch ? "text-[#d4b87f]" : "text-[var(--accent)]"} />
-                <span className="hidden sm:inline">DB Search</span>
-              </button>
-              <button
-                onClick={() => setView("profile")}
-                aria-label="My profile"
-                title="My profile"
-                className={`flex h-10 items-center gap-2.5 rounded-full border ps-1 pe-1 transition-colors sm:pe-4 ${view === "profile" ? "border-[var(--accent)] bg-[var(--accent-wash)]" : "border-[var(--hairline-strong)] bg-[var(--surface-raised)] hover:border-[var(--accent)]"}`}
-              >
-                {me_?.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={me_.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
-                ) : (
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-[#0b1a2b] text-[11px] font-semibold text-[#e3cc9f]">{initials}</span>
-                )}
-                <span className="hidden text-[13px] font-medium text-[var(--text-primary)] sm:block">My profile</span>
-              </button>
-            </div>
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
+        {/* One thin bar: the place, its tabs, then New, alerts and you. */}
+        <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-white">
+          <div className="flex h-14 items-center gap-3 px-4 md:px-8">
+            <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="" width={22} height={22} className="md:hidden" />
+            <h1 className="truncate text-[18px] font-semibold tracking-[-0.01em] md:text-[20px]">{section.label}</h1>
+            {section.views.length > 1 && !inDbSearch && (
+              <div className="hidden md:block"><Segmented value={view} options={section.views} onChange={(v) => setView(v)} /></div>
+            )}
+            <div className="flex-1" />
+            <button onClick={flipTheme} aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} title={theme === "dark" ? "Light mode" : "Dark mode"}
+              className="grid h-8 w-8 place-items-center rounded-md border border-[var(--hairline-strong)] text-[var(--text-secondary)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+              {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
+            <NotificationBell leads={leads} tasks={tasks} listings={listings.rows} isAdmin={isAdmin} meId={me.id} onOpenLead={setLeadId} />
+            <button onClick={() => setView("profile")} aria-label="My profile" title="My profile"
+              className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-[var(--accent-solid)] text-[11px] font-semibold text-white">
+              {me_?.avatar_url
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={me_.avatar_url} alt="" className="h-full w-full object-cover" />
+                : initials}
+            </button>
           </div>
+          {section.views.length > 1 && (
+            <div className={`flex gap-1 overflow-x-auto px-4 pb-2 [scrollbar-width:none] ${inDbSearch ? "md:px-8" : "md:hidden"}`}>
+              {section.views.map((v) => (
+                <button key={v.id} onClick={() => setView(v.id)}
+                  className={`h-8 shrink-0 rounded-md px-3 text-[13px] font-medium ${view === v.id ? "bg-[var(--surface-sunken)] text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>{v.label}</button>
+              ))}
+            </div>
+          )}
         </header>
 
-        <main className="mx-auto w-full max-w-[1480px] flex-1 px-4 pb-24 pt-5 md:px-10 md:pt-7">
+        <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-24 pt-5 md:px-8 md:pt-6">
 
           {problem && (
-            <Card className="mb-5 border-[#c0392b]/40 p-4 text-[13px] text-[var(--text-secondary)]">
+            <Card className="mb-5 border-[var(--bad)]/40 p-4 text-[13px] text-[var(--text-secondary)]">
               Could not load CRM data ({problem}). If this mentions a missing relation or column, run
               supabase/migrations/0001_concierge_leads.sql and 0002_crm.sql on the database.
             </Card>
@@ -469,63 +449,49 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
       </div>
 
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--hairline)] bg-white/95 backdrop-blur md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        {(["today", "pipeline", "calendar", "tasks"] as View[]).map((id) => {
-          const n = nav.find((x) => x.id === id)!;
-          const on = view === id;
+      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--hairline)] bg-white md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        {(["home", "leads", "calendar", "dbsearch"] as const).map((id) => {
+          const sec = sections.find((x) => x.id === id)!;
+          const on = section.id === id;
           return (
-            <button key={id} onClick={() => setView(id)} className={`relative flex h-16 flex-col items-center justify-center gap-1 text-[10.5px] font-medium ${on ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
-              {on && <span className="absolute top-0 h-[3px] w-8 rounded-b bg-[#c8a96e]" />}
-              <n.icon size={20} strokeWidth={on ? 2 : 1.6} />
-              {n.label}
-              {!!n.badge && <span className="absolute end-[22%] top-2 min-w-4 rounded-full bg-[#c0392b] px-1 text-center text-[9.5px] font-semibold leading-4 text-white">{n.badge}</span>}
+            <button key={id} onClick={() => (id === "dbsearch" ? window.open(dbSearchHref, "lababidi-db-search") : setView(sec.views[0].id))} className={`relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium ${on ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
+              <sec.icon size={20} strokeWidth={on ? 2 : 1.75} />
+              {sec.label}
+              {!!sec.badge && <span className="absolute end-[22%] top-2 min-w-4 rounded-full bg-[var(--bad)] px-1 text-center text-[10px] font-semibold leading-4 text-white">{sec.badge}</span>}
             </button>
           );
         })}
-        <button onClick={() => setMoreOpen(true)} className="relative flex h-16 flex-col items-center justify-center gap-1 text-[10.5px] font-medium text-[var(--text-muted)]" aria-label="More screens">
-          <Menu size={20} strokeWidth={1.6} />
+        <button onClick={() => setMoreOpen(true)} className="relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium text-[var(--text-muted)]" aria-label="More">
+          <Menu size={20} strokeWidth={1.75} />
           More
         </button>
       </nav>
 
       {moreOpen && (
-        <div className="fixed inset-0 z-[55] md:hidden" role="dialog" aria-modal="true" aria-label="All screens">
-          <button aria-label="Close" onClick={() => setMoreOpen(false)} className="crm-backdrop absolute inset-0 bg-[rgb(11_26_43/0.45)]" />
-          <div className="crm-sheet absolute inset-x-0 bottom-0 max-h-[82vh] overflow-y-auto rounded-t-2xl bg-[var(--surface)] px-4 pt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)" }}>
+        <div className="fixed inset-0 z-[55] md:hidden" role="dialog" aria-modal="true" aria-label="All places">
+          <button aria-label="Close" onClick={() => setMoreOpen(false)} className="crm-backdrop absolute inset-0 bg-[rgb(11_26_43/0.4)]" />
+          <div className="crm-sheet absolute inset-x-0 bottom-0 max-h-[82vh] overflow-y-auto rounded-t-xl bg-white px-4 pt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)" }}>
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--hairline-strong)]" />
-            <div className="mb-2 flex items-center justify-between">
-              <span className="font-[family-name:var(--font-display)] text-[22px] font-semibold">All screens</span>
-              <button onClick={() => setMoreOpen(false)} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg text-[var(--text-muted)]"><X size={18} /></button>
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[16px] font-semibold">Everything</span>
+              <button onClick={() => setMoreOpen(false)} aria-label="Close" className="grid h-10 w-10 place-items-center rounded-md text-[var(--text-muted)]"><X size={18} /></button>
             </div>
-            {groups.map((g) => (
-              <div key={g} className="mt-4">
-                <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">{g}</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {nav.filter((n) => n.group === g).map((n) => {
-                    const on = view === n.id;
-                    return (
-                      <button
-                        key={n.id}
-                        onClick={() => setView(n.id)}
-                        className={`relative flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-center text-[11.5px] leading-tight ${on ? "border-[var(--accent)] bg-[var(--accent-wash)] font-semibold text-[var(--accent)]" : "border-[var(--hairline)] bg-white text-[var(--text-secondary)]"}`}
-                      >
-                        <n.icon size={19} strokeWidth={1.6} />
-                        {n.label}
-                        {!!n.badge && <span className="absolute end-1.5 top-1.5 min-w-4 rounded-full bg-[#c0392b] px-1 text-center text-[9.5px] font-semibold leading-4 text-white">{n.badge}</span>}
-                      </button>
-                    );
-                  })}
+            {sections.map((sec) => (
+              <div key={sec.id} className="border-t border-[var(--hairline-soft)] py-2">
+                <div className="flex items-center gap-2 py-1 text-[13px] font-semibold"><sec.icon size={16} /> {sec.label}</div>
+                <div className="flex flex-wrap gap-1.5 py-1">
+                  {sec.views.map((v) => (
+                    <button key={v.id} onClick={() => setView(v.id)}
+                      className={`h-9 rounded-md border px-3 text-[13px] ${view === v.id ? "border-[var(--accent-solid)] bg-[var(--accent-solid)] text-white" : "border-[var(--hairline-strong)] text-[var(--text-secondary)]"}`}>{v.label}</button>
+                  ))}
                 </div>
               </div>
             ))}
-            {isAdmin && <a href="/documents" target="_blank" rel="noopener noreferrer" className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-[var(--hairline)] bg-white py-3 text-[13px] text-[var(--text-secondary)]">
-              <FileText size={16} /> Documents <ExternalLink size={12} />
-            </a>}
+            <button onClick={signOut} className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-md border border-[var(--hairline-strong)] text-[13px]"><LogOut size={15} /> Sign out</button>
           </div>
         </div>
       )}
 
-      {welcome && loaded && <WelcomeCard name={me_?.full_name} avatarUrl={me_?.avatar_url} onDone={() => setWelcome(false)} />}
 
       {lead && (
         <LeadPanel

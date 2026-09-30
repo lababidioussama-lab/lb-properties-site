@@ -25,7 +25,7 @@ const MESSAGES: Record<string, string> = {
 const COPY = {
   crm: {
     kicker: "Private workspace",
-    headline: <>Every lead, listing and deal, <em className="text-[#e3cc9f]">in one place</em>.</>,
+    headline: <>Every lead, listing and deal, <em className="text-[var(--accent)]">in one place</em>.</>,
     blurb: "For the Lababidi Properties team only. Access is logged; sessions expire after ten hours.",
     title: "Sign in",
     intro: "Use the email and password your admin gave you. We will then email you a security code.",
@@ -33,7 +33,7 @@ const COPY = {
   },
   documents: {
     kicker: "Documents · Admin only",
-    headline: <>The document suite, <em className="text-[#e3cc9f]">behind its own key</em>.</>,
+    headline: <>The document suite, <em className="text-[var(--accent)]">behind its own key</em>.</>,
     blurb: "Offers, receipts and forms. Opens with the admin account and a code emailed as a Documents sign-in; stays open for four hours.",
     title: "Documents sign-in",
     intro: "Use the admin email and password. We will email you a code marked “Documents sign-in”.",
@@ -97,7 +97,7 @@ export function CrmLogin({ configured, purpose = "crm" }: { configured: boolean;
 
   return (
     <main className="grid min-h-screen bg-[var(--surface)] lg:grid-cols-[1.1fr_1fr]">
-      <section className="relative hidden overflow-hidden bg-[#0b1a2b] lg:block">
+      <section className="relative hidden overflow-hidden bg-[var(--accent-solid)] lg:block">
         <Image src="/brand/reception.jpg" alt="" fill priority sizes="55vw" className="object-cover opacity-55" />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgb(11_26_43/0.55),rgb(11_26_43/0.2)_40%,rgb(11_26_43/0.92))]" />
         <div className="relative flex h-full flex-col justify-between p-12 text-white">
@@ -105,11 +105,11 @@ export function CrmLogin({ configured, purpose = "crm" }: { configured: boolean;
             <Image src="/logo-icon-white.png" alt="" width={40} height={40} priority />
             <div className="leading-none">
               <div className="font-[family-name:var(--font-wordmark)] text-[19px] tracking-[0.16em]">LABABIDI</div>
-              <div className="mt-1.5 text-[9.5px] font-semibold uppercase tracking-[0.34em] text-[#d4b87f]">Properties</div>
+              <div className="mt-1.5 text-[9.5px] font-semibold uppercase tracking-[0.34em] text-[var(--accent)]">Properties</div>
             </div>
           </div>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d4b87f]">{copy.kicker}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">{copy.kicker}</p>
             <h2 className="mt-4 max-w-[16ch] font-[family-name:var(--font-display)] text-[46px] font-medium leading-[1.05]">
               {copy.headline}
             </h2>
@@ -168,7 +168,7 @@ export function CrmLogin({ configured, purpose = "crm" }: { configured: boolean;
                   </Field>
                 </>
               )}
-              {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[12.5px] text-[#c0392b]">{error}</p>}
+              {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[12.5px] text-[var(--bad)]">{error}</p>}
               {note && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[12.5px] text-emerald-700">{note}</p>}
               <button
                 type="submit"

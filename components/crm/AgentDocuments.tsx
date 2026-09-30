@@ -50,7 +50,7 @@ export function AgentDocuments({ t, onlyUserId }: { t: Table<CrmAgentDocument>; 
         </div>
       )}
 
-      {(error || t.error) && <p className="mb-2 text-[12px] text-[#c0392b]">{error ?? t.error}</p>}
+      {(error || t.error) && <p className="mb-2 text-[12px] text-[var(--bad)]">{error ?? t.error}</p>}
 
       {rows.length === 0 ? <Empty>No documents uploaded yet.</Empty> : (
         <ul className="space-y-1.5">
@@ -60,7 +60,7 @@ export function AgentDocuments({ t, onlyUserId }: { t: Table<CrmAgentDocument>; 
               <a href={d.url} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 truncate text-[12.5px] text-[var(--accent)] hover:underline">{d.title}</a>
               <span className="shrink-0 text-[10.5px] capitalize text-[var(--text-muted)]">{DOC_KIND_LABEL[d.kind]}</span>
               <span className="shrink-0 text-[10.5px] text-[var(--text-muted)]">{shortDate(d.created_at)}</span>
-              <button onClick={() => window.confirm(`Delete "${d.title}"?`) && t.remove(d.id)} aria-label="Delete" className="shrink-0 text-[var(--text-muted)] hover:text-[#c0392b]"><Trash2 size={13} /></button>
+              <button onClick={() => window.confirm(`Delete "${d.title}"?`) && t.remove(d.id)} aria-label="Delete" className="shrink-0 text-[var(--text-muted)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>
             </li>
           ))}
         </ul>

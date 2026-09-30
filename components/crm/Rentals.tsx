@@ -245,7 +245,7 @@ function TenancyForm({ tenancy, prefill, isAdmin, users, contacts, listings, err
                 <select value={c.status} onChange={(e) => upd({ status: e.target.value as Cheque["status"] })} className={`${INPUT} ${CHEQUE_TONE[c.status]}`}>
                   <option value="pending">Pending</option><option value="deposited">Deposited</option><option value="cleared">Cleared</option><option value="bounced">Bounced</option>
                 </select>
-                <button onClick={() => setCheques(cheques.filter((_, j) => j !== i))} aria-label="Remove" className="text-[var(--text-muted)] hover:text-[#c0392b]"><Trash2 size={13} /></button>
+                <button onClick={() => setCheques(cheques.filter((_, j) => j !== i))} aria-label="Remove" className="text-[var(--text-muted)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>
               </li>
             );
           })}
@@ -266,7 +266,7 @@ function TenancyForm({ tenancy, prefill, isAdmin, users, contacts, listings, err
       )}
 
       <label className="block"><Label>Notes</Label><textarea rows={2} value={f.notes} onChange={set("notes")} className={`${INPUT} resize-none`} /></label>
-      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--bad)]">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button onClick={() => onSave(body())} disabled={!f.property_label.trim() || !f.start_date || !f.end_date} className={BTN}>Save tenancy</button>
         {onDelete && <button onClick={() => window.confirm("Delete this tenancy?") && onDelete()} className={BTN_GHOST}>Delete</button>}

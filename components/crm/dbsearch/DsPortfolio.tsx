@@ -60,7 +60,7 @@ export function DsPortfolio({ onExpired, onSearchName }: { onExpired: () => void
             className="h-10 min-w-[220px] flex-1 rounded-lg border border-[var(--hairline-strong)] bg-white px-3 text-[13px] outline-none focus:border-[var(--accent)]" />
         )}
       </form>
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[#a3261e]">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
       {busy && <div className="h-64 animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" />}
       {owners && !busy && (
         owners.length === 0 ? <p className="rounded-xl border border-dashed border-[var(--hairline-strong)] bg-white px-6 py-8 text-center text-[13.5px] text-[var(--text-muted)]">No owner holds {asked}+ properties. Try a lower minimum.</p> : (
@@ -73,9 +73,9 @@ export function DsPortfolio({ onExpired, onSearchName }: { onExpired: () => void
               <div className="overflow-hidden rounded-xl border border-[var(--hairline)] bg-white">
                 {shown.map((o, i) => (
                   <button key={`${o.name}-${i}`} onClick={() => onSearchName(o.name)} title="Open in Search"
-                    className={`flex w-full items-center gap-3 border-t border-[var(--hairline)] px-4 py-2.5 text-left first:border-t-0 hover:bg-[var(--surface-sunken)] ${i === 0 && !filter ? "bg-[#fbf7ef]" : ""}`}>
+                    className={`flex w-full items-center gap-3 border-t border-[var(--hairline)] px-4 py-2.5 text-left first:border-t-0 hover:bg-[var(--surface-sunken)] ${i === 0 && !filter ? "bg-[var(--violet-bg)]" : ""}`}>
                     <span className="figure w-7 text-[12.5px] font-bold text-[var(--text-muted)]">{i + 1}</span>
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef2f7] text-[11.5px] font-bold text-[var(--accent)]">{initials(o.name)}</span>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--info-bg)] text-[11.5px] font-bold text-[var(--accent)]">{initials(o.name)}</span>
                     <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">{o.name}</span>
                     <span className="text-end"><span className="figure block text-[15px] font-bold text-[var(--accent)]">{o.units}</span><span className="text-[10.5px] uppercase tracking-wide text-[var(--text-muted)]">units</span></span>
                   </button>

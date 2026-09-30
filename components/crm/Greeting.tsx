@@ -92,7 +92,7 @@ export function WelcomeCard({ name, avatarUrl, onDone }: { name: string | null |
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarUrl} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
             ) : (
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#0b1a2b] font-[family-name:var(--font-display)] text-[18px] text-[#e3cc9f]">{initials}</span>
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--accent-solid)] font-[family-name:var(--font-display)] text-[18px] text-[var(--accent)]">{initials}</span>
             )}
             <div className="min-w-0">
               <p className="text-[12px] font-medium text-[var(--gold)]">Welcome back</p>

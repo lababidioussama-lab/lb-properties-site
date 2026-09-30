@@ -39,7 +39,7 @@ export function DsBrokers({ onExpired }: { onExpired: () => void }) {
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Agent name" maxLength={120} className="h-full flex-1 bg-transparent text-[14px] outline-none" aria-label="Agent name" /></label>
         <button disabled={busy} className="bg-[var(--accent-solid)] px-7 text-[13px] font-semibold text-white disabled:opacity-60">{busy ? "Searching…" : "Search"}</button>
       </form>
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[#a3261e]">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
       {busy && <div className="h-40 animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" />}
       {rows && !busy && (rows.length === 0
         ? <p className="rounded-xl border border-dashed border-[var(--hairline-strong)] bg-white px-6 py-8 text-center text-[13.5px] text-[var(--text-muted)]">No agent found for “{asked}”.</p>
@@ -49,14 +49,14 @@ export function DsBrokers({ onExpired }: { onExpired: () => void }) {
             <div className="grid items-start gap-3 xl:grid-cols-2">
               {rows.map((a, i) => (
                 <article key={i} className="flex gap-3 rounded-xl border border-[var(--hairline)] bg-white p-4">
-                  <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-[#eef2f7] text-[12.5px] font-bold text-[var(--accent)]">{initials(a.name)}</div>
+                  <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-[var(--info-bg)] text-[12.5px] font-bold text-[var(--accent)]">{initials(a.name)}</div>
                   <div className="min-w-0 flex-1">
                     <h3 className="text-[15px] font-semibold">{a.name}</h3>
                     {a.company && <p className="text-[12.5px] text-[var(--text-muted)]">{a.company}</p>}
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {a.nationality && <span className="rounded-md border border-[var(--hairline-strong)] px-2 py-[3px] text-[11.5px] font-semibold">{a.nationality}</span>}
                       {a.brn && <span className="rounded-md border border-[var(--hairline-strong)] bg-[var(--surface-sunken)] px-2 py-[3px] text-[11.5px] font-semibold text-[var(--text-muted)]">BRN {a.brn}</span>}
-                      {a.contactCount > 1 && <span className="rounded-md border border-[#d3dde9] bg-[#eef2f7] px-2 py-[3px] text-[11.5px] font-semibold text-[#3d5a7a]">{a.contactCount} numbers</span>}
+                      {a.contactCount > 1 && <span className="rounded-md border border-[var(--info-bd)] bg-[var(--info-bg)] px-2 py-[3px] text-[11.5px] font-semibold text-[var(--info)]">{a.contactCount} numbers</span>}
                     </div>
                     <div className="mt-2 divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
                       {a.contacts.map((c, j) => (
@@ -64,7 +64,7 @@ export function DsBrokers({ onExpired }: { onExpired: () => void }) {
                           <span className="figure text-[13.5px] font-semibold">{c.phone ?? "—"}</span>
                           {c.dial && <>
                             <a href={`tel:+${c.dial}`} className="inline-flex h-7 items-center gap-1 rounded-md border border-[var(--hairline-strong)] px-2 text-[12px] font-semibold hover:border-[var(--accent)] hover:text-[var(--accent)]"><Phone size={12} /> Call</a>
-                            <a href={`https://wa.me/${c.dial}`} target="_blank" rel="noopener noreferrer" className="inline-flex h-7 items-center gap-1 rounded-md border border-[#bfdcca] bg-[#e8f3ec] px-2 text-[12px] font-semibold text-[#1f6b3f]"><MessageCircle size={12} /> WhatsApp</a>
+                            <a href={`https://wa.me/${c.dial}`} target="_blank" rel="noopener noreferrer" className="inline-flex h-7 items-center gap-1 rounded-md border border-[var(--ok-bd)] bg-[var(--ok-bg)] px-2 text-[12px] font-semibold text-[var(--ok)]"><MessageCircle size={12} /> WhatsApp</a>
                           </>}
                           {a.contacts.length > 1 && c.company && <span className="basis-full text-[11.5px] text-[var(--text-muted)]">{c.company}</span>}
                         </div>

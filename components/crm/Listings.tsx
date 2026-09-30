@@ -272,7 +272,7 @@ function ListingForm({ listing, prefill, isAdmin, users, contacts, error, onClos
 
       <label className="block"><Label>Photo links (one per line)</Label><textarea rows={3} value={f.photo} onChange={set("photo")} placeholder="https://…" className={`${INPUT} resize-none`} /></label>
       <label className="block"><Label>Description</Label><textarea rows={5} value={f.description} onChange={set("description")} className={`${INPUT} resize-none`} /></label>
-      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--bad)]">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button onClick={submit} disabled={!f.title.trim()} className={BTN}>Save listing</button>
         {onDelete && <button onClick={() => window.confirm("Delete this listing?") && onDelete()} className={BTN_GHOST}>Delete</button>}

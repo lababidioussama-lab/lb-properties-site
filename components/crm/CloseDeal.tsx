@@ -131,7 +131,7 @@ export function CloseDealForm({ lead, listings, agentSplitPct, kyc, isAdmin, onO
           {money((Number(f.price_aed) * Number(f.commission_pct) * agentSplitPct) / 10000)}
         </p>
       )}
-      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--bad)]">{error}</p>}
       <div className="flex gap-2">
         <button onClick={submit} disabled={busy || blocked} className={BTN}>{busy ? "Saving…" : "Save deal"}</button>
         <button onClick={onSkip} className={BTN_GHOST}>Skip for now</button>

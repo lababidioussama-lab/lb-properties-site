@@ -33,9 +33,9 @@ function sun(date: Date) {
 }
 
 const SEASONS = [
-  { key: "summer", label: "Summer", day: [5, 21] as const, color: "#b8955a" },
-  { key: "spring", label: "Spring & autumn", day: [2, 20] as const, color: "#4a6788" },
-  { key: "winter", label: "Winter", day: [11, 21] as const, color: "#0b2a4a" },
+  { key: "summer", label: "Summer", day: [5, 21] as const, color: "var(--accent)" },
+  { key: "spring", label: "Spring & autumn", day: [2, 20] as const, color: "var(--info)" },
+  { key: "winter", label: "Winter", day: [11, 21] as const, color: "var(--accent-solid)" },
 ];
 
 const DIRS = [
@@ -98,11 +98,11 @@ export function DsVastu() {
           ))}
         </div>
         <label className="mt-4 block text-[12px] font-semibold text-[var(--text-secondary)]">Exact bearing: <span className="figure">{facing}°</span>
-          <input type="range" min={0} max={359} value={facing} onChange={(e) => setFacing(Number(e.target.value))} className="mt-2 w-full accent-[#0b2a4a]" />
+          <input type="range" min={0} max={359} value={facing} onChange={(e) => setFacing(Number(e.target.value))} className="mt-2 w-full accent-[var(--accent-solid)]" />
         </label>
 
         <svg viewBox="0 0 260 260" className="mx-auto mt-4 block w-full max-w-[260px]" role="img" aria-label={`Sun paths over the year for a unit facing ${dir.name}`}>
-          <circle cx={C} cy={C} r={R} fill="#f8f7f4" stroke="rgb(15 23 42 / 0.15)" />
+          <circle cx={C} cy={C} r={R} fill="var(--surface-sunken)" stroke="rgb(15 23 42 / 0.15)" />
           <circle cx={C} cy={C} r={R * 2 / 3} fill="none" stroke="rgb(15 23 42 / 0.08)" />
           <circle cx={C} cy={C} r={R / 3} fill="none" stroke="rgb(15 23 42 / 0.08)" />
           {/* the half of the sky the wall looks into */}
@@ -110,11 +110,11 @@ export function DsVastu() {
           {seasons.map((s) => (
             <polyline key={s.key} fill="none" stroke={s.color} strokeWidth={2} points={s.path.map((p) => pt(p.az, p.elev).join(",")).join(" ")} />
           ))}
-          <line x1={C} y1={C} x2={pt(facing, 30)[0]} y2={pt(facing, 30)[1]} stroke="#0b2a4a" strokeWidth={3} markerEnd="url(#arrow)" />
-          <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0b2a4a" /></marker></defs>
+          <line x1={C} y1={C} x2={pt(facing, 30)[0]} y2={pt(facing, 30)[1]} stroke="var(--accent-solid)" strokeWidth={3} markerEnd="url(#arrow)" />
+          <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--accent-solid)" /></marker></defs>
           {[["N", 0], ["E", 90], ["S", 180], ["W", 270]].map(([k, a]) => {
             const [x, y] = pt(a as number, -12);
-            return <text key={k as string} x={x} y={y + 4} textAnchor="middle" fontSize="12" fontWeight="700" fill="#464c55">{k}</text>;
+            return <text key={k as string} x={x} y={y + 4} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--text-secondary)">{k}</text>;
           })}
         </svg>
         <div className="mt-2 flex justify-center gap-3 text-[11px] text-[var(--text-secondary)]">
@@ -124,7 +124,7 @@ export function DsVastu() {
 
       <div className="space-y-4">
         <Card className="p-5">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9a7a44]">Facing {dir.name} · {facing}°</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--violet)]">Facing {dir.name} · {facing}°</p>
           <h2 className="mt-1 font-[family-name:var(--font-display)] text-[28px] font-semibold leading-tight">
             {summer.minutes === 0 ? "No direct summer sun on this side" : `Direct sun ${summer.when === "most of the day" ? "most of the day" : `in the ${summer.when}`} in summer`}
           </h2>
@@ -147,7 +147,7 @@ export function DsVastu() {
         </Card>
 
         <Card className="p-5">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9a7a44]">Traditional Vastu reading</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--violet)]">Traditional Vastu reading</p>
           <p className="mt-2 text-[14px] leading-relaxed">{dir.vastu}</p>
           <p className="mt-3 text-[12px] text-[var(--text-muted)]">Vastu is a traditional belief system some buyers care about. Read it for the entrance direction, which may differ from the view.</p>
         </Card>

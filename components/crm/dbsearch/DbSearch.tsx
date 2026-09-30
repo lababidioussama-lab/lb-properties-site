@@ -22,18 +22,19 @@ import { DsBrokers } from "./DsBrokers";
 export type DsView = "ds_home" | "ds_search" | "ds_phone" | "ds_unit" | "ds_portfolio" | "ds_area" | "ds_market" | "ds_checks" | "ds_vastu" | "ds_brokers" | "ds_access";
 export const DS_VIEWS: DsView[] = ["ds_home", "ds_search", "ds_phone", "ds_unit", "ds_portfolio", "ds_area", "ds_market", "ds_checks", "ds_vastu", "ds_brokers", "ds_access"];
 
-/* DB Search's own tabs first, in its order; the CRM's extra tools after the divider. */
-const TABS: { id: DsView; label: string; extra?: boolean }[] = [
+/* The tool strip, in dbsearchdubai.com's order: its own tools first, then the
+   tools the CRM adds. The CRM's top bar draws it; this list is the source. */
+export const DS_TOOLS: { id: DsView; label: string }[] = [
   { id: "ds_search", label: "Search" },
   { id: "ds_phone", label: "Phone" },
   { id: "ds_brokers", label: "Agents" },
   { id: "ds_portfolio", label: "Portfolio" },
-  { id: "ds_unit", label: "Unit history", extra: true },
-  { id: "ds_area", label: "Areas", extra: true },
-  { id: "ds_market", label: "Market", extra: true },
-  { id: "ds_checks", label: "Checks", extra: true },
-  { id: "ds_vastu", label: "Vastu & sun", extra: true },
-  { id: "ds_access", label: "Access & activity", extra: true },
+  { id: "ds_area", label: "Area filter" },
+  { id: "ds_market", label: "Market" },
+  { id: "ds_unit", label: "Unit history" },
+  { id: "ds_checks", label: "Checks" },
+  { id: "ds_vastu", label: "Vastu & sun" },
+  { id: "ds_access", label: "Access" },
 ];
 
 const compact = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, "")}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1).replace(/\.0$/, "")}K` : String(n);
@@ -103,45 +104,18 @@ export function DbSearch({ view, onView, meEmail, isAdmin, onOpenLead }: {
   const tab = view === "ds_home" ? "ds_search" : view;
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3 rounded-xl bg-[#0b2a4a] px-4 py-2.5 text-[12.5px] text-white">
-        <Lock size={14} className="text-[#d4b87f]" />
-        <span className="font-semibold">DB Search session</span>
-        {hm && <span className="figure text-[#e3cc9f]">{hm} left</span>}
-        <span className="text-white/60">· ends after 20 minutes without activity · everything you do here is recorded</span>
-        {info.usage && info.limits && (
-          <span className="figure ms-auto text-white/80">
-            Searches {info.usage.searches}/{info.limits.searches} · Numbers {info.usage.reveals}/{info.limits.reveals}
-          </span>
-        )}
-        <button onClick={leave} className={`inline-flex items-center gap-1.5 rounded-md border border-white/20 px-2.5 py-1 font-semibold hover:bg-white/10 ${info.usage && info.limits ? "" : "ms-auto"}`}>
-          <LogOut size={13} /> Leave DB Search
+    <div className="space-y-4">
+      {/* The secure session, as one quiet line: time left, today's use, leave. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-[var(--hairline)] bg-[var(--surface-hover)] px-3 py-1.5 text-[12px] text-[var(--text-secondary)]">
+        <Lock size={12} className="text-[var(--text-muted)]" />
+        <span>Secure session{hm && <> · <b className="font-semibold text-[var(--text-primary)]">{hm}</b> left</>}</span>
+        {info.usage && info.limits && <span>· Searches {info.usage.searches}/{info.limits.searches} · Numbers {info.usage.reveals}/{info.limits.reveals}</span>}
+        {stats && <span className="hidden text-[var(--text-muted)] lg:inline">· {compact(stats.owners)} owners · {compact(stats.properties)} properties · {compact(stats.phones)} phones</span>}
+        <span className="flex-1" />
+        <button onClick={leave} className="inline-flex items-center gap-1 font-medium text-[var(--text-primary)] hover:underline">
+          <LogOut size={12} /> Leave
         </button>
       </div>
-
-      {stats && (
-        <div className="grid grid-cols-4 gap-2 sm:gap-3">
-          {([["Owners", stats.owners], ["Properties", stats.properties], ["Projects", stats.projects], ["Phones", stats.phones]] as const).map(([label, n]) => (
-            <div key={label} className="rounded-xl border border-[var(--hairline)] bg-white px-2 py-2 sm:px-4 sm:py-3">
-              <div className="figure text-[15px] font-bold text-[var(--accent)] sm:text-[20px]">{compact(n)}</div>
-              <div className="truncate text-[9.5px] font-semibold uppercase tracking-[0.01em] text-[var(--text-muted)] sm:text-[11.5px] sm:tracking-[0.08em]">{label}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <nav aria-label="DB Search tools" className="flex items-end gap-1 overflow-x-auto border-b border-[var(--hairline)] [scrollbar-width:none]">
-        {TABS.filter((t) => isAdmin || t.id !== "ds_access").map((t, i, all) => (
-          <span key={t.id} className="flex shrink-0 items-end">
-            {t.extra && !all[i - 1]?.extra && <span aria-hidden className="mx-2 mb-3 h-4 w-px bg-[var(--hairline-strong)]" />}
-            <button onClick={() => onView(t.id)} aria-current={tab === t.id ? "page" : undefined}
-              className={`relative px-4 pb-3 pt-1 font-semibold transition-colors ${t.extra ? "text-[13px]" : "text-[14px]"} ${tab === t.id ? "text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
-              {t.label}
-              {tab === t.id && <span className="absolute inset-x-3 -bottom-px h-[2px] rounded-full bg-[#b8955a]" />}
-            </button>
-          </span>
-        ))}
-      </nav>
 
       <div key={tab} className="crm-stagger">
       {tab === "ds_search" && <DsSearch onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={searchQuery} onPhone={(q) => { setPhoneQuery(q); onView("ds_phone"); }} />}

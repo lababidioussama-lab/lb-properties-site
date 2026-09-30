@@ -20,9 +20,9 @@ function Note({ note, query, onToggle }: { note: DsNote; query: string | null; o
   const box = "rounded-lg border px-3 py-2 text-[12.5px]";
   switch (note.kind) {
     case "no_exact":
-      return <p className={`${box} border-[#ecd9ad] bg-[#fff7e6] font-semibold text-[#8a5a00]`}>No record actually contains “{query}” — showing {note.n} similar-looking record{note.n === 1 ? "" : "s"}</p>;
+      return <p className={`${box} border-[var(--warn-bd)] bg-[var(--warn-bg)] font-semibold text-[var(--warn)]`}>No record actually contains “{query}” — showing {note.n} similar-looking record{note.n === 1 ? "" : "s"}</p>;
     case "showing_all":
-      return <p className={`${box} border-[#ecd9ad] bg-[#fff7e6] text-[#8a5a00]`}>Showing all {note.n} result{note.n === 1 ? "" : "s"}, including {note.hidden} that do not contain “{query}” · {link("hide them")}</p>;
+      return <p className={`${box} border-[var(--warn-bd)] bg-[var(--warn-bg)] text-[var(--warn)]`}>Showing all {note.n} result{note.n === 1 ? "" : "s"}, including {note.hidden} that do not contain “{query}” · {link("hide them")}</p>;
     case "names_hidden":
       return <p className={`${box} border-[var(--hairline)] bg-[var(--surface-sunken)] text-[var(--text-muted)]`}>{note.n} other record{note.n === 1 ? "" : "s"} with a different name hidden · {link("show anyway")}</p>;
     case "contact_only":

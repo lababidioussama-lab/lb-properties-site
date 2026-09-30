@@ -176,13 +176,13 @@ export const STATUS_LABEL: Record<OwnerStatus, string> = {
 
 /* Same house palette as the lead stages: green only for the confirmed owner. */
 export const STATUS_STYLE: Record<OwnerStatus, string> = {
-  confirmed: "bg-[#e8f3ec] text-[#285f3f] border-[#bfdcca]",
-  likely: "bg-[#eef2f7] text-[#3d5a7a] border-[#d3dde9]",
-  previous: "bg-[#f1f0ed] text-[#62615b] border-[#e1dfda]",
-  bought: "bg-[#eef2f7] text-[#3d5a7a] border-[#d3dde9]",
-  sold: "bg-[#f1f0ed] text-[#62615b] border-[#e1dfda]",
-  listed: "bg-[#eef2f7] text-[#3d5a7a] border-[#d3dde9]",
-  unknown: "bg-[#f1f0ed] text-[#62615b] border-[#e1dfda]",
+  confirmed: "bg-[var(--ok-bg)] text-[var(--ok)] border-[var(--ok-bd)]",
+  likely: "bg-[var(--info-bg)] text-[var(--info)] border-[var(--info-bd)]",
+  previous: "bg-[var(--neutral-bg)] text-[var(--neutral)] border-[var(--neutral-bd)]",
+  bought: "bg-[var(--info-bg)] text-[var(--info)] border-[var(--info-bd)]",
+  sold: "bg-[var(--neutral-bg)] text-[var(--neutral)] border-[var(--neutral-bd)]",
+  listed: "bg-[var(--info-bg)] text-[var(--info)] border-[var(--info-bd)]",
+  unknown: "bg-[var(--neutral-bg)] text-[var(--neutral)] border-[var(--neutral-bd)]",
 };
 
 export const REGION_LABEL: Record<DsPhone["region"], string> = { uae_mobile: "UAE mobile", uae_landline: "UAE landline", abroad: "Outside the UAE" };

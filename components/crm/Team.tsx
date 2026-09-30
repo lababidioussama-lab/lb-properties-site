@@ -62,7 +62,7 @@ export function TeamView({ users, meId, onUser }: {
           </select>
           <button onClick={create} className={BTN}><Plus size={14} /> Add</button>
         </div>
-        {error && <p className="mt-2 text-[12px] text-[#c0392b]">{error}</p>}
+        {error && <p className="mt-2 text-[12px] text-[var(--bad)]">{error}</p>}
         {done && <p className="mt-2 text-[12px] font-medium text-emerald-700">{done}</p>}
       </Card>
 

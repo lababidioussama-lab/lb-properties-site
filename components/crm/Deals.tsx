@@ -402,7 +402,7 @@ function DealForm({ deal, isAdmin, users, listings, contacts, kyc, error, onClos
                     <input type="number" value={p.pct || ""} onChange={(e) => upd({ pct: Number(e.target.value) })} placeholder="%" className={`${INPUT} figure`} />
                     <input type="date" value={p.due ?? ""} onChange={(e) => upd({ due: e.target.value || null })} className={INPUT} />
                     <label className="flex items-center gap-1 text-[11px]"><input type="checkbox" checked={!!p.paid_at} onChange={() => upd({ paid_at: p.paid_at ? null : today() })} className="accent-[var(--accent)]" /> Paid</label>
-                    <button onClick={() => setPlan(plan.filter((_, j) => j !== i))} aria-label="Remove" className="text-[var(--text-muted)] hover:text-[#c0392b]"><Trash2 size={13} /></button>
+                    <button onClick={() => setPlan(plan.filter((_, j) => j !== i))} aria-label="Remove" className="text-[var(--text-muted)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>
                   </li>
                 );
               })}
@@ -413,7 +413,7 @@ function DealForm({ deal, isAdmin, users, listings, contacts, kyc, error, onClos
       )}
 
       <label className="block"><Label>Notes</Label><textarea rows={3} value={f.notes} onChange={set("notes")} className={`${INPUT} resize-none`} /></label>
-      {error && <p className="text-[12px] text-[#c0392b]">{DEAL_ERRORS[error] ?? error}</p>}
+      {error && <p className="text-[12px] text-[var(--bad)]">{DEAL_ERRORS[error] ?? error}</p>}
       <div className="flex flex-wrap gap-2">
         <button onClick={() => onSave(body())} disabled={!f.title.trim()} className={BTN}>Save deal</button>
         {onTogglePaid && <button onClick={onTogglePaid} className={BTN_GHOST}>{deal?.paid_at ? "Mark unpaid" : "Mark commission paid"}</button>}

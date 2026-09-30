@@ -121,7 +121,7 @@ function Sales({ onExpired }: { onExpired: () => void }) {
         <div className="min-w-[280px] flex-1"><Picker value={area} onChange={setArea} onPick={(v) => { setArea(v); void load(v); }} placeholder="Area — leave empty for all of Dubai" items={[]} busy={busy} action="Show" /></div>
         {[6, 12, 24].map((m) => <button key={m} onClick={() => { setMonths(m); void load(area, m); }} className={`h-9 rounded-full border px-3.5 text-[12.5px] font-semibold ${months === m ? "border-[var(--accent-solid)] bg-[var(--accent-solid)] text-white" : "border-[var(--hairline-strong)] bg-white"}`}>{m} months</button>)}
       </div>
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[#a3261e]">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
       {busy && !data && <div className="h-64 animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" />}
       {data && (
         <>
@@ -139,7 +139,7 @@ function Sales({ onExpired }: { onExpired: () => void }) {
                 <div className="mt-4 flex h-44 items-end gap-1.5 border-b border-[var(--hairline-strong)]">
                   {data.monthly.map((x) => (
                     <div key={x.m} className="group relative flex flex-1 flex-col items-center justify-end" style={{ height: "100%" }}>
-                      <span className="w-full rounded-t bg-[#c9d4e0] transition-colors group-hover:bg-[#0b2a4a]" style={{ height: `${(x.deals / max) * 100}%` }} title={`${x.m}: ${x.deals} sales, AED ${psf(x.ppsm)} per sq ft`} />
+                      <span className="w-full rounded-t bg-[var(--info-bg)] transition-colors group-hover:bg-[var(--accent-solid)]" style={{ height: `${(x.deals / max) * 100}%` }} title={`${x.m}: ${x.deals} sales, AED ${psf(x.ppsm)} per sq ft`} />
                     </div>
                   ))}
                 </div>
@@ -193,7 +193,7 @@ function Rents({ onExpired }: { onExpired: () => void }) {
   return (
     <div className="space-y-4">
       <Picker value={area} onChange={setArea} onPick={(v) => { setArea(v); void load(v); }} placeholder="Area — e.g. Dubai Marina" items={items} busy={busy} action="Show rents" />
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[#a3261e]">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
       {t && (
         <>
           <p className="text-[12.5px] text-[var(--text-muted)]">Registered Ejari contracts{t.span ? `, ${t.span}` : ""}. Coverage is partial — {n(t.days)} days of contracts — so treat these as a guide, not a full-year picture.</p>
@@ -267,16 +267,16 @@ function Value({ onExpired }: { onExpired: () => void }) {
             <select value={since} onChange={(e) => setSince(Number(e.target.value))} className="h-10 w-full rounded-lg border border-[var(--hairline-strong)] bg-white px-2 text-[13px]">{[2019, 2020, 2021, 2022, 2023, 2024].map((y) => <option key={y}>{y}</option>)}</select></label>
         </div>
         <button onClick={() => run()} disabled={busy || name.trim().length < 2} className="h-10 w-full rounded-lg bg-[var(--accent-solid)] text-[13px] font-semibold text-white disabled:opacity-50">{busy ? "Valuing…" : "Estimate value"}</button>
-        {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[12.5px] text-[#a3261e]">{error}</p>}
+        {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[12.5px] text-[var(--bad)]">{error}</p>}
       </Card>
 
       {!data ? <Card className="p-8 text-center text-[13.5px] text-[var(--text-secondary)]">Pick a building, project or community and a size. The range comes from registered sales, adjusted to today's price level.</Card> : (
         <div className="space-y-4">
-          <div className="rounded-xl bg-[#0b2a4a] p-6 text-white">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#d4b87f]">Estimated value · {data.subject.name} · {n(data.subject.sqft)} sq ft</p>
+          <div className="rounded-xl bg-[var(--accent-solid)] p-6 text-white">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">Estimated value · {data.subject.name} · {n(data.subject.sqft)} sq ft</p>
             <p className="mt-2 font-[family-name:var(--font-display)] text-[40px] font-semibold leading-none">{aed(data.estimate.low, true)} – {aed(data.estimate.high, true)}</p>
             <p className="mt-2 text-[13px] text-white/75">Middle {aed(data.estimate.mid)} · AED {n(data.psf.median)} per sq ft · from {data.comps.basis_n} {data.comps.basis === "size-similar" ? "similar-size" : ""} sales, adjusted to {data.psf.adjusted_to ? fullDate(data.psf.adjusted_to) : "the latest quarter"}</p>
-            <span className={`mt-4 inline-block rounded-full px-3 py-1 text-[12px] font-semibold ${conf === "high" ? "bg-[#e8f3ec] text-[#285f3f]" : conf === "medium" ? "bg-[#f7f0e2] text-[#7a5c26]" : "bg-[#fbeceb] text-[#a3261e]"}`}>
+            <span className={`mt-4 inline-block rounded-full px-3 py-1 text-[12px] font-semibold ${conf === "high" ? "bg-[var(--ok-bg)] text-[var(--ok)]" : conf === "medium" ? "bg-[var(--violet-bg)] text-[var(--violet)]" : "bg-[var(--bad-bg)] text-[var(--bad)]"}`}>
               {conf === "high" ? "High confidence" : conf === "medium" ? "Medium confidence" : "Low confidence"}{data.confidence.reasons.length ? ` — ${data.confidence.reasons.join("; ")}` : ""}
             </span>
           </div>
