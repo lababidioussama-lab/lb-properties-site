@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
 import { DbSearch, DS_VIEWS, type DsView } from "./dbsearch/DbSearch";
-import { Activity, Lock, LayoutGrid, Search, History, ShieldCheck, Receipt, KeyRound, Calculator, Menu, X, ChevronDown, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList } from "lucide-react";
+import { Activity, Lock, Search, History, ShieldCheck, Receipt, KeyRound, Calculator, Menu, X, ChevronDown, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList } from "lucide-react";
 
 import type { CrmContact, CrmDeal, CrmInvoice, CrmKyc, CrmSourceSpend, CrmTenancy, CrmLead, CrmListing, CrmTask, CrmTemplate, CrmUser } from "@/lib/crm";
 import type { SessionUser } from "@/lib/crm-auth";
@@ -130,15 +130,15 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   const nav: { id: View; label: string; icon: typeof Users; badge?: number; group: string; desc: string }[] = [
     { id: "today", label: "My day", icon: Sun, badge: todayCount, group: "Overview", desc: "What to do first today, in order." },
     { id: "reports", label: "Dashboard", icon: BarChart3, group: "Overview", desc: "Performance across leads, pipeline and commission." },
-    { id: "ds_home", label: "All tools", icon: LayoutGrid, group: "DB Search", desc: "Owners, units, prices and checks, from the land registry records." },
-    { id: "ds_search", label: "Owner search", icon: Search, group: "DB Search", desc: "Find who owns a unit, a building or a phone number." },
+    { id: "ds_search", label: "Search", icon: Search, group: "DB Search", desc: "Name, building, unit, villa or plot code — DB Search's own search." },
+    { id: "ds_phone", label: "Phone", icon: PhoneCall, group: "DB Search", desc: "Reverse-search any number and reach the owner." },
+    { id: "ds_brokers", label: "Agents", icon: Search, group: "DB Search", desc: "Licensed brokers from the register, with every number they use." },
+    { id: "ds_portfolio", label: "Portfolio", icon: Search, group: "DB Search", desc: "Owners holding several units, ranked by how many." },
     { id: "ds_unit", label: "Unit history", icon: History, group: "DB Search", desc: "Every owner of one unit, with dates and prices." },
-    { id: "ds_portfolio", label: "Portfolio owners", icon: Search, group: "DB Search", desc: "People who own several units — the investors." },
     { id: "ds_area", label: "Area prospecting", icon: Search, group: "DB Search", desc: "A building or community, turned into a calling list." },
     { id: "ds_market", label: "Market & valuation", icon: Search, group: "DB Search", desc: "Registered sales and rents, and a value range from comparables." },
     { id: "ds_checks", label: "Property checks", icon: Search, group: "DB Search", desc: "DLD permits, live portal listings, and property numbers." },
     { id: "ds_vastu", label: "Vastu & sun map", icon: Search, group: "DB Search", desc: "Which way a unit faces, its sunlight by season, and its Vastu reading." },
-    { id: "ds_brokers", label: "Broker directory", icon: Search, group: "DB Search", desc: "Registered brokers and agencies from public listings." },
     ...(isAdmin ? [{ id: "ds_access" as View, label: "Access & activity", icon: ShieldCheck, group: "DB Search", desc: "Who can use DB Search, their daily limits, and everything they did." }] : []),
     { id: "pipeline", label: "Leads", icon: KanbanSquare, badge: leads.filter((l) => l.stage === "new").length, group: "Sales", desc: "Every enquiry, from first contact to closed deal." },
     { id: "temp_leads", label: "Temp leads", icon: PhoneCall, group: "Sales", desc: "Raw calling list, promoted to Leads once qualified." },
@@ -176,7 +176,9 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     const fromHash = () => {
-      const id = window.location.hash.slice(1) as View;
+      const raw = window.location.hash.slice(1);
+      // DB Search's old tools page is now its Search tab.
+      const id = (raw === "ds_home" ? "ds_search" : raw) as View;
       if (nav.some((n) => n.id === id)) setViewState(id);
     };
     fromHash();
@@ -354,7 +356,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
               <span className="hidden h-6 w-px bg-[var(--hairline-strong)] lg:block" />
               <NotificationBell leads={leads} tasks={tasks} listings={listings.rows} isAdmin={isAdmin} meId={me.id} onOpenLead={setLeadId} />
               <button
-                onClick={() => setView(inDbSearch ? view : "ds_home")}
+                onClick={() => setView(inDbSearch ? view : "ds_search")}
                 aria-label="DB Search"
                 title="DB Search — owners, units and prices (separate secure sign-in)"
                 className={`flex h-10 items-center gap-2 rounded-full border px-3 text-[13px] font-semibold transition-colors sm:px-4 ${inDbSearch ? "border-[#0b2a4a] bg-[#0b2a4a] text-white" : "border-[var(--hairline-strong)] bg-[var(--surface-raised)] text-[var(--text-primary)] hover:border-[var(--accent)]"}`}

@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -70,26 +70,72 @@ export const DS_COOKIE_OPTIONS = { ...SESSION_COOKIE_OPTIONS, maxAge: DS_ABS_MS 
 
 /* ------------------------------------------------------------ record handles */
 
-/** A handle for one owner record: which owner ids it covers, for whom, until when. */
-export function signRef(userId: string, ids: (string | number)[]): string {
-  const key = secret() ?? "";
-  const body = Buffer.from(JSON.stringify({ u: userId, i: ids.map(String).slice(0, 12), e: Date.now() + REF_MS })).toString("base64url");
-  return `${body}.${mac(body, key)}`;
+/**
+ * A handle for one owner record: which owner ids it covers, for whom, until
+ * when. It may also carry what the card showed — the name and place in the
+ * clear (signed, so they cannot be edited) and the email sealed with
+ * AES-GCM, so a reveal returns exactly what the card had and nothing else.
+ *
+ * Ids are owners.id values, or `k:<ou_key>` for owner_units rows that have
+ * no owners.id yet (DB Search's reveal_phones takes either).
+ */
+export interface RefInfo { ids: string[]; name?: string; where?: string; nat?: string; email?: string }
+
+const sealKey = (key: string) => createHash("sha256").update(`${key}:ds-ref-seal`).digest();
+
+function seal(text: string, key: string): string {
+  const iv = randomBytes(12);
+  const c = createCipheriv("aes-256-gcm", sealKey(key), iv);
+  const out = Buffer.concat([c.update(text, "utf8"), c.final()]);
+  return Buffer.concat([iv, c.getAuthTag(), out]).toString("base64url");
 }
 
-export function readRef(ref: unknown, userId: string): string[] | null {
-  const key = secret();
-  if (!key || typeof ref !== "string" || ref.length > 2000) return null;
-  const [body, m] = ref.split(".");
-  if (!body || !m || !same(m, mac(body, key))) return null;
+function unseal(blob: string, key: string): string | null {
   try {
-    const r = JSON.parse(Buffer.from(body, "base64url").toString()) as { u: string; i: string[]; e: number };
-    if (r.u !== userId || !(r.e > Date.now()) || !Array.isArray(r.i) || !r.i.length) return null;
-    return r.i.filter((x) => /^-?\d{1,19}$/.test(x));
+    const b = Buffer.from(blob, "base64url");
+    const d = createDecipheriv("aes-256-gcm", sealKey(key), b.subarray(0, 12));
+    d.setAuthTag(b.subarray(12, 28));
+    return Buffer.concat([d.update(b.subarray(28)), d.final()]).toString("utf8");
   } catch {
     return null;
   }
 }
+
+export function signRef(userId: string, ids: (string | number)[], extra?: { name?: string | null; where?: string | null; nat?: string | null; email?: string | null }): string {
+  const key = secret() ?? "";
+  const payload: Record<string, unknown> = { u: userId, i: ids.map(String).slice(0, 12), e: Date.now() + REF_MS };
+  if (extra?.name) payload.n = extra.name.slice(0, 120);
+  if (extra?.where) payload.w = extra.where.slice(0, 200);
+  if (extra?.nat) payload.t = extra.nat.slice(0, 80);
+  if (extra?.email && key) payload.m = seal(extra.email.slice(0, 200), key);
+  const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  return `${body}.${mac(body, key)}`;
+}
+
+const REF_ID = /^(-?\d{1,19}|k:.{1,300})$/;
+
+export function readRefInfo(ref: unknown, userId: string): RefInfo | null {
+  const key = secret();
+  if (!key || typeof ref !== "string" || ref.length > 3000) return null;
+  const [body, m] = ref.split(".");
+  if (!body || !m || !same(m, mac(body, key))) return null;
+  try {
+    const r = JSON.parse(Buffer.from(body, "base64url").toString()) as { u: string; i: string[]; e: number; n?: string; w?: string; t?: string; m?: string };
+    if (r.u !== userId || !(r.e > Date.now()) || !Array.isArray(r.i) || !r.i.length) return null;
+    const ids = r.i.filter((x) => REF_ID.test(x));
+    if (!ids.length) return null;
+    return { ids, name: r.n, where: r.w, nat: r.t, email: r.m ? unseal(r.m, key) ?? undefined : undefined };
+  } catch {
+    return null;
+  }
+}
+
+export function readRef(ref: unknown, userId: string): string[] | null {
+  return readRefInfo(ref, userId)?.ids ?? null;
+}
+
+/** owners.id values only — the `k:` handles are not rows of `owners`. */
+export const numericIds = (ids: string[]) => ids.filter((x) => /^-?\d{1,19}$/.test(x));
 
 /* ------------------------------------------------------------ storage
 

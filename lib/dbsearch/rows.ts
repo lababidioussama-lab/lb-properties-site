@@ -22,10 +22,15 @@ export interface OwnerRow {
   raw_data?: RawData | null;
   community_clean?: string | null;
   unit_clean?: string | null;
+  /** owner_units rows carry no owners.id yet; this is their handle. */
+  ou_key?: string | null;
   /* added while processing */
   alt_ids?: (number | string)[];
   phone_count?: number;
   merged_rows?: number;
+  data_notes?: string[];
+  /** Which of raw_data.properties this card was split from. */
+  prop_idx?: number;
 }
 
 /* ------------------------------------------------------------ raw_data keys */
@@ -104,7 +109,7 @@ export function asBeds(v: unknown): string | null {
   return n >= 1 && n <= 10 ? `${n} BR` : null;
 }
 
-function looksLikePlaceName(s: string): boolean {
+export function looksLikePlaceName(s: string): boolean {
   const tokens = s.trim().split(/\s+/).filter(Boolean);
   if (tokens.length < 2) return false;
   return tokens.filter((t) => /[a-zA-Z]{3,}/.test(t) && !/\d/.test(t)).length >= 2;
@@ -389,10 +394,12 @@ export function dropBarePropertylessRows(rows: OwnerRow[], q: string): OwnerRow[
 }
 
 /** Nothing to act on: no phone, no email, no named owner of a real unit. */
-export function dropEmptyRows(rows: OwnerRow[], q: string): OwnerRow[] {
-  if (DM_QUERY.test(q.trim())) return rows;
+export function dropEmptyRows(rows: OwnerRow[], q: string, keep = false): OwnerRow[] {
+  if (keep || DM_QUERY.test(q.trim())) return rows;
   return rows.filter((r) => {
     if ((r.phone_count ?? 0) > 0 || String(r.email ?? "").trim()) return true;
+    const pr = r.raw_data?.phone_raw;
+    if (Array.isArray(pr) && pr.length) return true;
     const nm = String(r.full_name ?? "").trim().toLowerCase();
     return !!nm && !["null", "0", "#n/a", "nan"].includes(nm) && !!String(r.unit_clean || r.unit || "").trim();
   });

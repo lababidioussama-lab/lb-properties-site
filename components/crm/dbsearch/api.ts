@@ -47,6 +47,65 @@ export interface DsOwner {
   properties: { ref: string; status: OwnerStatus; statusDate: string | null; property: DsProperty }[];
 }
 
+/* ------------------------------------------------------------ DB Search results (lib/dbsearch/results.ts) */
+
+export interface CcShared { n_units: number | null; level?: string | null }
+export interface CcLine { k: string; label: string; parts: { pre?: string; v: string; shared?: CcShared | null }[]; multi?: boolean }
+export interface CcModel {
+  community: string | null;
+  building: string | null;
+  badge: { k: string; label: string; v: string } | null;
+  lines: CcLine[];
+  size: { v: number; u: string } | null;
+  plotArea: { v: number; u: string } | null;
+  beds: string | null;
+  ptype: string | null;
+  tx: { date: string | null; proc: string | null; value: number | null; party: string | null; label: string; noConsideration: boolean };
+  nat: string | null;
+  more: { label: string; v: string | number; suffix: string }[];
+  notes: string[];
+  nRec: number;
+  gaps: string[];
+  unreadable: string[];
+  pMatch: boolean;
+}
+export interface SoldBanner { unit: string; date: string; price: number | null; gain: number | null; stale: boolean }
+export interface DsCard {
+  ref: string;
+  name: string;
+  buildingRecord: boolean;
+  model: CcModel;
+  email: string | null;
+  phoneCount: number;
+  inCrm: DsCrmLink | null;
+  match: { name: string; more: number } | null;
+  sold: SoldBanner | null;
+  comm: string;
+  find: string;
+}
+export interface DsViewEntry { c: number; also?: string[] }
+export type DsNote =
+  | { kind: "no_exact"; n: number }
+  | { kind: "showing_all"; n: number; hidden: number }
+  | { kind: "names_hidden"; n: number }
+  | { kind: "contact_only"; n: number };
+export interface DsView { entries: DsViewEntry[]; notes: DsNote[]; capped: number }
+export interface DsResults { cards: DsCard[]; strict: DsView; loose: DsView }
+export interface DamacSale { villa: string | null; sub_project: string | null; sale_type: string | null; sale_date: string | null; price: number | null; bua_sqft: number | null; payment_method: string | null; mortgage_amount: number | null; times_sold: number | null }
+export interface DsSearchResult extends DsResults { communities: { community: string; ct: number }[]; hiddenEmpty: number; damac: DamacSale[] }
+export interface DsCommunityResult extends DsResults { hiddenEmpty: number }
+export interface DsAgentHit { name: string; company: string | null; phone: string | null; nationality: string | null; brn: string | null }
+export interface DsPhoneResult extends DsResults { agent: DsAgentHit | null }
+export interface DsRevealed { index: number; value: string; dial: string | null; dnc: boolean; inCrm: DsCrmLink | null }
+export interface DsSoldFlag { comm: string; unitKey: string; unit: string | null; project: string | null; date: string | null; price: number | null; payment: string | null; confidence: string | null }
+export interface DsStats { owners: number; properties: number; projects: number; phones: number }
+
+export const REASONS = [
+  { id: "owner_outreach", label: "Selling: owner outreach" },
+  { id: "buyer_followup", label: "Buyer follow-up" },
+  { id: "listing_check", label: "Checking a listing" },
+] as const;
+
 export interface DsUsage { searches: number; reveals: number; lists: number }
 export interface DsLimits { searches: number; reveals: number; lists: number }
 

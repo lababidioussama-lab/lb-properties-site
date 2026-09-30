@@ -2,10 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { LEADS_TABLE } from "@/lib/supabase";
 import { LEAD_SLA_HOURS } from "@/lib/crm";
-import { DS_COOKIE, audit, dsGate, fail, getSettings, lockIfBurst, putSettings, readRef, signedIn as signedInAs, usageToday, type DsSettings, type DsUser } from "@/lib/dbsearch/guard";
-import { MAX_QUERY, crmLinks, emailOf, ownerDetail, phoneAt, searchOwners, unitLookup } from "@/lib/dbsearch/search";
+import { DS_COOKIE, audit, dsGate, fail, getSettings, lockIfBurst, putSettings, readRef, readRefInfo, signedIn as signedInAs, usageToday, type DsSettings, type DsUser } from "@/lib/dbsearch/guard";
+import { crmLinks, emailOf, ownerDetail, phoneAt, unitLookup } from "@/lib/dbsearch/search";
+import { MAX_QUERY, communityList, phoneList, phonesForRef, searchFull, soldFlags } from "@/lib/dbsearch/results";
 import { areaOwners, brokers, listedNow, marketOverview, permitLookup, portfolioOwners, propertyNumber, rentals, suggest, valuation } from "@/lib/dbsearch/tools";
-import { formatPhone, phoneCore, toInternational } from "@/lib/dbsearch/model";
+import { formatPhone, maskPhone, phoneCore, toInternational } from "@/lib/dbsearch/model";
 import { SESSION_COOKIE_OPTIONS } from "@/lib/crm-auth";
 
 export const runtime = "nodejs";
@@ -17,9 +18,13 @@ export const dynamic = "force-dynamic";
  *
  *   GET    session   who is signed in to DB Search, limits and today's use
  *   DELETE session   leave DB Search (the CRM session stays)
- *   POST   search    { q }                          → masked results
+ *   GET    stats                                    → the four totals DB Search shows
+ *   POST   search    { q, includeEmpty? }           → DB Search's Search tab, cards masked
+ *   POST   community { name, includeEmpty? }        → a "what we found" chip
+ *   POST   phone     { q }                          → DB Search's Phone tab
+ *   POST   sold      { groups }                     → "already sold" flags (registered sales)
  *   POST   owner     { ref }                        → owner card, still masked
- *   POST   reveal    { ref, index, reason, kind }   → one number or email
+ *   POST   reveal    { ref, reason, kind }          → the card's numbers, or its email
  *   POST   unit      { code, place? }               → a unit's owners
  *   POST   add       { ref, as, index }             → create lead / contact / temp lead
  *   POST   portfolio { min }                        → owners of several units (by name)
@@ -62,6 +67,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       limits: g.user.role === "admin" ? null : g.user.limits,
       usage: signedIn ? await usageToday(g.db, g.user.id) : null,
     });
+  }
+
+  if (action === "stats") {
+    const g = await dsGate(request);
+    if (!g.ok) return g.response;
+    const { data } = await g.db.rpc("get_stats");
+    const d = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
+    return g.done({ stats: d ? { owners: Number(d.owners ?? 0), properties: Number(d.properties ?? 0), projects: Number(d.projects ?? 0), phones: Number(d.phones ?? 0) } : null });
   }
 
   if (action === "admin") {
@@ -110,15 +123,29 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const b = ((await request.json().catch(() => ({}))) ?? {}) as Body;
 
   switch (action) {
-    case "search": {
-      const q = str(b.q, MAX_QUERY);
-      if (q.length < 2) return fail("query_too_short");
+    case "search":
+    case "community":
+    case "phone": {
+      const q = str(action === "community" ? b.name : b.q, MAX_QUERY);
+      if (action === "phone" ? q.replace(/\D/g, "").length < 4 : q.length < 2) return fail("query_too_short");
       const limited = await quota(user, db, "searches");
       if (limited) return limited;
-      await audit(db, user, "search", { query: q, request });
+      await audit(db, user, "search", { query: action === "search" ? q : `${action}: ${q}`, request });
       if (await lockIfBurst(db, user, request)) return fail("locked", 423);
-      const result = await searchOwners(db, user, q);
+      const includeEmpty = b.includeEmpty === true;
+      const result = action === "search" ? await searchFull(db, user, q, includeEmpty)
+        : action === "community" ? await communityList(db, user, q, includeEmpty)
+        : await phoneList(db, user, q);
       return done({ ...result, usage: await usageToday(db, user.id) });
+    }
+
+    case "sold": {
+      // Registered sales only — no person in it — so it is not counted as a search.
+      const groups = (Array.isArray(b.groups) ? b.groups : []).slice(0, 12).map((x) => {
+        const o = (x ?? {}) as Body;
+        return { comm: str(o.comm, 200), units: (Array.isArray(o.units) ? o.units : []).slice(0, 400).map((u) => str(u, 40)).filter(Boolean) };
+      });
+      return done({ found: await soldFlags(db, groups) });
     }
 
     case "owner": {
@@ -132,29 +159,42 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     case "reveal": {
-      const ids = readRef(b.ref, user.id);
-      if (!ids) return fail("expired_ref", 410);
+      const info = readRefInfo(b.ref, user.id);
+      if (!info) return fail("expired_ref", 410);
+      const ids = info.ids;
       const reason = str(b.reason, 40) as Reason;
       if (!(reason in REASONS)) return fail("reason_required");
-      const kind = b.kind === "email" ? "email" : "phone";
-      const index = Number(b.index ?? 0);
+      const kind = b.kind === "email" ? "email" : b.kind === "phone" ? "phone" : "phones";
       const limited = await quota(user, db, "reveals");
       if (limited) return limited;
 
-      const value = kind === "email" ? await emailOf(db, ids) : await phoneAt(db, ids, index);
-      if (!value) return fail("not_found", 404);
-      if (kind === "phone") {
-        const { data: consent } = await db.from("wa_consent").select("opted_out_at").eq("phone", toInternational(value)).maybeSingle();
-        if (consent?.opted_out_at) {
-          await audit(db, user, "denied", { target: ids.join(","), detail: { why: "do_not_contact" }, request });
-          return fail("do_not_contact", 409);
-        }
+      if (kind === "email") {
+        const value = info.email ?? await emailOf(db, ids);
+        if (!value) return fail("not_found", 404);
+        await audit(db, user, "reveal", { target: ids.join(","), detail: { reason, kind }, request });
+        if (await lockIfBurst(db, user, request)) return fail("locked", 423);
+        return done({ kind, value, usage: await usageToday(db, user.id) });
       }
-      await audit(db, user, "reveal", { target: ids.join(","), detail: { reason, kind, index }, request });
+
+      // DB Search's "Show N numbers": every number on the record at once, in one fixed order.
+      const all = await phonesForRef(db, ids);
+      const at = Number(b.index ?? 0);
+      const list = kind === "phone" ? all.slice(at, at + 1) : all;
+      if (!list.length) return fail("no_phone", 404);
+      const { data: optedOut } = await db.from("wa_consent").select("phone").in("phone", list.map(toInternational)).not("opted_out_at", "is", null);
+      const blocked = new Set((optedOut ?? []).map((x) => String(x.phone)));
+      const links = await crmLinks(db, list.map(phoneCore), user);
+      const numbers = list.map((p) => blocked.has(toInternational(p))
+        ? { index: all.indexOf(p), value: maskPhone(p), dial: null, dnc: true, inCrm: null }
+        : { index: all.indexOf(p), value: formatPhone(p), dial: toInternational(p), dnc: false, inCrm: links.get(phoneCore(p)) ?? null });
+      await audit(db, user, "reveal", { target: ids.join(","), detail: { reason, kind, count: numbers.filter((n) => !n.dnc).length }, request });
       if (await lockIfBurst(db, user, request)) return fail("locked", 423);
-      return done(kind === "email"
-        ? { kind, value }
-        : { kind, value: formatPhone(value), dial: toInternational(value), usage: await usageToday(db, user.id) });
+      if (kind === "phone") {
+        const n = numbers[0];
+        if (n.dnc) return fail("do_not_contact", 409);
+        return done({ kind, value: n.value, dial: n.dial, usage: await usageToday(db, user.id) });
+      }
+      return done({ kind, numbers, usage: await usageToday(db, user.id) });
     }
 
     case "unit": {
@@ -241,14 +281,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     case "add": {
-      const ids = readRef(b.ref, user.id);
-      if (!ids) return fail("expired_ref", 410);
+      const info = readRefInfo(b.ref, user.id);
+      if (!info) return fail("expired_ref", 410);
+      const ids = info.ids;
       const as = b.as === "contact" ? "contact" : b.as === "temp" ? "temp" : "lead";
       const limited = await quota(user, db, as === "temp" ? "lists" : "reveals");
       if (limited) return limited;
-      const owner = await ownerDetail(db, user, ids);
       const phone = await phoneAt(db, ids, Number(b.index ?? 0));
-      if (!owner || !phone) return fail("no_phone", 422);
+      if (!phone) return fail("no_phone", 422);
       const { data: consent } = await db.from("wa_consent").select("opted_out_at").eq("phone", toInternational(phone)).maybeSingle();
       if (consent?.opted_out_at) return fail("do_not_contact", 409);
 
@@ -256,10 +296,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const existing = (await crmLinks(db, [phoneCore(phone)], user)).get(phoneCore(phone));
       if (existing) return fail("already_in_crm", 409, { link: existing });
 
-      const p = owner.properties[0]?.property;
-      const where = p ? [p.unit && `Unit ${p.unit}`, p.building, p.community].filter(Boolean).join(", ") : "";
+      // A search card carries its own name and place; the other tools' handles are looked up.
+      let personName = info.name ?? null, where = info.where ?? "", nationality = info.nat ?? null;
+      if (!personName) {
+        const owner = await ownerDetail(db, user, ids);
+        if (!owner) return fail("not_found", 404);
+        const p = owner.properties[0]?.property;
+        personName = owner.name;
+        nationality = owner.nationality;
+        where = p ? [p.unit && `Unit ${p.unit}`, p.building, p.community].filter(Boolean).join(", ") : "";
+      }
       const note = `From DB Search${where ? ` — owner of ${where}` : ""}.`;
-      const full_name = owner.name.slice(0, 200);
+      const full_name = personName.slice(0, 200);
       const number = formatPhone(phone);
 
       let created: { id: string } | null = null;
@@ -273,7 +321,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         created = data as { id: string };
       } else if (as === "contact") {
         const { data, error } = await db.from("crm_contacts").insert({
-          full_name, phone: number, nationality: owner.nationality, kind: "seller", owner_id: user.id, notes: note,
+          full_name, phone: number, nationality, kind: "seller", owner_id: user.id, notes: note,
         }).select("id").single();
         if (error) return fail(error.message, 502);
         created = data as { id: string };

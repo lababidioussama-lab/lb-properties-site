@@ -18,27 +18,36 @@ const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "�
 
 async function main() {
   const { getSupabaseAdmin } = await import("../lib/supabase");
-  const { searchOwners, ownerDetail, unitLookup } = await import("../lib/dbsearch/search");
+  const { ownerDetail, unitLookup } = await import("../lib/dbsearch/search");
+  const { searchFull, phoneList, communityList } = await import("../lib/dbsearch/results");
   const { readRef } = await import("../lib/dbsearch/guard");
   const tools = await import("../lib/dbsearch/tools");
   const db = getSupabaseAdmin();
   if (!db) throw new Error("no database config");
   const viewer = { id: "00000000-0000-0000-0000-000000000000" };
 
-  for (const q of ["Marina Gate 2", "BL474", "Malta", "HUSSAIN DAWOOD", "0501234567"]) {
+  // The browser payload must never carry a phone-like run of digits or an unmasked email.
+  const leaks = (payload: unknown) => {
+    const text = JSON.stringify(payload);
+    return { digits: (text.match(/\d{9,}/g) ?? []).length, emails: (text.match(/[^\s"@•]{2,}@[a-z0-9-]+\.[a-z]{2,}/gi) ?? []).length };
+  };
+
+  for (const q of ["Marina Gate 2", "BL474", "Malta", "HUSSAIN DAWOOD", "DL-J116"]) {
     const t = Date.now();
-    const r = await searchOwners(db, viewer, q);
-    const by = (s: string) => r.hits.filter((h) => h.status === s).length;
-    const withPhone = r.hits.filter((h) => h.phones.length).length;
-    const withUnit = r.hits.filter((h) => h.property.unit).length;
-    const masked = r.hits.every((h) => h.phones.every((p) => p.masked.includes("•")));
-    console.log(`search "${q.replace(/\d{4,}/g, "…")}": ${r.total} matched, ${r.hits.length} returned in ${Date.now() - t} ms | confirmed ${by("confirmed")}, likely ${by("likely")}, previous ${by("previous")}, bought ${by("bought")}, sold ${by("sold")}, unknown ${by("unknown")} | with phone ${pct(withPhone, r.hits.length)}, with unit ${pct(withUnit, r.hits.length)}, in CRM ${r.hits.filter((h) => h.inCrm).length} | all numbers masked: ${masked}`);
-    if (q === "Marina Gate 2" && r.hits[0]) {
-      const ids = readRef(r.hits[0].ref, viewer.id)!;
+    const r = await searchFull(db, viewer, q);
+    const notes = r.strict.notes.map((n) => `${n.kind}:${n.n}`).join(" ") || "none";
+    const withPhone = r.cards.filter((c) => c.phoneCount > 0).length;
+    console.log(`search "${q}": ${r.strict.entries.length} shown (${r.loose.entries.length} with "show anyway"), ${r.cards.length} cards, ${r.communities.length} chips, ${r.hiddenEmpty} empty hidden, ${r.damac.length} Lagoons sales | notes ${notes} | with phone ${pct(withPhone, r.cards.length)} | ${Date.now() - t} ms | leaks ${JSON.stringify(leaks(r))}`);
+    if (q === "Marina Gate 2" && r.cards[0]) {
+      const ids = readRef(r.cards[0].ref, viewer.id)!;
       const o = await ownerDetail(db, viewer, ids);
-      console.log(`  owner card: ${o?.properties.length} properties linked by phone, ${o?.phones.length} numbers (masked: ${o?.phones.every((p) => p.masked.includes("•"))})`);
+      console.log(`  owner panel: ${o?.properties.length ?? 0} properties linked by phone`);
+      const c = await communityList(db, viewer, r.communities[0]?.community ?? "Marina Gate");
+      console.log(`  chip "${r.communities[0]?.community}": ${c.strict.entries.length} shown, ${c.hiddenEmpty} empty hidden, leaks ${JSON.stringify(leaks(c))}`);
     }
   }
+  const ph = await phoneList(db, viewer, "0501234567");
+  console.log(`phone lookup: ${ph.strict.entries.length} records, broker ${ph.agent ? "yes" : "no"}, leaks ${JSON.stringify(leaks({ cards: ph.cards }))}`);
 
   const u = await unitLookup(db, viewer, "1405");
   console.log(`unit 1405: exists in ${u.places.length} places (the CRM asks which one)`);

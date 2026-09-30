@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { Lock, LogOut } from "lucide-react";
 
 import { Card } from "../shared";
-import { ds, dsError, type DsSessionInfo, type DsUsage } from "./api";
+import { ds, dsError, type DsSessionInfo, type DsStats, type DsUsage } from "./api";
 import { DsSignIn } from "./DsSignIn";
-import { DsHome } from "./DsHome";
 import { DsSearch } from "./DsSearch";
+import { DsPhone } from "./DsPhone";
 import { DsUnit } from "./DsUnit";
 import { DsAccess } from "./DsAccess";
 import { DsOwnerPanel } from "./DsOwnerPanel";
@@ -18,24 +18,25 @@ import { DsChecks, type CheckMode } from "./DsChecks";
 import { DsVastu } from "./DsVastu";
 import { DsBrokers } from "./DsBrokers";
 
-export type DsView = "ds_home" | "ds_search" | "ds_unit" | "ds_portfolio" | "ds_area" | "ds_market" | "ds_checks" | "ds_vastu" | "ds_brokers" | "ds_access";
-export const DS_VIEWS: DsView[] = ["ds_home", "ds_search", "ds_unit", "ds_portfolio", "ds_area", "ds_market", "ds_checks", "ds_vastu", "ds_brokers", "ds_access"];
+/* ds_home is kept so old links still land somewhere: it shows Search. */
+export type DsView = "ds_home" | "ds_search" | "ds_phone" | "ds_unit" | "ds_portfolio" | "ds_area" | "ds_market" | "ds_checks" | "ds_vastu" | "ds_brokers" | "ds_access";
+export const DS_VIEWS: DsView[] = ["ds_home", "ds_search", "ds_phone", "ds_unit", "ds_portfolio", "ds_area", "ds_market", "ds_checks", "ds_vastu", "ds_brokers", "ds_access"];
 
-/** A tool to open, optionally in one of its modes (Valuation inside the market tool, and so on). */
-export type DsOpen = (view: DsView, mode?: MarketMode | CheckMode) => void;
-
-const TABS: { id: DsView; label: string }[] = [
-  { id: "ds_home", label: "All tools" },
-  { id: "ds_search", label: "Owners" },
-  { id: "ds_unit", label: "Units" },
-  { id: "ds_portfolio", label: "Portfolios" },
-  { id: "ds_area", label: "Areas" },
-  { id: "ds_market", label: "Market" },
-  { id: "ds_checks", label: "Checks" },
-  { id: "ds_vastu", label: "Vastu & sun" },
-  { id: "ds_brokers", label: "Brokers" },
-  { id: "ds_access", label: "Access & activity" },
+/* DB Search's own tabs first, in its order; the CRM's extra tools after the divider. */
+const TABS: { id: DsView; label: string; extra?: boolean }[] = [
+  { id: "ds_search", label: "Search" },
+  { id: "ds_phone", label: "Phone" },
+  { id: "ds_brokers", label: "Agents" },
+  { id: "ds_portfolio", label: "Portfolio" },
+  { id: "ds_unit", label: "Unit history", extra: true },
+  { id: "ds_area", label: "Areas", extra: true },
+  { id: "ds_market", label: "Market", extra: true },
+  { id: "ds_checks", label: "Checks", extra: true },
+  { id: "ds_vastu", label: "Vastu & sun", extra: true },
+  { id: "ds_access", label: "Access & activity", extra: true },
 ];
+
+const compact = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, "")}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1).replace(/\.0$/, "")}K` : String(n);
 
 /**
  * DB Search inside the CRM. Holds the DB Search session (separate from the
@@ -53,13 +54,11 @@ export function DbSearch({ view, onView, meEmail, isAdmin, onOpenLead }: {
   const [ownerRef, setOwnerRef] = useState<string | null>(null);
   const [unitQuery, setUnitQuery] = useState<{ code: string; place?: string | null } | null>(null);
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
+  const [phoneQuery, setPhoneQuery] = useState<string | null>(null);
+  const [stats, setStats] = useState<DsStats | null>(null);
   const [marketMode, setMarketMode] = useState<MarketMode>("sales");
   const [checkMode, setCheckMode] = useState<CheckMode>("permit");
-  const openTool: DsOpen = (v, mode) => {
-    if (v === "ds_market" && mode) setMarketMode(mode as MarketMode);
-    if (v === "ds_checks" && mode) setCheckMode(mode as CheckMode);
-    onView(v);
-  };
+
   const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(async () => {
@@ -69,6 +68,11 @@ export function DbSearch({ view, onView, meEmail, isAdmin, onOpenLead }: {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  const signedIn = !!info?.signedIn;
+  useEffect(() => {
+    if (!signedIn) return;
+    void ds<{ stats: DsStats | null }>("GET", "stats").then((r) => { if (r.ok) setStats(r.stats); });
+  }, [signedIn]);
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(t);
@@ -96,6 +100,7 @@ export function DbSearch({ view, onView, meEmail, isAdmin, onOpenLead }: {
   const hm = left == null ? "" : `${Math.floor(left / 3_600_000)}:${String(Math.floor((left % 3_600_000) / 60_000)).padStart(2, "0")}`;
 
   const shared = { onExpired, onUsage, onOpenOwner: setOwnerRef };
+  const tab = view === "ds_home" ? "ds_search" : view;
 
   return (
     <div className="space-y-5">
@@ -114,19 +119,33 @@ export function DbSearch({ view, onView, meEmail, isAdmin, onOpenLead }: {
         </button>
       </div>
 
-      <nav aria-label="DB Search tools" className="flex gap-1 overflow-x-auto border-b border-[var(--hairline)] [scrollbar-width:none]">
-        {TABS.filter((t) => isAdmin || t.id !== "ds_access").map((t) => (
-          <button key={t.id} onClick={() => onView(t.id)} aria-current={view === t.id ? "page" : undefined}
-            className={`relative shrink-0 px-4 pb-3 pt-1 text-[13.5px] font-semibold transition-colors ${view === t.id ? "text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
-            {t.label}
-            {view === t.id && <span className="absolute inset-x-3 -bottom-px h-[2px] rounded-full bg-[#b8955a]" />}
-          </button>
+      {stats && (
+        <div className="grid grid-cols-4 gap-2 sm:gap-3">
+          {([["Owners", stats.owners], ["Properties", stats.properties], ["Projects", stats.projects], ["Phones", stats.phones]] as const).map(([label, n]) => (
+            <div key={label} className="rounded-xl border border-[var(--hairline)] bg-white px-2 py-2 sm:px-4 sm:py-3">
+              <div className="figure text-[15px] font-bold text-[var(--accent)] sm:text-[20px]">{compact(n)}</div>
+              <div className="truncate text-[9.5px] font-semibold uppercase tracking-[0.01em] text-[var(--text-muted)] sm:text-[11.5px] sm:tracking-[0.08em]">{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <nav aria-label="DB Search tools" className="flex items-end gap-1 overflow-x-auto border-b border-[var(--hairline)] [scrollbar-width:none]">
+        {TABS.filter((t) => isAdmin || t.id !== "ds_access").map((t, i, all) => (
+          <span key={t.id} className="flex shrink-0 items-end">
+            {t.extra && !all[i - 1]?.extra && <span aria-hidden className="mx-2 mb-3 h-4 w-px bg-[var(--hairline-strong)]" />}
+            <button onClick={() => onView(t.id)} aria-current={tab === t.id ? "page" : undefined}
+              className={`relative px-4 pb-3 pt-1 font-semibold transition-colors ${t.extra ? "text-[13px]" : "text-[14px]"} ${tab === t.id ? "text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+              {t.label}
+              {tab === t.id && <span className="absolute inset-x-3 -bottom-px h-[2px] rounded-full bg-[#b8955a]" />}
+            </button>
+          </span>
         ))}
       </nav>
 
-      <div key={view} className="crm-stagger">
-      {view === "ds_home" && <DsHome info={info} isAdmin={isAdmin} onOpen={openTool} />}
-      {view === "ds_search" && <DsSearch {...shared} initialQuery={searchQuery} />}
+      <div key={tab} className="crm-stagger">
+      {tab === "ds_search" && <DsSearch onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={searchQuery} onPhone={(q) => { setPhoneQuery(q); onView("ds_phone"); }} />}
+      {tab === "ds_phone" && <DsPhone onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={phoneQuery} />}
       {view === "ds_unit" && <DsUnit {...shared} initial={unitQuery} />}
       {view === "ds_portfolio" && <DsPortfolio {...shared} onSearchName={(name) => { setSearchQuery(name); onView("ds_search"); }} />}
       {view === "ds_area" && <DsArea {...shared} />}
