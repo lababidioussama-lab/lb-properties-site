@@ -106,10 +106,10 @@ export function InvoicesView({ t, deals, contacts }: { t: Table<CrmInvoice>; dea
 
       <div className="grid gap-5 lg:grid-cols-[3fr_2fr]">
         <Card className="overflow-x-auto p-5">
-          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Who owes commission</h3>
+          <h3 className="mb-3 text-[12px] font-medium text-[var(--text-muted)]">Who owes commission</h3>
           {debtors.length === 0 ? <Empty>Nobody owes anything right now.</Empty> : (
             <table className="w-full text-[12.5px]">
-              <thead><tr className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">{["Payer", ...BUCKETS.map((b) => b.label), "Total"].map((h) => <th key={h} className="pb-2 pe-3 text-start font-semibold">{h}</th>)}</tr></thead>
+              <thead><tr className="text-[12px] font-medium text-[var(--text-muted)]">{["Payer", ...BUCKETS.map((b) => b.label), "Total"].map((h) => <th key={h} className="pb-2 pe-3 text-start font-semibold">{h}</th>)}</tr></thead>
               <tbody>
                 {debtors.map((d) => (
                   <tr key={d.name} className="border-t border-[var(--hairline)]">
@@ -124,7 +124,7 @@ export function InvoicesView({ t, deals, contacts }: { t: Table<CrmInvoice>; dea
         </Card>
 
         <Card className="p-5">
-          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Deals not invoiced yet ({toInvoice.length})</h3>
+          <h3 className="mb-3 text-[12px] font-medium text-[var(--text-muted)]">Deals not invoiced yet ({toInvoice.length})</h3>
           {toInvoice.length === 0 ? <Empty>Every unpaid deal has an invoice.</Empty> : (
             <ul className="space-y-1.5">
               {toInvoice.slice(0, 8).map((d) => (
@@ -142,7 +142,7 @@ export function InvoicesView({ t, deals, contacts }: { t: Table<CrmInvoice>; dea
       <Card className="overflow-x-auto">
         <table className="w-full text-[12.5px]">
           <thead>
-            <tr className="border-b border-[var(--hairline)] text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <tr className="border-b border-[var(--hairline)] text-[12px] font-medium text-[var(--text-muted)]">
               {["Invoice", "Bill to", "Issued", "Due", "Net", "VAT", "Total", "Balance", "Status"].map((h) => <th key={h} className="px-3 py-3 text-start font-semibold">{h}</th>)}
             </tr>
           </thead>

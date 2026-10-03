@@ -96,7 +96,7 @@ export function TaskGroup({ title, tasks, ...row }: {
 }) {
   return (
     <div>
-      {title && <h3 className="mb-1 text-[11px] font-medium uppercase tracking-[0.04em] text-[var(--text-muted)]">
+      {title && <h3 className="mb-1 text-[12px] font-medium text-[var(--text-muted)]">
         {title} <span className="text-[var(--text-secondary)]">{tasks.length}</span>
       </h3>}
       {tasks.length === 0 ? <p className="py-2 text-[12px] text-[var(--text-muted)]">None</p> : (

@@ -1,65 +1,83 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Lock, LogOut } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import Image from "next/image";
+import { motion } from "motion/react";
+import { ArrowLeft, BarChart3, ChevronDown, Compass, FileSearch, LineChart, Lock, LogOut, Moon, Phone, Search, Send, Sparkles, Sun, UserPlus, Wrench } from "lucide-react";
 
-import { Card } from "../shared";
-import { ds, dsError, type DsSessionInfo, type DsStats, type DsUsage } from "./api";
+import { ds, dsError, type DsSessionInfo, type DsUsage } from "./api";
 import { DsSignIn } from "./DsSignIn";
+import { DsSmart } from "./DsSmart";
 import { DsSearch } from "./DsSearch";
 import { DsPhone } from "./DsPhone";
 import { DsUnit } from "./DsUnit";
-import { DsAccess } from "./DsAccess";
 import { DsOwnerPanel } from "./DsOwnerPanel";
-import { DsPortfolio } from "./DsPortfolio";
+import { DsCampaign } from "./DsCampaign";
 import { DsArea } from "./DsArea";
+import { DsBrokers } from "./DsBrokers";
+import { DsPortfolio } from "./DsPortfolio";
 import { DsMarket, type MarketMode } from "./DsMarket";
 import { DsChecks, type CheckMode } from "./DsChecks";
 import { DsVastu } from "./DsVastu";
-import { DsBrokers } from "./DsBrokers";
 
-/* ds_home is kept so old links still land somewhere: it shows Search. */
-export type DsView = "ds_home" | "ds_search" | "ds_phone" | "ds_unit" | "ds_portfolio" | "ds_area" | "ds_market" | "ds_checks" | "ds_vastu" | "ds_brokers" | "ds_access";
-export const DS_VIEWS: DsView[] = ["ds_home", "ds_search", "ds_phone", "ds_unit", "ds_portfolio", "ds_area", "ds_market", "ds_checks", "ds_vastu", "ds_brokers", "ds_access"];
+/* Every DB Search view id. Access lives in the CRM (Team & rules); ds_home
+   is kept so old links land on Search. */
+export type DsView = "ds_home" | "ds_smart" | "ds_search" | "ds_phone" | "ds_unit" | "ds_portfolio" | "ds_area" | "ds_market" | "ds_checks" | "ds_vastu" | "ds_brokers" | "ds_access" | "ds_campaign";
+export const DS_VIEWS: DsView[] = ["ds_home", "ds_smart", "ds_search", "ds_phone", "ds_unit", "ds_area", "ds_brokers", "ds_campaign", "ds_market", "ds_checks", "ds_vastu", "ds_portfolio"];
 
-/* The tool strip, in dbsearchdubai.com's order: its own tools first, then the
-   tools the CRM adds. The CRM's top bar draws it; this list is the source. */
-export const DS_TOOLS: { id: DsView; label: string }[] = [
-  { id: "ds_search", label: "Search" },
-  { id: "ds_phone", label: "Phone" },
-  { id: "ds_brokers", label: "Agents" },
-  { id: "ds_portfolio", label: "Portfolio" },
-  { id: "ds_area", label: "Area filter" },
-  { id: "ds_market", label: "Market" },
-  { id: "ds_unit", label: "Unit history" },
-  { id: "ds_checks", label: "Checks" },
-  { id: "ds_vastu", label: "Vastu & sun" },
-  { id: "ds_access", label: "Access" },
+/* The extra tools, behind one Tools menu in the bar. Portfolio is for the admin. */
+const MORE: { id: DsView; label: string; icon: typeof Search; admin?: boolean }[] = [
+  { id: "ds_market", label: "Market & valuation", icon: LineChart },
+  { id: "ds_checks", label: "Property checks", icon: FileSearch },
+  { id: "ds_vastu", label: "Vastu & sun", icon: Compass },
+  { id: "ds_portfolio", label: "Portfolio", icon: BarChart3, admin: true },
 ];
 
-const compact = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, "")}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1).replace(/\.0$/, "")}K` : String(n);
+/* DB Search's own tabs, in its order: Smart, Search, Phone, Agents. */
+const TABS: { id: DsView; label: string; icon: typeof Search }[] = [
+  { id: "ds_smart", label: "Smart", icon: Sparkles },
+  { id: "ds_search", label: "Search", icon: Search },
+  { id: "ds_phone", label: "Phone", icon: Phone },
+  { id: "ds_brokers", label: "Agents", icon: UserPlus },
+];
+export const DS_TOOLS = TABS.map(({ id, label }) => ({ id, label }));
 
 /**
- * DB Search inside the CRM. Holds the DB Search session (separate from the
- * CRM one), shows the sign-in until there is one, and routes between tools.
+ * DB Search on its own page, laid out as dbsearchdubai.com lays out its app:
+ * the brand bar (Lababidi logo, session time, theme, Back to CRM, Exit), one
+ * row of tabs, then the tab's search box and results. It holds the DB Search
+ * session (separate from the CRM's) and shows the sign-in until there is one.
  */
-export function DbSearch({ view, onView, meEmail, isAdmin, onOpenLead }: {
+export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, crmHref, initialSearch = null }: {
   view: DsView;
   onView: (v: DsView) => void;
   meEmail: string;
-  isAdmin: boolean;
+
   onOpenLead: (id: string) => void;
+  theme: "light" | "dark";
+  onTheme: () => void;
+  /** Where Back to CRM goes when the CRM's tab is not open. */
+  crmHref: string;
+  /** A name handed over from the CRM (Portfolio) to search straight away. */
+  initialSearch?: string | null;
 }) {
   const [info, setInfo] = useState<DsSessionInfo | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [ownerRef, setOwnerRef] = useState<string | null>(null);
   const [unitQuery, setUnitQuery] = useState<{ code: string; place?: string | null } | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string | null>(null);
-  const [phoneQuery, setPhoneQuery] = useState<string | null>(null);
-  const [stats, setStats] = useState<DsStats | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string | null>(initialSearch);
   const [marketMode, setMarketMode] = useState<MarketMode>("sales");
   const [checkMode, setCheckMode] = useState<CheckMode>("permit");
-
+  const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const close = (e: MouseEvent) => { if (!menuRef.current?.contains(e.target as Node)) setMenu(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setMenu(false); };
+    document.addEventListener("mousedown", close); document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
+  }, [menu]);
+  const [phoneQuery, setPhoneQuery] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(async () => {
@@ -69,11 +87,6 @@ export function DbSearch({ view, onView, meEmail, isAdmin, onOpenLead }: {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
-  const signedIn = !!info?.signedIn;
-  useEffect(() => {
-    if (!signedIn) return;
-    void ds<{ stats: DsStats | null }>("GET", "stats").then((r) => { if (r.ok) setStats(r.stats); });
-  }, [signedIn]);
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(t);
@@ -90,44 +103,126 @@ export function DbSearch({ view, onView, meEmail, isAdmin, onOpenLead }: {
     void load();
   }
 
-  if (problem) {
-    return <Card className="p-6 text-[14px] text-[var(--text-secondary)]">{dsError(problem)}</Card>;
+  /* Back to the CRM's own tab when it is open (it names itself), without
+     reloading it; otherwise open the CRM here. */
+  function backToCrm() {
+    const w = window.open("", "lababidi-crm");
+    if (!w) { window.location.href = crmHref; return; }
+    try {
+      if (!w.location.href || w.location.href === "about:blank") w.location.href = crmHref;
+    } catch {
+      w.location.href = crmHref;
+    }
+    w.focus();
   }
-  if (!info) return <div className="h-40 animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" />;
-  if (!info.signedIn) return <DsSignIn email={meEmail} onDone={load} />;
+
+  const topBtn = "inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-transparent px-2.5 text-[12px] font-semibold text-[var(--text-muted)] transition-colors hover:border-[var(--hairline)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]";
+  const bar = (right: ReactNode) => (
+    <header className="relative z-20 mx-auto flex w-full max-w-[1100px] items-center gap-2.5 pb-3 pt-3 min-[1400px]:max-w-[1280px]">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="Lababidi Properties" width={32} height={32} priority />
+        <div className="min-w-0 leading-tight">
+          <div className="display text-[17px]"><span className="text-[var(--accent)]">DB</span> Search</div>
+          <div className="ds-label mt-0.5 !text-[9.5px] !tracking-[0.12em]">Lababidi Properties</div>
+        </div>
+      </div>
+      <div className="flex-1" />
+      <div className="flex flex-wrap items-center justify-end gap-1">{right}</div>
+    </header>
+  );
+  const commonRight = (
+    <>
+      <button onClick={onTheme} aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} className={topBtn}>
+        {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}<span className="hidden sm:inline">{theme === "dark" ? "Light" : "Dark"}</span>
+      </button>
+      <button onClick={backToCrm} className={topBtn}><ArrowLeft size={14} /> Back to CRM</button>
+    </>
+  );
+
+  if (problem) {
+    return <div className="relative z-10 px-4">{bar(commonRight)}<p role="alert" className="panel mx-auto max-w-[560px] p-5 text-[14px] text-[var(--text-secondary)]">{dsError(problem)}</p></div>;
+  }
+  if (!info) return <div className="relative z-10 px-4">{bar(commonRight)}<div className="panel mx-auto h-72 max-w-[430px] animate-pulse" /></div>;
+  if (!info.signedIn) return <DsSignIn email={meEmail} onDone={load} theme={theme} topBar={bar(commonRight)} />;
 
   const left = info.session ? Math.max(0, info.session.endsAt - now) : null;
-  if (left === 0) return <DsSignIn email={meEmail} onDone={load} expired />;
+  if (left === 0) return <DsSignIn email={meEmail} onDone={load} expired theme={theme} topBar={bar(commonRight)} />;
   const hm = left == null ? "" : `${Math.floor(left / 3_600_000)}:${String(Math.floor((left % 3_600_000) / 60_000)).padStart(2, "0")}`;
 
   const shared = { onExpired, onUsage, onOpenOwner: setOwnerRef };
-  const tab = view === "ds_home" ? "ds_search" : view;
+  let tab: DsView = view === "ds_home" ? "ds_search" : view;
+  if (!(DS_VIEWS as string[]).includes(tab)) tab = "ds_search";
+  if (tab === "ds_portfolio" && info.user.role !== "admin") tab = "ds_search";
+  /* The area filter and unit history open from a search, so Search stays lit. */
+  const lit = tab === "ds_area" || tab === "ds_unit" ? "ds_search" : tab;
+  const more = MORE.filter((m) => !m.admin || info.user.role === "admin");
+  const inMore = more.some((m) => m.id === tab);
 
   return (
-    <div className="space-y-4">
-      {/* The secure session, as one quiet line: time left, today's use, leave. */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-[var(--hairline)] bg-[var(--surface-hover)] px-3 py-1.5 text-[12px] text-[var(--text-secondary)]">
-        <Lock size={12} className="text-[var(--text-muted)]" />
-        <span>Secure session{hm && <> · <b className="font-semibold text-[var(--text-primary)]">{hm}</b> left</>}</span>
-        {info.usage && info.limits && <span>· Searches {info.usage.searches}/{info.limits.searches} · Numbers {info.usage.reveals}/{info.limits.reveals}</span>}
-        {stats && <span className="hidden text-[var(--text-muted)] lg:inline">· {compact(stats.owners)} owners · {compact(stats.properties)} properties · {compact(stats.phones)} phones</span>}
-        <span className="flex-1" />
-        <button onClick={leave} className="inline-flex items-center gap-1 font-medium text-[var(--text-primary)] hover:underline">
-          <LogOut size={12} /> Leave
-        </button>
-      </div>
+    <div className="relative z-10 min-h-[100dvh] px-4 pb-16 md:px-6">
+      {bar(
+        <>
+          <span title="Your DB Search session ends after 20 minutes without activity"
+            className="me-1 hidden h-9 items-center gap-1.5 rounded-[8px] border border-[var(--hairline)] px-3 text-[11.5px] text-[var(--text-muted)] sm:inline-flex">
+            <Lock size={12} className="text-[var(--emerald)]" />
+            <span className="figure text-[var(--text-primary)]">{hm || "-"}</span>
+            {info.usage && info.limits && <span className="hidden md:inline"><span className="figure">{info.usage.searches}/{info.limits.searches}</span> searches</span>}
+          </span>
+          <div ref={menuRef} className="relative">
+            <button onClick={() => setMenu((m) => !m)} aria-haspopup="menu" aria-expanded={menu}
+              className={`${topBtn} ${inMore ? "!border-[var(--hairline)] !text-[var(--text-primary)]" : ""}`}>
+              <Wrench size={14} /> Tools <ChevronDown size={12} />
+            </button>
+            {menu && (
+              <div role="menu" className="crm-pop absolute end-0 top-10 z-40 w-56 overflow-hidden rounded-[10px] border border-[var(--hairline)] bg-[var(--surface-solid)] py-1 shadow-[var(--shadow-pop)]">
+                {more.map((m) => (
+                  <button key={m.id} role="menuitem" onClick={() => { setMenu(false); onView(m.id); }}
+                    className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] transition-colors hover:bg-[var(--surface-hover)] ${tab === m.id ? "font-bold text-[var(--accent)]" : "text-[var(--text-primary)]"}`}>
+                    <m.icon size={14} /> {m.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button onClick={() => onView("ds_campaign")} aria-current={tab === "ds_campaign" ? "page" : undefined}
+            className="inline-flex h-8 items-center gap-1.5 rounded-[8px] bg-[#1f9d57] px-3 text-[12px] font-semibold text-white transition hover:brightness-110">
+            <Send size={13} /> WhatsApp campaign
+          </button>
+          {commonRight}
+          <button onClick={leave} className={topBtn}><LogOut size={14} /> Exit</button>
+        </>,
+      )}
 
-      <div key={tab} className="crm-stagger">
-      {tab === "ds_search" && <DsSearch onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={searchQuery} onPhone={(q) => { setPhoneQuery(q); onView("ds_phone"); }} />}
-      {tab === "ds_phone" && <DsPhone onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={phoneQuery} />}
-      {view === "ds_unit" && <DsUnit {...shared} initial={unitQuery} />}
-      {view === "ds_portfolio" && <DsPortfolio {...shared} onSearchName={(name) => { setSearchQuery(name); onView("ds_search"); }} />}
-      {view === "ds_area" && <DsArea {...shared} />}
-      {view === "ds_market" && <DsMarket mode={marketMode} onMode={setMarketMode} onExpired={onExpired} />}
-      {view === "ds_checks" && <DsChecks mode={checkMode} onMode={setCheckMode} onExpired={onExpired} onOpenOwner={setOwnerRef} />}
-      {view === "ds_vastu" && <DsVastu />}
-      {view === "ds_brokers" && <DsBrokers onExpired={onExpired} />}
-      {view === "ds_access" && isAdmin && <DsAccess onExpired={onExpired} />}
+      <div className="mx-auto w-full max-w-[1100px] min-[1400px]:max-w-[1280px]">
+        <nav aria-label="DB Search" className="mb-4 grid grid-cols-4 border-b border-[var(--hairline)]">
+          {TABS.map((t) => {
+            const on = lit === t.id;
+            return (
+              <button key={t.id} onClick={() => onView(t.id)} aria-current={on ? "page" : undefined}
+                className={`relative flex items-center justify-center gap-1.5 px-1 py-2.5 text-[12.5px] font-bold transition-colors ${on ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+                <t.icon size={14} /><span>{t.label}</span>
+                {on && <motion.span layoutId="ds-tab" transition={{ type: "spring", stiffness: 520, damping: 44 }} className="absolute inset-x-[12%] -bottom-px h-[2px] bg-[var(--accent)]" />}
+              </button>
+            );
+          })}
+        </nav>
+
+        <main key={tab} className="crm-stagger">
+          {(tab === "ds_area" || tab === "ds_unit" || tab === "ds_campaign" || inMore) && (
+            <button onClick={() => onView("ds_search")} className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline"><ArrowLeft size={14} /> Back to Search</button>
+          )}
+          {tab === "ds_smart" && <DsSmart onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} onAreaFilter={() => onView("ds_area")} />}
+          {tab === "ds_search" && <DsSearch onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={searchQuery} onPhone={(q) => { setPhoneQuery(q); onView("ds_phone"); }} onAreaFilter={() => onView("ds_area")} />}
+          {tab === "ds_phone" && <DsPhone onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={phoneQuery} />}
+          {tab === "ds_brokers" && <DsBrokers onExpired={onExpired} />}
+          {tab === "ds_campaign" && <DsCampaign onExpired={onExpired} onUsage={onUsage} />}
+          {tab === "ds_unit" && <DsUnit {...shared} initial={unitQuery} />}
+          {tab === "ds_area" && <DsArea {...shared} />}
+          {tab === "ds_market" && <DsMarket mode={marketMode} onMode={setMarketMode} onExpired={onExpired} />}
+          {tab === "ds_checks" && <DsChecks mode={checkMode} onMode={setCheckMode} onExpired={onExpired} onOpenOwner={setOwnerRef} />}
+          {tab === "ds_vastu" && <DsVastu />}
+          {tab === "ds_portfolio" && <DsPortfolio {...shared} onSearchName={(name) => { setSearchQuery(name); onView("ds_search"); }} />}
+        </main>
       </div>
 
       {ownerRef && (

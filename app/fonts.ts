@@ -1,5 +1,4 @@
 import {
-  Geist,
   Cormorant_Garamond,
   Montserrat,
   Manrope,
@@ -81,15 +80,6 @@ export const notoCyrillic = Noto_Sans({
   variable: "--font-cyrillic",
   display: "swap",
   preload: false,
-});
-
-/* The CRM's one UI face (design A · Ledger): legible at 12-13px, tabular
-   figures, loaded only by the admin layout. */
-export const crmSans = Geist({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-crm",
-  display: "swap",
 });
 
 /* Simplified Chinese is not loaded through next/font: Google serves Noto Sans

@@ -81,7 +81,7 @@ export function RentalsView({ t, isAdmin, users, contacts, listings, deals, user
 
       {rentDeals.length > 0 && (
         <Card className="p-4">
-          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Rental deals without a tenancy record</h3>
+          <h3 className="mb-2 text-[12px] font-medium text-[var(--text-muted)]">Rental deals without a tenancy record</h3>
           <div className="flex flex-wrap gap-2">
             {rentDeals.slice(0, 6).map((d) => (
               <button
@@ -106,7 +106,7 @@ export function RentalsView({ t, isAdmin, users, contacts, listings, deals, user
       <Card className="overflow-x-auto">
         <table className="w-full text-[12.5px]">
           <thead>
-            <tr className="border-b border-[var(--hairline)] text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <tr className="border-b border-[var(--hairline)] text-[12px] font-medium text-[var(--text-muted)]">
               {["Property", "Tenant", "Rent / year", "Ends", "Renewal", "Ejari", "Cheques", ...(isAdmin ? ["Agent"] : [])].map((h) => <th key={h} className="px-3 py-3 text-start font-semibold">{h}</th>)}
             </tr>
           </thead>

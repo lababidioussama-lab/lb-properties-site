@@ -1,15 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import {
-  CRM_COOKIE,
-  DOCS_COOKIE,
-  DOCS_COOKIE_OPTIONS,
-  SESSION_COOKIE_OPTIONS,
-  createDocsSession,
-  authenticate,
-  createSession,
-  isCrmConfigured,
-  sessionFromRequest,
-} from "@/lib/crm-auth";
+import { CRM_COOKIE, DOCS_COOKIE, DOCS_COOKIE_OPTIONS, SESSION_COOKIE_OPTIONS, createDocsSession, authenticate, createSession, isCrmConfigured, sessionFromRequest, liveUser } from "@/lib/crm-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { OTP_COOKIE, OTP_TTL_MS, canResend, checkCode, deviceOf, issueTicket, maskEmail, otpConfigured, otpDisabled, readTicket, sendCode, type OtpPurpose } from "@/lib/crm-otp";
 import { DS_COOKIE, DS_COOKIE_OPTIONS, audit as dsAudit, createDsSession, getSettings as dsSettings } from "@/lib/dbsearch/guard";
@@ -172,6 +162,18 @@ export async function POST(request: NextRequest) {
   if (purpose === "documents" && user.role !== "admin") {
     await logSession(user.id, "docs_denied", { ip });
     return NextResponse.json({ ok: false, error: "admin_only" }, { status: 403 });
+  }
+  /* Company documents for an admin already signed in to the CRM in this
+     browser: that session was opened with an emailed code, so the password
+     alone opens the documents here. One code, not two. */
+  if (purpose === "documents") {
+    const crm = await liveUser(sessionFromRequest(request));
+    if (crm && crm.id === user.id && crm.role === "admin") {
+      const response = signedIn(user, "documents");
+      if (!response) return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
+      await logSession(user.id, "docs_login", { ip, agent, via: "crm_session" });
+      return response;
+    }
   }
   if (purpose === "dbsearch") {
     const refusal = await dbSearchRefusal(user);

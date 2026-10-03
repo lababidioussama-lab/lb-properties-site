@@ -124,7 +124,7 @@ export function DsVastu() {
 
       <div className="space-y-4">
         <Card className="p-5">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--violet)]">Facing {dir.name} · {facing}°</p>
+          <p className="text-[12px] font-medium text-[var(--violet)]">Facing {dir.name} · {facing}°</p>
           <h2 className="mt-1 font-[family-name:var(--font-display)] text-[28px] font-semibold leading-tight">
             {summer.minutes === 0 ? "No direct summer sun on this side" : `Direct sun ${summer.when === "most of the day" ? "most of the day" : `in the ${summer.when}`} in summer`}
           </h2>
@@ -147,7 +147,7 @@ export function DsVastu() {
         </Card>
 
         <Card className="p-5">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--violet)]">Traditional Vastu reading</p>
+          <p className="text-[12px] font-medium text-[var(--violet)]">Traditional Vastu reading</p>
           <p className="mt-2 text-[14px] leading-relaxed">{dir.vastu}</p>
           <p className="mt-3 text-[12px] text-[var(--text-muted)]">Vastu is a traditional belief system some buyers care about. Read it for the entrance direction, which may differ from the view.</p>
         </Card>

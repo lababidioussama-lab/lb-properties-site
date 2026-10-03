@@ -127,7 +127,7 @@ export function TeamMonitor({ users, leads, tasks, deals }: { users: CrmUser[]; 
         </div>
         <table className="w-full min-w-[1100px] text-[13px]">
           <thead>
-            <tr className="border-b border-[var(--hairline)] text-[10.5px] uppercase text-[var(--text-muted)]">
+            <tr className="border-b border-[var(--hairline)] text-[12px] font-medium text-[var(--text-muted)]">
               {["Agent", "Status", "Last sign-in", "Sign-ins", "Calls", "WhatsApp", "Notes", "Open leads", "New, untouched", "Overdue follow-ups", "Overdue tasks", "Viewings (30d)", "Deals", "Earned", "Target"].map((h) => (
                 <th key={h} className="whitespace-nowrap px-3 py-3 text-start first:ps-5 last:pe-5">{h}</th>
               ))}
@@ -236,7 +236,7 @@ export function TeamDocuments({ users }: { users: CrmUser[] }) {
       <Card className="overflow-x-auto">
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="border-b border-[var(--hairline)] text-[10.5px] uppercase text-[var(--text-muted)]">
+            <tr className="border-b border-[var(--hairline)] text-[12px] font-medium text-[var(--text-muted)]">
               {["Document", "Type", "Team member", "Added", ""].map((h) => <th key={h} className="px-4 py-3 text-start first:ps-5">{h}</th>)}
             </tr>
           </thead>

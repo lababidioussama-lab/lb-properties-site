@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowLeft, MapPin, Palmtree, Phone, Search } from "lucide-react";
+import { ArrowLeft, Filter, MapPin, Palmtree, Phone, Search } from "lucide-react";
 
 import { ds, dsError, type DsCommunityResult, type DsSearchResult, type DsUsage } from "./api";
 import { DsResultsList } from "./DsResultsList";
 import type { CardActions } from "./DsCardView";
+import { DS_CHIP, DS_CLEAR, DS_GO, DS_INPUT, DS_ROW, DsBox } from "./ui";
 
 /**
  * DB Search's Search tab: one box for a name, building, unit, villa or plot
@@ -24,9 +25,18 @@ const AREAS: [string, string][] = [
 type Mode = { kind: "search"; q: string; includeEmpty: boolean } | { kind: "community"; name: string; includeEmpty: boolean; from: string | null };
 type Result = { kind: "search"; data: DsSearchResult } | { kind: "community"; data: DsCommunityResult };
 
-const chipCls = "inline-flex h-8 items-center gap-1.5 rounded-full border border-[var(--hairline-strong)] bg-white px-3 text-[12.5px] font-semibold text-[var(--text-secondary)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]";
+const chipCls = DS_CHIP;
 
-export function DsSearch({ onExpired, onUsage, onOpenLead, onPhone, initialQuery = null }: CardActions & {
+/** What a search found, for Smart's one-line answer. */
+export interface DsFound { shown: number; withPhone: number; communities: string[] }
+
+export function DsSearch({ onExpired, onUsage, onOpenLead, onPhone, onAreaFilter, initialQuery = null, hideForm = false, onFound }: CardActions & {
+  /** Smart search runs the search itself and shows only the results. */
+  hideForm?: boolean;
+  /** Told what the search found, once it has. */
+  onFound?: (f: DsFound) => void;
+  /** Opens the Area & Community filter page. */
+  onAreaFilter?: () => void;
   initialQuery?: string | null;
   onUsage: (u: DsUsage, s?: { endsAt: number }) => void;
   /** Hand a number over to the Phone tab: smart_search does not search phone numbers. */
@@ -69,6 +79,17 @@ export function DsSearch({ onExpired, onUsage, onOpenLead, onPhone, initialQuery
     if (forced) setQ(forced);
     void load({ kind: "search", q: query, includeEmpty: false });
   }
+
+  useEffect(() => {
+    if (!result || !onFound) return;
+    const d = result.data;
+    const entries = d.strict.entries;
+    onFound({
+      shown: entries.length,
+      withPhone: entries.filter((e) => (d.cards[e.c]?.phoneCount ?? 0) > 0).length,
+      communities: result.kind === "search" ? result.data.communities.slice(0, 3).map((c) => c.community) : [],
+    });
+  }, [result]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Opened from another tool with a name to look up: search it straight away.
   useEffect(() => {
@@ -117,7 +138,7 @@ export function DsSearch({ onExpired, onUsage, onOpenLead, onPhone, initialQuery
       <div className="space-y-3">
         {d.communities.length > 0 && (
           <div className="rounded-xl border border-[var(--hairline)] bg-white p-3.5">
-            <p className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">What we found — tap a community for all its records</p>
+            <p className="mb-2 text-[12px] font-medium text-[var(--text-muted)]">What we found: tap a community for all of it</p>
             <div className="flex flex-wrap gap-1.5">
               {d.communities.slice(0, 12).map((c) => (
                 <button key={c.community} title={`${(c.ct || 0).toLocaleString("en-US")} records`} aria-label={`${c.community}, ${(c.ct || 0).toLocaleString("en-US")} records`} onClick={() => void load({ kind: "community", name: c.community, includeEmpty: false, from: mode.q })} className={chipCls}>
@@ -129,11 +150,11 @@ export function DsSearch({ onExpired, onUsage, onOpenLead, onPhone, initialQuery
         )}
         {d.damac.length > 0 && (
           <div className="rounded-xl border border-[var(--hairline)] bg-white p-3.5">
-            <p className="mb-2 flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]"><Palmtree size={13} /> Damac Lagoons — sale history</p>
+            <p className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-muted)]"><Palmtree size={13} /> Damac Lagoons sale history</p>
             <div className="space-y-1 text-[12.5px] text-[var(--text-secondary)]">
               {d.damac.map((t, i) => (
                 <div key={i}>
-                  <b className="text-[var(--text-primary)]">{t.villa}</b> — {[t.sub_project, t.sale_type, t.sale_date, t.price != null ? `AED ${Number(t.price).toLocaleString("en-US")}` : "—",
+                  <b className="text-[var(--text-primary)]">{t.villa}</b>: {[t.sub_project, t.sale_type, t.sale_date, t.price != null ? `AED ${Number(t.price).toLocaleString("en-US")}` : "—",
                     t.bua_sqft != null ? `${Number(t.bua_sqft).toLocaleString("en-US")} sqft BUA` : null,
                     t.payment_method === "cash" ? "Cash" : t.mortgage_amount != null ? `Mortgage AED ${Number(t.mortgage_amount).toLocaleString("en-US")}` : null].filter(Boolean).join(" · ")}
                   {(t.times_sold ?? 0) > 1 && <b> (sold {t.times_sold}x)</b>}
@@ -151,45 +172,49 @@ export function DsSearch({ onExpired, onUsage, onOpenLead, onPhone, initialQuery
 
   const shownQuery = mode?.kind === "search" ? mode.q : null;
 
+  const clear = () => { token.current++; setQ(""); setMode(null); setResult(null); setError(null); setBusy(false); };
+
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <form onSubmit={run} role="search" className="flex h-[52px] overflow-hidden rounded-xl border border-[rgb(11_42_74/0.3)] bg-white shadow-[0_0_0_4px_rgb(11_42_74/0.05)]">
-          <label className="flex flex-1 items-center gap-3 px-4">
-            <Search size={18} className="text-[var(--accent)]" />
-            <input autoFocus value={q} maxLength={120} autoComplete="off"
+      {!hideForm && (
+        <DsBox label="Search everything: name, building, unit, villa or plot code, community" icon={<Search size={13} />}>
+          <form onSubmit={run} role="search" className={DS_ROW}>
+            <div className="relative min-w-0 flex-1">
+            <input autoFocus value={q} maxLength={200} autoComplete="off" spellCheck={false} enterKeyHint="search"
               onChange={(e) => { typedRef.current = true; setQ(e.target.value); }}
               onBlur={() => setTimeout(() => setSuggOpen(false), 200)}
               onFocus={() => setSuggOpen(sugg.length > 0)}
-              placeholder="Name, building, unit, villa or plot code — e.g. DL-J439"
-              className="h-full flex-1 bg-transparent text-[14px] outline-none" aria-label="Search owners" />
-          </label>
-          <button disabled={busy} className="bg-[var(--accent-solid)] px-7 text-[13px] font-semibold text-white transition hover:bg-[var(--accent-solid-hover)] disabled:opacity-60">
-            {busy ? "Searching…" : "Search"}
-          </button>
-        </form>
-        {suggOpen && sugg.length > 0 && (
-          <ul role="listbox" className="absolute inset-x-0 top-[56px] z-20 overflow-hidden rounded-xl border border-[var(--hairline)] bg-white py-1 shadow-[0_12px_32px_rgb(15_23_42/0.14)]">
-            {sugg.map((s) => (
-              <li key={s}>
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { typedRef.current = false; setSugg([]); run(undefined, s); }}
-                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-[13.5px] hover:bg-[var(--surface-sunken)]"><MapPin size={13} className="text-[var(--text-muted)]" /> {s}</button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+              placeholder="e.g. Ghalia, DL-J439, Portofino 661, Binghatti Corner"
+              className={DS_INPUT} aria-label="Search" />
+            {suggOpen && sugg.length > 0 && (
+              <ul role="listbox" className="absolute inset-x-0 top-[52px] z-20 overflow-hidden rounded-[10px] border border-[var(--hairline)] bg-[var(--surface-solid)] py-1 shadow-[var(--shadow-pop)]">
+                {sugg.map((s) => (
+                  <li key={s}>
+                    <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { typedRef.current = false; setSugg([]); run(undefined, s); }}
+                      className="flex w-full items-center gap-2 px-4 py-2 text-left text-[13.5px] hover:bg-[var(--surface-hover)]"><MapPin size={13} className="text-[var(--text-muted)]" /> {s}</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            </div>
+            <button disabled={busy} className={DS_GO}><Search size={15} /> {busy ? "Searching…" : "Search"}</button>
+            <button type="button" onClick={clear} className={DS_CLEAR}>Clear</button>
+          </form>
+        </DsBox>
+      )}
 
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
+      {error && <p role="alert" className="rounded-[10px] border border-[var(--bad-bd)] bg-[var(--bad-bg)] px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
 
-      {!result && !busy && (
-        <div className="rounded-xl border border-[var(--hairline)] bg-white p-4">
-          <p className="mb-2.5 flex items-center gap-1.5 text-[12px] font-semibold text-[var(--text-secondary)]"><MapPin size={13} /> Popular areas</p>
-          <div className="flex flex-wrap gap-1.5">
-            {AREAS.map(([label, full]) => <button key={label} onClick={() => run(undefined, full)} className={chipCls}>{label}</button>)}
-          </div>
-          <p className="mt-3 text-[12.5px] text-[var(--text-muted)]">Numbers stay hidden until you choose why you need them. Every search and reveal is recorded.</p>
-        </div>
+      {!result && !busy && !hideForm && (
+        <>
+          <DsBox label="Top areas" icon={<MapPin size={13} />}
+            action={onAreaFilter && <button onClick={onAreaFilter} className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[var(--accent)] hover:underline"><Filter size={13} /> Filter by area or community</button>}>
+            <div className="flex flex-wrap gap-1.5">
+              {AREAS.map(([label, full]) => <button key={label} onClick={() => run(undefined, full)} className={chipCls}>{label}</button>)}
+            </div>
+            <p className="mt-2.5 text-[12px] text-[var(--text-muted)]">Numbers stay hidden until you choose why you need them. Every search and reveal is recorded.</p>
+          </DsBox>
+        </>
       )}
 
       {busy && (
@@ -212,7 +237,7 @@ export function DsSearch({ onExpired, onUsage, onOpenLead, onPhone, initialQuery
             <>
               <p className="text-[14px] font-semibold">No records match “{shownQuery}”</p>
               <p className="mt-1 text-[12.5px] text-[var(--text-muted)]">Search looks at names, places and unit codes. To find who a number belongs to, use the Phone tab.</p>
-              <button onClick={() => onPhone(shownQuery)} className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--accent-solid)] px-3.5 text-[12.5px] font-semibold text-white"><Phone size={13} /> Search this number</button>
+              <button onClick={() => onPhone(shownQuery)} className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-[9px] border border-[var(--accent-dim)] bg-[var(--accent-wash)] px-3.5 text-[12.5px] font-semibold text-[var(--accent)] hover:bg-[var(--accent-solid)] hover:text-white"><Phone size={13} /> Search this number</button>
             </>
           ) : undefined} />
       )}

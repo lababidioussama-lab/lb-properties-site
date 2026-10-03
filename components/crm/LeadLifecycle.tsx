@@ -13,7 +13,7 @@ export function WhatNext({ lead }: { lead: CrmLead }) {
     <div className="flex items-start gap-2.5 rounded-lg border border-[var(--glass-border-lit)] bg-[var(--accent-wash)] p-3">
       <Lightbulb size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" />
       <div>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">What next?</div>
+        <div className="text-[12px] font-medium text-[var(--text-muted)]">What next?</div>
         <p className="mt-0.5 text-[13px] text-[var(--text-primary)]">{whatNext(lead)}</p>
       </div>
     </div>

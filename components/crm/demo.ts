@@ -165,6 +165,22 @@ const single: Record<string, string> = {
   leads: "lead", contacts: "contact", tasks: "task", users: "user", properties: "property", activities: "activity",
 };
 
+/* Access & activity (admin): each person's CRM account, DB Search access and usage. */
+const control: Row[] = [
+  { id: "u1", full_name: "Oussama Lababidi", email: "owner@example.com", role: "admin", active: true,
+    ds: { access: true, searches: 200, reveals: 40, lists: 50, lockedAt: null, lockReason: null, kickedAt: null },
+    today: { searches: 23, reveals: 7, lists: 25 }, week: { searches: 140, reveals: 31, lists: 60 }, lastSeen: new Date(Date.now() - 2 * 60_000).toISOString(), lastLogin: new Date(Date.now() - 9 * 60_000).toISOString() },
+  { id: "u2", full_name: "Sara Haddad", email: "sara@example.com", role: "agent", active: true,
+    ds: { access: true, searches: 200, reveals: 40, lists: 50, lockedAt: null, lockReason: null, kickedAt: null },
+    today: { searches: 41, reveals: 12, lists: 25 }, week: { searches: 212, reveals: 58, lists: 75 }, lastSeen: new Date(Date.now() - 4 * 60_000).toISOString(), lastLogin: new Date(Date.now() - 47 * 60_000).toISOString() },
+  { id: "u3", full_name: "Omar Nasser", email: "omar@example.com", role: "agent", active: true,
+    ds: { access: true, searches: 150, reveals: 30, lists: 25, lockedAt: new Date(Date.now() - 31 * 60_000).toISOString(), lockReason: "More than 15 numbers revealed within 10 minutes", kickedAt: null },
+    today: { searches: 88, reveals: 30, lists: 0 }, week: { searches: 301, reveals: 96, lists: 0 }, lastSeen: new Date(Date.now() - 31 * 60_000).toISOString(), lastLogin: new Date(Date.now() - 52 * 60 * 60_000).toISOString() },
+  { id: "u4", full_name: "Priya Nair", email: "priya@example.com", role: "agent", active: false,
+    ds: { access: false, searches: 200, reveals: 40, lists: 50, lockedAt: null, lockReason: null, kickedAt: null },
+    today: { searches: 0, reveals: 0, lists: 0 }, week: { searches: 0, reveals: 0, lists: 0 }, lastSeen: new Date(Date.now() - 9 * 86_400_000).toISOString(), lastLogin: new Date(Date.now() - 9 * 86_400_000).toISOString() },
+];
+
 export async function demoApi(method: string, resource: string, body?: Row, query?: string): Promise<Row> {
   if (resource === "data/leads" && method === "POST") {
     const added = ((body?.rows as Row[]) ?? []).map((r) => {
@@ -193,6 +209,34 @@ export async function demoApi(method: string, resource: string, body?: Row, quer
     Object.assign(row, { source: portal, phone: "+971500000000", owner_id: "u2", created_at: new Date().toISOString() });
     tables.leads.unshift(row);
     return { ok: true, id: row.id, assigned_to: "u2" };
+  }
+  if (resource === "control") {
+    const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+    if (method === "PATCH") {
+      const p = control.find((x) => x.id === body?.userId);
+      if (!p) return { ok: false, error: "not_found" };
+      const ds = p.ds as Row;
+      if (typeof body?.ds_access === "boolean") ds.access = body.ds_access;
+      for (const k of ["searches", "reveals", "lists"] as const) if (typeof body?.[k] === "number") ds[k] = body[k];
+      if (body?.unlock) { ds.lockedAt = null; ds.lockReason = null; }
+      if (body?.lock) { ds.lockedAt = at(0); ds.lockReason = "Locked by the admin"; }
+      if (body?.kick) ds.kickedAt = at(0);
+      return { ok: true, ds, today: p.today };
+    }
+    if ((query ?? "").includes("view=activity")) {
+      const rows: Row[] = [
+        { id: 1, at: at(2), user_id: "u2", source: "dbsearch", action: "search", query: "Marina Gate 1405", target: null, reason: null, ip: "5.195.44.21", device: null, email: null },
+        { id: 2, at: at(4), user_id: "u2", source: "dbsearch", action: "reveal", query: null, target: "d1", reason: "owner_outreach", ip: "5.195.44.21", device: null, email: null },
+        { id: 3, at: at(9), user_id: "u1", source: "session", action: "login", query: null, target: null, reason: null, ip: "94.200.12.8", device: "Windows, Chrome", email: null },
+        { id: 4, at: at(31), user_id: "u3", source: "dbsearch", action: "locked", query: null, target: null, reason: null, ip: "188.12.4.9", device: null, email: null },
+        { id: 5, at: at(33), user_id: "u3", source: "dbsearch", action: "reveal", query: null, target: "d4", reason: "buyer_match", ip: "188.12.4.9", device: null, email: null },
+        { id: 6, at: at(47), user_id: "u2", source: "dbsearch", action: "signin", query: null, target: null, reason: null, ip: "5.195.44.21", device: "iPhone, Safari", email: null },
+        { id: 7, at: at(95), user_id: null, source: "session", action: "login_failed", query: null, target: null, reason: null, ip: "188.12.4.9", device: null, email: "omar@lababidi.ae" },
+        { id: 8, at: at(140), user_id: "u3", source: "dbsearch", action: "area", query: "area: Damac Hills 2", target: null, reason: null, ip: "188.12.4.9", device: null, email: null },
+      ];
+      return { ok: true, rows };
+    }
+    return { ok: true, people: control };
   }
   if (resource === "team_activity") {
     const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();

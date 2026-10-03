@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Info } from "lucide-react";
 
+import { DS_GO, DS_INPUT, DsBox } from "./ui";
 import { ds, dsError, type DsUsage } from "./api";
 
 const PAGE = 50;
@@ -50,23 +51,24 @@ export function DsPortfolio({ onExpired, onSearchName }: { onExpired: () => void
 
   return (
     <div className="space-y-4">
-      <p className="text-[12.5px] text-[var(--text-muted)]">Owners holding several units at once — an investor still buying, not a resident. Ranked by how many they hold.</p>
-      <form onSubmit={find} className="flex flex-wrap items-center gap-2">
-        <input type="number" min={2} max={50} value={minText} onChange={(e) => setMinText(e.target.value)} aria-label="Minimum properties" placeholder="Minimum properties"
-          className="h-10 w-40 rounded-lg border border-[var(--hairline-strong)] bg-white px-3 text-[13px] outline-none focus:border-[var(--accent)]" />
-        <button disabled={busy} className="h-10 rounded-lg bg-[var(--accent-solid)] px-5 text-[13px] font-semibold text-white disabled:opacity-60">{busy ? "Finding…" : "Find"}</button>
+      <DsBox label="Portfolio finder">
+        <form onSubmit={find} className="flex flex-wrap items-center gap-2">
+          <input type="number" min={2} max={50} value={minText} onChange={(e) => setMinText(e.target.value)} aria-label="Minimum properties" placeholder="Minimum properties"
+            className={`${DS_INPUT} !w-44`} />
+          <button disabled={busy} className={DS_GO}>{busy ? "Finding…" : "Find"}</button>
+        </form>
         {owners && owners.length > 0 && (
-          <input value={filter} onChange={(e) => { setFilter(e.target.value); setVisible(PAGE); }} placeholder="Filter these results by name…"
-            className="h-10 min-w-[220px] flex-1 rounded-lg border border-[var(--hairline-strong)] bg-white px-3 text-[13px] outline-none focus:border-[var(--accent)]" />
+          <input value={filter} onChange={(e) => { setFilter(e.target.value); setVisible(PAGE); }} placeholder="Filter these results by name"
+            className={`${DS_INPUT} mt-2`} />
         )}
-      </form>
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
+      </DsBox>
+      {error && <p role="alert" className="rounded-[10px] border border-[var(--bad-bd)] bg-[var(--bad-bg)] px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
       {busy && <div className="h-64 animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" />}
       {owners && !busy && (
         owners.length === 0 ? <p className="rounded-xl border border-dashed border-[var(--hairline-strong)] bg-white px-6 py-8 text-center text-[13.5px] text-[var(--text-muted)]">No owner holds {asked}+ properties. Try a lower minimum.</p> : (
           <div className="space-y-2">
             {owners.length >= SERVER_CAP && (
-              <p className="flex gap-2 rounded-lg border border-[var(--hairline)] bg-[var(--surface-sunken)] px-3 py-2 text-[12.5px] text-[var(--text-secondary)]"><Info size={14} className="mt-0.5 shrink-0" /> Capped at the top {SERVER_CAP} by portfolio size — raise the minimum to narrow this down instead of scrolling past it.</p>
+              <p className="flex gap-2 rounded-lg border border-[var(--hairline)] bg-[var(--surface-sunken)] px-3 py-2 text-[12.5px] text-[var(--text-secondary)]"><Info size={14} className="mt-0.5 shrink-0" /> Capped at the top {SERVER_CAP} by portfolio size. Raise the minimum to narrow this down.</p>
             )}
             <div className="flex justify-between text-[12px] text-[var(--text-muted)]"><span>Ranked by portfolio size</span><span><b className="text-[var(--text-primary)]">{shown.length}</b> of {rows.length} shown</span></div>
             {rows.length === 0 ? <p className="rounded-xl border border-dashed border-[var(--hairline-strong)] bg-white px-6 py-6 text-center text-[13px] text-[var(--text-muted)]">No name matches that filter.</p> : (
@@ -77,7 +79,7 @@ export function DsPortfolio({ onExpired, onSearchName }: { onExpired: () => void
                     <span className="figure w-7 text-[12.5px] font-bold text-[var(--text-muted)]">{i + 1}</span>
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--info-bg)] text-[11.5px] font-bold text-[var(--accent)]">{initials(o.name)}</span>
                     <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">{o.name}</span>
-                    <span className="text-end"><span className="figure block text-[15px] font-bold text-[var(--accent)]">{o.units}</span><span className="text-[10.5px] uppercase tracking-wide text-[var(--text-muted)]">units</span></span>
+                    <span className="text-end"><span className="figure block text-[15px] font-bold text-[var(--accent)]">{o.units}</span><span className="text-[12px] font-medium tracking-wide text-[var(--text-muted)]">units</span></span>
                   </button>
                 ))}
               </div>

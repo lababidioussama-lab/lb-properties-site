@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useId, type ReactNode } from "react";
+import { motion } from "motion/react";
 import { X } from "lucide-react";
 import type { Stage } from "@/lib/crm";
 
@@ -77,78 +78,142 @@ export const TONE: Record<Tone, string> = {
   neutral: "bg-[var(--neutral-bg)] text-[var(--neutral)]",
 };
 
-/** 22px chip: sentence case, one tone, at most one dot. */
+/** 22px pill: sentence case, one tone, at most one dot. */
 export function Chip({ tone = "neutral", dot, children, className = "" }: { tone?: Tone; dot?: string; children: ReactNode; className?: string }) {
   return (
-    <span className={`inline-flex h-[22px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-[11px] font-medium ${TONE[tone]} ${className}`}>
+    <span className={`inline-flex h-[22px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[11px] font-medium ${TONE[tone]} ${className}`}>
       {dot && <span className="h-1.5 w-1.5 rounded-full" style={{ background: dot }} />}
       {children}
     </span>
   );
 }
 
+/** A stage is a dot and a word, not a coloured pill: stages are ordinal. */
 export function StageChip({ stage, label }: { stage: Stage; label: string }) {
   return (
-    <span className={`inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-[11px] font-medium ${STAGE_STYLE[stage]}`}>
+    <span className={`inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap text-[12px] font-medium ${STAGE_STYLE[stage]} !bg-transparent`}>
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: STAGE_DOT[stage] }} />
       {label}
     </span>
   );
 }
 
-/* Controls: 32px on desktop, 40px on phones; radius 6; one primary per screen. */
+/* Controls as DB Search draws them: 40px, radius 9-10, a quiet tint by
+   default, and the emerald-to-blue gradient only on a screen's main action. */
 export const INPUT =
-  "w-full h-10 sm:h-8 rounded-md border border-[var(--hairline-strong)] bg-white px-2.5 text-[13px] text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] hover:border-[var(--hairline-strong)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[rgb(11_42_74/0.14)] disabled:bg-[var(--surface-sunken)] disabled:text-[var(--text-muted)] [&:is(textarea)]:h-auto [&:is(textarea)]:py-2";
+  "w-full h-9 rounded-[9px] border border-[var(--hairline)] bg-[var(--input-bg)] px-3.5 text-[14px] text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[var(--accent-wash)] disabled:opacity-60 [&:is(textarea)]:h-auto [&:is(textarea)]:py-2.5";
 
-export const BTN =
-  "inline-flex h-10 sm:h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-[var(--accent-solid)] bg-[var(--accent-solid)] px-3 text-[13px] font-medium text-white transition hover:bg-[var(--accent-solid-hover)] active:translate-y-px disabled:pointer-events-none disabled:opacity-45";
+/** The main button, as DB Search draws its Search and Sign in buttons:
+ *  the emerald-to-blue gradient. */
+export const BTN_GO =
+  "btn-go inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[9px] border border-transparent px-4 text-[13px] font-semibold disabled:pointer-events-none disabled:opacity-60";
+export const BTN = BTN_GO;
 
+/** DB Search's .btn tint: for a second action that still wants colour. */
+export const BTN_TINT =
+  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[9px] border border-[var(--accent-dim)] bg-[var(--accent-wash)] px-4 text-[13px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent-solid)] hover:text-white disabled:pointer-events-none disabled:opacity-50";
+
+/** DB Search's .btn-secondary: outline, muted until hovered. */
 export const BTN_GHOST =
-  "inline-flex h-10 sm:h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-[var(--hairline-strong)] bg-white px-3 text-[13px] font-medium text-[var(--text-primary)] transition hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-hover)] active:translate-y-px disabled:pointer-events-none disabled:opacity-45";
+  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[9px] border border-[var(--hairline)] bg-transparent px-4 text-[13px] font-semibold text-[var(--text-muted)] transition-colors hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] disabled:pointer-events-none disabled:opacity-50";
+
+/** Text only: the quiet third button. */
+export const BTN_QUIET =
+  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[9px] px-2.5 text-[13px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent-wash)] disabled:pointer-events-none disabled:opacity-50";
 
 /** Square icon button; always give it an aria-label. */
 export const BTN_ICON =
-  "inline-flex h-10 w-10 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-md border border-[var(--hairline-strong)] bg-white text-[var(--text-secondary)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]";
+  "inline-flex h-10 w-10 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-[9px] border border-[var(--hairline)] bg-transparent text-[var(--text-muted)] transition-colors hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]";
 
 /** The one line under a page title that replaces rows of KPI tiles. */
 export function StatusLine({ children }: { children: ReactNode }) {
   return <p className="text-[13px] text-[var(--text-secondary)] [&_b]:font-semibold [&_b]:text-[var(--text-primary)] [&_.bad]:text-[var(--bad)]">{children}</p>;
 }
 
-/** Segmented control: Table / Board, Sales / Rentals. */
+/** Segmented control, as DB Search's sign-in switch: the chosen option
+ *  carries the gradient, and it slides to the next choice. */
 export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
+  const group = useId();
   return (
-    <div role="tablist" className="inline-flex shrink-0 gap-0.5 rounded-lg bg-[var(--surface-sunken)] p-0.5">
-      {options.map((o) => (
-        <button key={o.id} role="tab" aria-selected={value === o.id} onClick={() => onChange(o.id)}
-          className={`h-7 rounded-md px-2.5 text-[12px] font-medium transition ${value === o.id ? "bg-white text-[var(--text-primary)] shadow-[0_1px_2px_rgb(21_25_31/0.08)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}>
-          {o.label}
-        </button>
-      ))}
+    <div role="tablist" className="inline-flex shrink-0 gap-0.5 rounded-[12px] border border-[var(--hairline)] bg-[var(--input-bg)] p-1">
+      {options.map((o) => {
+        const on = value === o.id;
+        return (
+          <button key={o.id} role="tab" aria-selected={on} onClick={() => onChange(o.id)}
+            className={`relative h-8 rounded-[9px] px-3 text-[12.5px] font-bold transition-colors ${on ? "text-white" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+            {on && <motion.span layoutId={`seg-${group}`} transition={{ type: "spring", stiffness: 520, damping: 42 }} className="absolute inset-0 rounded-[9px] bg-[image:var(--grad)]" />}
+            <span className="relative">{o.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-/** Underlined saved-view tabs with counts ("My open 18", "Pool 3"). */
-export function ViewTabs<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string; count?: number }[]; onChange: (v: T) => void }) {
+/** DB Search's tabs: equal-width words on one rule; the accent line slides
+ *  under the chosen one. */
+export function ViewTabs<T extends string>({ value, options, onChange, className = "" }: { value: T; options: { id: T; label: string; count?: number }[]; onChange: (v: T) => void; className?: string }) {
+  const group = useId();
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-[var(--hairline)] [scrollbar-width:none]">
-      {options.map((o) => (
-        <button key={o.id} onClick={() => onChange(o.id)}
-          className={`h-9 shrink-0 px-3 text-[13px] font-medium transition ${value === o.id ? "text-[var(--text-primary)] shadow-[inset_0_-2px_0_var(--accent)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}>
-          {o.label}{o.count != null && <span className="ms-1.5 font-normal text-[var(--text-muted)]">{o.count}</span>}
-        </button>
-      ))}
+    <div role="tablist" className={`flex overflow-x-auto border-b border-[var(--hairline)] [scrollbar-width:none] ${className}`}>
+      {options.map((o) => {
+        const on = value === o.id;
+        return (
+          <button key={o.id} role="tab" aria-selected={on} onClick={() => onChange(o.id)}
+            className={`relative h-11 shrink-0 px-4 text-[13px] font-bold transition-colors ${on ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+            {o.label}{o.count != null && <span className="figure ms-1.5 text-[11.5px] font-normal text-[var(--text-muted)]">{o.count}</span>}
+            {on && <motion.span layoutId={`tab-${group}`} transition={{ type: "spring", stiffness: 520, damping: 42 }} className="absolute inset-x-[12%] -bottom-px h-[2px] bg-[var(--accent)]" />}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-/** Card section header: 44px, title, optional count and action. */
+/**
+ * The page head, as DB Search heads a section: the title in its serif, one
+ * muted line under it, a rule with a short accent segment, and the place's
+ * key figure and main action on the right.
+ */
+export function PageHead({ title, lede, figure, figureLabel, action, children }: {
+  title: ReactNode;
+  lede?: ReactNode;
+  figure?: ReactNode;
+  figureLabel?: ReactNode;
+  action?: ReactNode;
+  /** Tabs, set under the head. */
+  children?: ReactNode;
+}) {
+  return (
+    <header className="mb-6 mt-2 md:mt-4">
+      <div className="page-head flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pb-4">
+        <div className="min-w-0">
+          <h1 className="display page-title crm-title text-[var(--text-primary)]">{title}</h1>
+          {lede && <p className="crm-title-after mt-2 max-w-[60ch] text-[13.5px] text-[var(--text-muted)]">{lede}</p>}
+        </div>
+        {(figure != null || action) && (
+          <div className="crm-title-after flex items-end gap-5">
+            {figure != null && (
+              <div className="text-end">
+                <div className="figure text-[22px] leading-none text-[var(--accent)]">{figure}</div>
+                {figureLabel && <div className="ds-label mt-1.5 !text-[10px]">{figureLabel}</div>}
+              </div>
+            )}
+            {action}
+          </div>
+        )}
+      </div>
+      {children && <div className="mt-2">{children}</div>}
+    </header>
+  );
+}
+
+/** Panel section header: 48px, title, optional count and action. */
 export function CardHead({ title, count, action }: { title: ReactNode; count?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex h-11 items-center gap-2 border-b border-[var(--hairline)] px-4">
-      <h2 className="flex-1 truncate text-[14px] font-medium text-[var(--text-primary)]">{title}</h2>
-      {count != null && <span className="text-[12px] text-[var(--text-muted)]">{count}</span>}
+    <div className="flex h-12 items-center gap-3 border-b border-[var(--hairline)] px-5">
+      <h2 className="flex-1 truncate text-[14.5px] font-bold text-[var(--text-primary)]">{title}</h2>
+      {count != null && <span className="figure text-[12px] text-[var(--text-muted)]">{count}</span>}
       {action}
     </div>
   );
@@ -156,16 +221,16 @@ export function CardHead({ title, count, action }: { title: ReactNode; count?: R
 
 export function Label({ children }: { children: ReactNode }) {
   return (
-    <span className="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">
+    <span className="ds-label mb-1.5 block">
       {children}
     </span>
   );
 }
 
-/** White, 1px hairline, radius 8, no shadow: a border or a shadow, never both. */
+/** A glass panel, as DB Search floats its boxes over the stars. */
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-lg border border-[var(--hairline)] bg-[var(--surface-raised)] ${className}`}>{children}</div>
+    <div className={`panel ${className}`}>{children}</div>
   );
 }
 
@@ -198,11 +263,11 @@ export function SidePanel({ title, subtitle, onClose, children, actions, wide = 
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <button aria-label="Close" onClick={close} className="crm-backdrop absolute inset-0 bg-[rgb(11_26_43/0.3)]" />
-      <aside className={`crm-panel relative flex h-full w-full flex-col bg-[var(--surface)] shadow-[-8px_0_24px_rgb(21_25_31/0.12)] ${wide ? "max-w-[1080px]" : "max-w-[560px]"}`}>
-        <header className="flex flex-wrap items-center gap-3 border-b border-[var(--hairline)] bg-white px-5 py-3.5">
+      <button aria-label="Close" onClick={close} className="crm-backdrop absolute inset-0 bg-[rgb(7_9_12/0.42)]" />
+      <aside className={`crm-panel relative flex h-full w-full flex-col border-s border-[var(--hairline)] bg-[var(--surface-solid)] shadow-[var(--shadow-lift)] ${wide ? "max-w-[1080px]" : "max-w-[560px]"}`} style={{ backgroundImage: "var(--page-glow)" }}>
+        <header className="flex flex-wrap items-center gap-3 border-b border-[var(--hairline)] px-6 py-5">
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-[18px] font-semibold leading-tight tracking-[-0.01em] text-[var(--text-primary)]">
+            <h2 className="display truncate py-0.5 text-[22px] text-[var(--text-primary)]">
               {title}
             </h2>
             {subtitle && <div className="mt-1 text-[12px] text-[var(--text-muted)]">{subtitle}</div>}
@@ -218,13 +283,15 @@ export function SidePanel({ title, subtitle, onClose, children, actions, wide = 
   );
 }
 
-/** One empty state everywhere: optional icon, one sentence, optional action. */
+/** One empty state everywhere: one sentence saying what to do, one quiet action. */
 export function Empty({ children, icon, action }: { children: ReactNode; icon?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
-      {icon && <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--surface-sunken)] text-[var(--text-muted)]">{icon}</span>}
-      <p className="text-[13px] text-[var(--text-muted)]">{children}</p>
-      {action}
+    <div className="flex items-start gap-3 px-5 py-8">
+      {icon && <span className="mt-0.5 shrink-0 text-[var(--text-muted)]">{icon}</span>}
+      <div className="space-y-3">
+        <p className="max-w-[48ch] text-[14px] text-[var(--text-secondary)]">{children}</p>
+        {action}
+      </div>
     </div>
   );
 }

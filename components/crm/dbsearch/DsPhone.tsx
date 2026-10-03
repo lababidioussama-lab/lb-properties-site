@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { BadgeCheck, MessageCircle, Phone } from "lucide-react";
+import { DS_CLEAR, DS_GO, DS_INPUT, DS_ROW, DsBox } from "./ui";
+import type { DsFound } from "./DsSearch";
 
 import { ds, dsError, type DsPhoneResult, type DsUsage } from "./api";
 import { DsResultsList } from "./DsResultsList";
@@ -13,7 +15,11 @@ import type { CardActions } from "./DsCardView";
  * A number on the broker register is flagged first, so nobody calls a broker
  * believing they are an owner.
  */
-export function DsPhone({ onExpired, onUsage, onOpenLead, initialQuery = null }: CardActions & {
+export function DsPhone({ onExpired, onUsage, onOpenLead, initialQuery = null, hideForm = false, onFound }: CardActions & {
+  /** Smart search runs the lookup itself and shows only the results. */
+  hideForm?: boolean;
+  /** Told what the lookup found, once it has. */
+  onFound?: (f: DsFound & { agent: string | null }) => void;
   initialQuery?: string | null;
   onUsage: (u: DsUsage, s?: { endsAt: number }) => void;
 }) {
@@ -40,6 +46,7 @@ export function DsPhone({ onExpired, onUsage, onOpenLead, initialQuery = null }:
     }
     onUsage(r.usage, r.session);
     setAsked(query); setData(r);
+    onFound?.({ shown: r.strict.entries.length, withPhone: r.strict.entries.length, communities: [], agent: r.agent?.name ?? null });
   }
 
   useEffect(() => {
@@ -66,25 +73,21 @@ export function DsPhone({ onExpired, onUsage, onOpenLead, initialQuery = null }:
 
   return (
     <div className="space-y-4">
-      <form onSubmit={run} role="search" className="flex h-[52px] overflow-hidden rounded-xl border border-[rgb(11_42_74/0.3)] bg-white shadow-[0_0_0_4px_rgb(11_42_74/0.05)]">
-        <label className="flex flex-1 items-center gap-3 px-4">
-          <Phone size={18} className="text-[var(--accent)]" />
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} maxLength={30} inputMode="tel"
-            placeholder="Phone number — e.g. 050 123 4567, or at least 4 digits"
-            className="h-full flex-1 bg-transparent text-[14px] outline-none" aria-label="Phone number" />
-        </label>
-        <button disabled={busy} className="bg-[var(--accent-solid)] px-7 text-[13px] font-semibold text-white transition hover:bg-[var(--accent-solid-hover)] disabled:opacity-60">
-          {busy ? "Searching…" : "Search"}
-        </button>
-      </form>
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
-      {!data && !busy && (
-        <p className="rounded-xl border border-[var(--hairline)] bg-white p-4 text-[12.5px] text-[var(--text-muted)]">Reverse-search any number and reach the owner. Every owner record carrying it is listed.</p>
+      {!hideForm && (
+        <DsBox label="Phone number" icon={<Phone size={13} />}>
+          <form onSubmit={run} className={DS_ROW}>
+            <input type="tel" inputMode="tel" autoFocus value={q} onChange={(e) => setQ(e.target.value)} maxLength={24}
+              placeholder="e.g. 050 123 4567 or +971 50 123 4567" className={DS_INPUT} aria-label="Phone number" />
+            <button disabled={busy} className={DS_GO}><Phone size={15} /> {busy ? "Searching…" : "Search phone"}</button>
+            <button type="button" onClick={() => { token.current++; setQ(""); setData(null); setAsked(""); setError(null); setBusy(false); }} className={DS_CLEAR}>Clear</button>
+          </form>
+        </DsBox>
       )}
+      {error && <p role="alert" className="rounded-[10px] border border-[var(--bad-bd)] bg-[var(--bad-bg)] px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
       {busy && <div className="h-40 animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" />}
       {data && !busy && (
         <DsResultsList key={asked} data={data} query={null} summary={summary} actions={{ onExpired, onUsage, onOpenLead }}
-          emptyText={agent ? <p className="text-[13px] text-[var(--text-muted)]">No owner record carries this number.</p> : undefined} />
+          emptyText={agent ? <p className="text-[13px] text-[var(--text-muted)]">No record carries this number.</p> : undefined} />
       )}
     </div>
   );

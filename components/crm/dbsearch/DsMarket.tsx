@@ -273,7 +273,7 @@ function Value({ onExpired }: { onExpired: () => void }) {
       {!data ? <Card className="p-8 text-center text-[13.5px] text-[var(--text-secondary)]">Pick a building, project or community and a size. The range comes from registered sales, adjusted to today's price level.</Card> : (
         <div className="space-y-4">
           <div className="rounded-xl bg-[var(--accent-solid)] p-6 text-white">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">Estimated value · {data.subject.name} · {n(data.subject.sqft)} sq ft</p>
+            <p className="text-[12px] font-medium text-[var(--accent)]">Estimated value · {data.subject.name} · {n(data.subject.sqft)} sq ft</p>
             <p className="mt-2 font-[family-name:var(--font-display)] text-[40px] font-semibold leading-none">{aed(data.estimate.low, true)} – {aed(data.estimate.high, true)}</p>
             <p className="mt-2 text-[13px] text-white/75">Middle {aed(data.estimate.mid)} · AED {n(data.psf.median)} per sq ft · from {data.comps.basis_n} {data.comps.basis === "size-similar" ? "similar-size" : ""} sales, adjusted to {data.psf.adjusted_to ? fullDate(data.psf.adjusted_to) : "the latest quarter"}</p>
             <span className={`mt-4 inline-block rounded-full px-3 py-1 text-[12px] font-semibold ${conf === "high" ? "bg-[var(--ok-bg)] text-[var(--ok)]" : conf === "medium" ? "bg-[var(--violet-bg)] text-[var(--violet)]" : "bg-[var(--bad-bg)] text-[var(--bad)]"}`}>

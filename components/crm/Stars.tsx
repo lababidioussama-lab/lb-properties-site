@@ -21,7 +21,7 @@ const DIR = { x: -0.62, y: 0.26 };
 const MAXPX = 2_300_000;
 const SR = 40;
 
-export function Stars() {
+export function Stars({ id }: { id?: string } = {}) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -142,7 +142,7 @@ export function Stars() {
     };
   }, []);
 
-  return <canvas ref={ref} aria-hidden className="crm-stars" />;
+  return <canvas ref={ref} id={id} aria-hidden className={id ? undefined : "crm-stars"} />;
 }
 
 export { setCrmTheme, type CrmTheme } from "@/lib/crm-theme";

@@ -110,7 +110,7 @@ export function DealsView({ t, isAdmin, users, listings, contacts, kyc, userName
         <Card className="overflow-x-auto">
           <table className="w-full text-[12.5px]">
             <thead>
-              <tr className="border-b border-[var(--hairline)] text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              <tr className="border-b border-[var(--hairline)] text-[12px] font-medium text-[var(--text-muted)]">
                 {["Deal", "Type", "Agent", "Price", "Commission", "Agent share", "Closed", "Checklist", "Status"].map((h) => <th key={h} className="px-3 py-3 text-start font-semibold">{h}</th>)}
               </tr>
             </thead>
@@ -144,7 +144,7 @@ export function DealsView({ t, isAdmin, users, listings, contacts, kyc, userName
         </Card>
 
         <Card className="p-4">
-          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Quarterly slab · {thisQuarter}</h3>
+          <h3 className="mb-3 text-[12px] font-medium text-[var(--text-muted)]">Quarterly slab · {thisQuarter}</h3>
           {byAgent.length === 0 ? <Empty>—</Empty> : (
             <ul className="space-y-3">
               {byAgent.map(([agent, e]) => {

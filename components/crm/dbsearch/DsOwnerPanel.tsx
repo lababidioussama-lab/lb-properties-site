@@ -187,7 +187,7 @@ function RevealDialog({ owner, target, onCancel, onDone, onExpired, onUsage }: {
       <div className="crm-pop w-full max-w-[480px] rounded-xl border border-[var(--hairline)] bg-white p-6 shadow-[0_30px_70px_-20px_rgb(15_23_42/0.45)]">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--violet)]">Reveal {target.kind === "email" ? "an email" : "a number"}</p>
+            <p className="text-[12px] font-medium text-[var(--violet)]">Reveal {target.kind === "email" ? "an email" : "a number"}</p>
             <h2 id="ds-reveal-title" className="mt-1 font-[family-name:var(--font-display)] text-[28px] font-semibold">Reveal this {target.kind === "email" ? "email" : "number"}?</h2>
           </div>
           <button onClick={onCancel} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]"><X size={16} /></button>

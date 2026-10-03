@@ -92,7 +92,7 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
       </Card>
 
       <Card className="p-5">
-        <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">This quarter · {thisQuarter}</h3>
+        <h3 className="mb-3 text-[12px] font-medium text-[var(--text-muted)]">This quarter · {thisQuarter}</h3>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div><div className="figure text-[24px] font-semibold text-[var(--text-primary)]">{stats.deals}</div><div className="text-[11px] text-[var(--text-muted)]">Deals</div></div>
           <div><div className="figure text-[24px] font-semibold text-[var(--text-primary)]">{money(stats.earned)}</div><div className="text-[11px] text-[var(--text-muted)]">Earned</div></div>

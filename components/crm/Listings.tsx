@@ -85,12 +85,12 @@ export function ListingsView({ t, isAdmin, users, contacts, userName, prefill, o
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={l.photos[0]} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <div className="grid h-full place-items-center text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)]">No photo</div>
+                  <div className="grid h-full place-items-center text-[12px] font-medium text-[var(--text-muted)]">No photo</div>
                 )}
                 <span className={`absolute start-3 top-3 rounded-full px-2 py-0.5 text-[10.5px] font-semibold capitalize ${STATUS_STYLE[l.status]}`}>
                   {l.status.replace("_", " ")}
                 </span>
-                <span className="absolute end-3 top-3 rounded-full bg-black/60 px-2 py-0.5 text-[10.5px] font-semibold uppercase text-white">
+                <span className="absolute end-3 top-3 rounded-full bg-black/60 px-2 py-0.5 text-[12px] font-medium text-white">
                   For {l.purpose}
                 </span>
                 <span className={`absolute bottom-3 start-3 rounded-full px-2 py-0.5 text-[10.5px] font-semibold capitalize ${APPROVAL_STYLE[l.approval]}`}>

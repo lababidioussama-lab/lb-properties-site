@@ -30,7 +30,7 @@ export function AgentDocuments({ t, onlyUserId }: { t: Table<CrmAgentDocument>; 
   return (
     <Card className="p-5">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">My documents</h3>
+        <h3 className="text-[12px] font-medium text-[var(--text-muted)]">My documents</h3>
         <button onClick={() => setAdding((v) => !v)} className={BTN}><Upload size={14} /> Upload</button>
       </div>
 

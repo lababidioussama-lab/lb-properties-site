@@ -60,7 +60,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (action === "session") {
     const g = await dsGate(request, { allowSignedOut: true });
     if (!g.ok) return g.response;
-    const signedIn = !!signedInAs(request, g.user.id);
+    const signedIn = !!signedInAs(request, g.user.id, (await getSettings(g.db, g.user.id)).kickedAt);
     return g.done({
       signedIn,
       user: { name: g.user.name, role: g.user.role },
@@ -217,6 +217,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     case "pnumber":
     case "listed":
     case "brokers": {
+      if (action === "portfolio" && user.role !== "admin") return fail("forbidden", 403);
       const limited = await quota(user, db, "searches");
       if (limited) return limited;
       const kind = action === "portfolio" ? "portfolio" : action === "area" ? "area" : action === "brokers" ? "brokers"

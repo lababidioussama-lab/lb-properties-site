@@ -40,10 +40,9 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
     const open = visible.filter((l) => l.stage !== "won" && l.stage !== "lost");
     return [
       { label: "New this week", value: String(visible.filter((l) => new Date(l.created_at).getTime() > weekAgo).length) },
-      { label: "Open deals", value: String(open.length) },
       { label: "Pipeline value", value: money(open.reduce((s, l) => s + (Number(l.deal_value_aed) || 0), 0)) },
       { label: "Won value", value: money(visible.filter((l) => l.stage === "won").reduce((s, l) => s + (Number(l.deal_value_aed) || 0), 0)) },
-      { label: "Overdue follow-ups", value: String(open.filter((l) => isOverdue(l.next_follow_up_at)).length + tasks.filter((t) => !t.done_at && isOverdue(t.due_at)).length) },
+      { label: "Overdue follow-ups", value: String(open.filter((l) => isOverdue(l.next_follow_up_at)).length + tasks.filter((t) => !t.done_at && isOverdue(t.due_at)).length), late: true },
     ];
   }, [visible, tasks]);
 
@@ -57,14 +56,16 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
 
   return (
     <div className="flex h-full flex-col gap-5">
-      <div className="hidden grid-cols-2 gap-3 sm:grid md:grid-cols-5">
-        {stats.map((s) => (
-          <Card key={s.label} className="px-5 py-4">
-            <div className="text-[12px] font-medium text-[var(--text-secondary)]">{s.label}</div>
-            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]"><CountText text={s.value} /></div>
-          </Card>
+      {/* The figures as one ruled strip, set in ink: colour is kept for
+          what needs acting on (overdue), not for hierarchy. */}
+      <dl className="hidden grid-cols-4 border-y border-[var(--hairline)] sm:grid">
+        {stats.map((s, i) => (
+          <div key={s.label} className={`py-4 ${i ? "border-s border-[var(--hairline)] ps-6" : ""}`}>
+            <dt className="text-[12px] text-[var(--text-muted)]">{s.label}</dt>
+            <dd className={`figure mt-1.5 whitespace-nowrap text-[22px] leading-none ${"late" in s && s.value !== "0" ? "text-[var(--bad)]" : "text-[var(--text-primary)]"}`}>{s.value}</dd>
+          </div>
         ))}
-      </div>
+      </dl>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">

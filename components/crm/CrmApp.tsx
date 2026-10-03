@@ -3,17 +3,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { DbSearch, DS_TOOLS, DS_VIEWS, type DsView } from "./dbsearch/DbSearch";
+import { DS_TOOLS, DS_VIEWS, type DsView } from "./dbsearch/DbSearch";
+import { DS_CRM_VIEWS, DsInCrm, type DsCrmView } from "./dbsearch/DsInCrm";
 import { Activity, Database, Home, Lock, Moon, Search, History, ShieldCheck, Receipt, KeyRound, Calculator, Menu, X, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList, SlidersHorizontal } from "lucide-react";
 
 import type { CrmContact, CrmDeal, CrmInvoice, CrmKyc, CrmSourceSpend, CrmTenancy, CrmLead, CrmListing, CrmTask, CrmTemplate, CrmUser } from "@/lib/crm";
 import type { SessionUser } from "@/lib/crm-auth";
-import { api, Card, Segmented } from "./shared";
+import { api, BTN, Card, PageHead, ViewTabs } from "./shared";
 import { Pipeline } from "./Pipeline";
 import { LeadPanel } from "./LeadPanel";
 import { ContactsView, ContactPanel } from "./Contacts";
 import { NewTask, TaskGroup } from "./TaskList";
 import { TeamView } from "./Team";
+import { AccessControl } from "./AccessControl";
 import { useTable } from "./useTable";
 import { ListingsView } from "./Listings";
 import { DealsView } from "./Deals";
@@ -41,7 +43,7 @@ import { Stars } from "./Stars";
 import { setCrmTheme, type CrmTheme } from "@/lib/crm-theme";
 import type { CrmAgentRequest } from "@/lib/crm";
 
-type View = DsView | "compliance" | "invoices" | "rentals" | "integrations" | "today" | "tools" | "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
+type View = DsView | "control" | "compliance" | "invoices" | "rentals" | "integrations" | "today" | "tools" | "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
 
 function upsert<T extends { id: string }>(list: T[], item: T, prepend = false): T[] {
   if (list.some((x) => x.id === item.id)) return list.map((x) => (x.id === item.id ? item : x));
@@ -132,16 +134,16 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   const nav: { id: View; label: string; icon: typeof Users; badge?: number; group: string; desc: string }[] = [
     { id: "today", label: "My day", icon: Sun, badge: todayCount, group: "Overview", desc: "What to do first today, in order." },
     { id: "reports", label: "Dashboard", icon: BarChart3, group: "Overview", desc: "Performance across leads, pipeline and commission." },
-    { id: "ds_search", label: "Search", icon: Search, group: "DB Search", desc: "Name, building, unit, villa or plot code — DB Search's own search." },
-    { id: "ds_phone", label: "Phone", icon: PhoneCall, group: "DB Search", desc: "Reverse-search any number and reach the owner." },
-    { id: "ds_brokers", label: "Agents", icon: Search, group: "DB Search", desc: "Licensed brokers from the register, with every number they use." },
-    { id: "ds_portfolio", label: "Portfolio", icon: Search, group: "DB Search", desc: "Owners holding several units, ranked by how many." },
-    { id: "ds_unit", label: "Unit history", icon: History, group: "DB Search", desc: "Every owner of one unit, with dates and prices." },
-    { id: "ds_area", label: "Area prospecting", icon: Search, group: "DB Search", desc: "A building or community, turned into a calling list." },
-    { id: "ds_market", label: "Market & valuation", icon: Search, group: "DB Search", desc: "Registered sales and rents, and a value range from comparables." },
-    { id: "ds_checks", label: "Property checks", icon: Search, group: "DB Search", desc: "DLD permits, live portal listings, and property numbers." },
-    { id: "ds_vastu", label: "Vastu & sun map", icon: Search, group: "DB Search", desc: "Which way a unit faces, its sunlight by season, and its Vastu reading." },
-    ...(isAdmin ? [{ id: "ds_access" as View, label: "Access & activity", icon: ShieldCheck, group: "DB Search", desc: "Who can use DB Search, their daily limits, and everything they did." }] : []),
+    { id: "ds_search", label: "Search", icon: Search, group: "DB Search", desc: "" },
+    { id: "ds_phone", label: "Phone", icon: PhoneCall, group: "DB Search", desc: "" },
+    { id: "ds_brokers", label: "Agents", icon: Search, group: "DB Search", desc: "" },
+    { id: "ds_smart", label: "Smart search", icon: Search, group: "DB Search", desc: "" },
+    { id: "ds_unit", label: "Unit history", icon: History, group: "DB Search", desc: "" },
+    { id: "ds_area", label: "Area prospecting", icon: Search, group: "DB Search", desc: "" },
+    { id: "ds_market", label: "Market & valuation", icon: Search, group: "DB Search", desc: "" },
+    { id: "ds_checks", label: "Property checks", icon: Search, group: "DB Search", desc: "" },
+    { id: "ds_vastu", label: "Vastu & sun map", icon: Search, group: "DB Search", desc: "" },
+    ...(isAdmin ? [{ id: "control" as View, label: "Access & activity", icon: ShieldCheck, group: "Admin", desc: "Block or allow each person in the CRM and DB Search, set their limits, and see everything they did." }] : []),
     { id: "pipeline", label: "Leads", icon: KanbanSquare, badge: leads.filter((l) => l.stage === "new").length, group: "Sales", desc: "Every enquiry, from first contact to closed deal." },
     { id: "temp_leads", label: "Temp leads", icon: PhoneCall, group: "Sales", desc: "Raw calling list, promoted to Leads once qualified." },
     { id: "contacts", label: "Contacts", icon: Users, group: "Sales", desc: "Clients, owners and their properties." },
@@ -151,11 +153,11 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     { id: "owner_requests", label: "Owner requests", icon: KeySquare, group: "Properties", desc: "Owners who want to sell or let through us." },
     { id: "calendar", label: "Calendar", icon: CalendarDays, group: "Workspace", desc: "Viewings, meetings and handovers." },
     { id: "tasks", label: "Tasks", icon: CheckSquare, badge: dueCount, group: "Workspace", desc: "Follow-ups, grouped by when they are due." },
-    { id: "tools", label: "Tools", icon: Calculator, group: "Workspace", desc: "Cost sheets, commission, yield and mortgage — ready to send on WhatsApp." },
+    { id: "tools", label: "Tools", icon: Calculator, group: "Workspace", desc: "Cost sheets, commission, yield and mortgage, ready to send on WhatsApp." },
     { id: "templates", label: "WhatsApp templates", icon: MessageSquareText, group: "WhatsApp", desc: "Reusable messages for one-click replies." },
     { id: "quick_wa", label: "Quick WhatsApp", icon: Send, group: "WhatsApp", desc: "Send one message to a list of leads." },
     ...(isAdmin ? [
-      { id: "compliance" as View, label: "Compliance", icon: ShieldCheck, group: "Admin", desc: "KYC, goAML, licences, permits and rentals — everything that could lead to a fine." },
+      { id: "compliance" as View, label: "Compliance", icon: ShieldCheck, group: "Admin", desc: "KYC, goAML, licences, permits and rentals: everything that could lead to a fine." },
       { id: "invoices" as View, label: "Invoices", icon: Receipt, group: "Admin", desc: "VAT tax invoices for commission, and who still owes us." },
       { id: "monitor" as View, label: "Agent performance", icon: Activity, group: "Admin", desc: "Who is using the CRM, and how each agent is performing." },
       { id: "team" as View, label: "Team", icon: UserCog, group: "Admin", desc: "Agents, roles, commission slabs and targets." },
@@ -176,20 +178,36 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     { id: "listings", label: "Listings", icon: Building2, views: [{ id: "listings", label: "Listings" }] },
     { id: "deals", label: "Deals", icon: HandCoins, views: [{ id: "deals", label: "Sales & off-plan" }, { id: "rentals", label: "Rentals" }, ...(isAdmin ? [{ id: "invoices" as View, label: "Invoices" }] : [])] },
     { id: "calendar", label: "Calendar", icon: CalendarDays, views: [{ id: "calendar", label: "Calendar" }, { id: "tasks", label: "Tasks" }], badge: dueCount, badgeTone: "plain" },
-    { id: "dbsearch", label: "DB Search", icon: Database, views: DS_TOOLS.filter((t) => isAdmin || t.id !== "ds_access").map((t) => ({ id: t.id as View, label: t.label })) },
+    { id: "dbsearch", label: "DB Search", icon: Database, views: DS_TOOLS.map((t) => ({ id: t.id as View, label: t.label })) },
     { id: "reports", label: "Reports", icon: BarChart3, views: [{ id: "reports", label: "Overview" }, ...(isAdmin ? [{ id: "monitor" as View, label: "Team" }] : [])] },
     { id: "tools", label: "Tools", icon: Calculator, views: [{ id: "tools", label: "Calculators" }, { id: "templates", label: "WhatsApp templates" }, { id: "quick_wa", label: "Quick WhatsApp" }], group: "workspace" },
     ...(isAdmin ? [{ id: "admin", label: "Team & rules", icon: SlidersHorizontal, group: "workspace" as const, views: [
-      { id: "team" as View, label: "Team" }, { id: "integrations" as View, label: "Lead sources" }, { id: "compliance" as View, label: "Compliance" },
+      { id: "team" as View, label: "Team" }, { id: "control" as View, label: "Access & activity" }, { id: "integrations" as View, label: "Lead sources" }, { id: "compliance" as View, label: "Compliance" },
       { id: "requests" as View, label: "Requests" }, { id: "team_docs" as View, label: "Documents" }, { id: "audit" as View, label: "Audit log" },
     ] }] : []),
   ];
-  const inDbSearch = view.startsWith("ds_");
+  /* DB Search's own tabs open on its page; Market, Checks, Vastu and Access
+     are CRM screens. */
+  const inDbSearch = (DS_VIEWS as string[]).includes(view);
   /* DB Search lives on its own link and opens in its own tab. */
   const dbSearchHref = demo ? "/admin/db-search?demo" : "/admin/db-search";
   const initials = (me_?.full_name ?? "?").split(" ").map((w) => w[0]).slice(0, 2).join("");
   const section = sections.find((sec) => sec.views.some((v) => v.id === view)) ?? (view === "profile" ? { id: "profile", label: "My profile", icon: UserCircle, views: [{ id: "profile" as View, label: "My profile" }] } : sections[0]);
 
+  const openLeads = leads.filter((l) => ["new", "contacted", "viewing", "offer"].includes(l.stage) && (isAdmin || l.owner_id === me.id)).length;
+  const HEAD: Partial<Record<View, { figure: number; label: string }>> = {
+    pipeline: { figure: openLeads, label: openLeads === 1 ? "open lead" : "open leads" },
+    temp_leads: { figure: openLeads, label: "open leads in the pipeline" },
+    contacts: { figure: contacts.length, label: contacts.length === 1 ? "person" : "people" },
+    listings: { figure: listings.rows.length, label: listings.rows.length === 1 ? "listing" : "listings" },
+    deals: { figure: deals.rows.length, label: deals.rows.length === 1 ? "deal" : "deals" },
+    rentals: { figure: tenancies.rows.length, label: tenancies.rows.length === 1 ? "tenancy" : "tenancies" },
+    calendar: { figure: dueCount, label: "tasks due in the next day" },
+    tasks: { figure: dueCount, label: "tasks due in the next day" },
+    team: { figure: users.length, label: "people on the team" },
+  };
+  const head = HEAD[view];
+  useEffect(() => { window.name = "lababidi-crm"; }, []);
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     const fromHash = () => {
@@ -241,7 +259,8 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   }
 
   const sideItem = (on: boolean) =>
-    `relative flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-[13px] font-medium transition-colors ${on ? "bg-[var(--side-active)] text-[var(--side-active-fg)] shadow-[inset_3px_0_0_var(--accent-solid)]" : "text-[var(--side-muted)] hover:bg-[var(--side-hover)] hover:text-[var(--side-fg)]"}`;
+    `relative flex h-9 w-full items-center gap-3 rounded-md ps-3 pe-2 text-[14px] transition-colors ${on ? "font-medium text-[var(--side-fg)]" : "text-[var(--side-muted)] hover:bg-[var(--side-hover)] hover:text-[var(--side-fg)]"}`;
+  const marker = <motion.span layoutId="side-marker" transition={{ type: "spring", stiffness: 520, damping: 44 }} className="absolute inset-y-2 start-0 w-[2px] rounded-full bg-[var(--accent-solid)]" />;
   const badge = (n: number, tone?: "bad" | "plain") =>
     <span className={`grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[11px] font-semibold ${tone === "bad" ? "bg-[var(--bad)] text-white" : "bg-[var(--accent-solid)] text-white"}`}>{n}</span>;
   const [theme, setTheme] = useState<CrmTheme>("dark");
@@ -251,14 +270,10 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   return (
     <div className="relative flex min-h-screen text-[var(--text-primary)]">
       <Stars />
-      <aside className="sticky top-0 z-10 hidden h-screen w-[232px] shrink-0 flex-col gap-4 border-e border-[var(--side-border)] bg-[var(--side-bg)] px-3 pb-3 pt-5 text-[var(--side-fg)] backdrop-blur-xl md:flex">
-        <div className="flex items-center gap-2.5 px-2">
-          <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="" width={26} height={26} />
-          <div className="leading-none">
-            <div className="font-[family-name:var(--font-wordmark)] text-[15px] tracking-[0.14em]">LABABIDI</div>
-            <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--side-faint)]">Properties CRM</div>
-          </div>
-        </div>
+      <aside className="sticky top-0 z-10 hidden h-screen w-[240px] shrink-0 flex-col gap-5 border-e border-[var(--side-border)] bg-[var(--side-bg)] px-4 pb-4 pt-7 text-[var(--side-fg)] md:flex">
+        <button onClick={() => setView("today")} aria-label="Lababidi Properties, home" className="block w-fit px-2">
+          <Image src={theme === "dark" ? "/logo-full-white.png" : "/logo-full.png"} alt="Lababidi Properties" width={72} height={82} priority />
+        </button>
         <div className="[&_button]:!h-8 [&_button]:!rounded-md [&_button]:!border-[var(--side-border)] [&_button]:!bg-[var(--side-field)] [&_button]:!text-[var(--side-muted)] hover:[&_button]:!text-[var(--side-fg)]">
           <CommandSearch
             leads={leads}
@@ -279,7 +294,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             if (sec.id === "dbsearch") {
               return (
                 <a key={sec.id} href={dbSearchHref} target="lababidi-db-search" rel="opener" className={sideItem(false)} title="Opens DB Search in its own tab">
-                  <sec.icon size={16} strokeWidth={1.75} />
+                  <sec.icon size={16} strokeWidth={1.5} />
                   <span className="flex-1 text-start">DB Search</span>
                   <ExternalLink size={12} className="opacity-60" />
                 </a>
@@ -288,7 +303,8 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             return (
               <div key={sec.id}>
                 <button onClick={() => setView(on ? view : sec.views[0].id)} aria-current={on ? "page" : undefined} className={sideItem(on)}>
-                  <sec.icon size={16} strokeWidth={1.75} />
+                  {on && marker}
+                  <sec.icon size={16} strokeWidth={1.5} />
                   <span className="flex-1 text-start">{sec.label}</span>
                   {sec.id === "dbsearch" && <Lock size={12} className="opacity-60" />}
                   {!!sec.badge && badge(sec.badge, sec.badgeTone)}
@@ -296,15 +312,16 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
               </div>
             );
           })}
-          <div className="px-2.5 pb-1.5 pt-5 text-[11px] font-medium text-[var(--side-faint)]">Workspace</div>
+          <div className="mx-3 my-4 h-px bg-[var(--side-border)]" />
           {sections.filter((sec) => sec.group === "workspace").map((sec) => (
             <button key={sec.id} onClick={() => setView(section.id === sec.id ? view : sec.views[0].id)} aria-current={section.id === sec.id ? "page" : undefined} className={sideItem(section.id === sec.id)}>
-              <sec.icon size={16} strokeWidth={1.75} />
+              {section.id === sec.id && marker}
+              <sec.icon size={16} strokeWidth={1.5} />
               <span className="flex-1 text-start">{sec.label}</span>
             </button>
           ))}
           {isAdmin && <a href="/documents" target="_blank" rel="noopener noreferrer" className={sideItem(false)}>
-            <FileText size={16} strokeWidth={1.75} />
+            <FileText size={16} strokeWidth={1.5} />
             <span className="flex-1 text-start">Company documents</span>
             <ExternalLink size={12} className="opacity-50" />
           </a>}
@@ -330,39 +347,28 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
       </aside>
 
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        {/* One thin bar: the place, its tabs, then New, alerts and you. */}
-        <header className="sticky top-0 z-30 border-b border-[var(--hairline)] bg-white">
-          <div className="flex h-14 items-center gap-3 px-4 md:px-8">
-            <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="" width={22} height={22} className="md:hidden" />
-            <h1 className="truncate text-[18px] font-semibold tracking-[-0.01em] md:text-[20px]">{section.label}</h1>
-            {section.views.length > 1 && !inDbSearch && (
-              <div className="hidden md:block"><Segmented value={view} options={section.views} onChange={(v) => setView(v)} /></div>
-            )}
+        {/* One thin utility bar: theme, alerts and you. The place itself is
+            set large in the page head below. */}
+        <header className="sticky top-0 z-30 bg-[color-mix(in_srgb,var(--canvas)_80%,transparent)] backdrop-blur-md">
+          <div className="flex h-14 items-center gap-2 px-5 md:px-12">
+            <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="Lababidi Properties" width={28} height={28} className="md:hidden" />
             <div className="flex-1" />
             <button onClick={flipTheme} aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} title={theme === "dark" ? "Light mode" : "Dark mode"}
-              className="grid h-8 w-8 place-items-center rounded-md border border-[var(--hairline-strong)] text-[var(--text-secondary)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
-              {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+              className="grid h-9 w-9 place-items-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+              {theme === "dark" ? <Sun size={16} strokeWidth={1.5} /> : <Moon size={16} strokeWidth={1.5} />}
             </button>
             <NotificationBell leads={leads} tasks={tasks} listings={listings.rows} isAdmin={isAdmin} meId={me.id} onOpenLead={setLeadId} />
             <button onClick={() => setView("profile")} aria-label="My profile" title="My profile"
-              className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-[var(--accent-solid)] text-[11px] font-semibold text-white">
+              className="ms-1 grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-[var(--text-primary)] text-[11px] font-semibold text-[var(--canvas)]">
               {me_?.avatar_url
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={me_.avatar_url} alt="" className="h-full w-full object-cover" />
                 : initials}
             </button>
           </div>
-          {section.views.length > 1 && (
-            <div className={`flex gap-1 overflow-x-auto px-4 pb-2 [scrollbar-width:none] ${inDbSearch ? "md:px-8" : "md:hidden"}`}>
-              {section.views.map((v) => (
-                <button key={v.id} onClick={() => setView(v.id)}
-                  className={`h-8 shrink-0 rounded-md px-3 text-[13px] font-medium ${view === v.id ? "bg-[var(--surface-sunken)] text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>{v.label}</button>
-              ))}
-            </div>
-          )}
         </header>
 
-        <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-24 pt-5 md:px-8 md:pt-6">
+        <main className="mx-auto w-full max-w-[1408px] flex-1 px-5 pb-28 pt-2 md:px-12">
 
           {problem && (
             <Card className="mb-5 border-[var(--bad)]/40 p-4 text-[13px] text-[var(--text-secondary)]">
@@ -373,15 +379,28 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
 
           {/* A new key replays the entrance on every screen change. DB Search's
               tabs share one key, so its session and state survive moving between them. */}
+          {view !== "today" && (
+            <PageHead key={`head-${section.id}`} title={section.id === "profile" ? "My profile" : section.label} lede={inDbSearch ? undefined : nav.find((n) => n.id === view)?.desc}
+              figure={head?.figure} figureLabel={head?.label}>
+              {section.views.length > 1 && <ViewTabs value={view} options={section.views} onChange={(v) => setView(v)} />}
+            </PageHead>
+          )}
           <div key={inDbSearch ? "db_search" : view} className="crm-stagger">
           {view === "today" && (
             <MyDay loaded={loaded} me={me_} isAdmin={isAdmin} leads={leads} tasks={tasks} tenancies={tenancies.rows} onOpenRentals={() => setView("rentals")} userName={userName}
               onOpenLead={setLeadId} onTask={onTask} onRemoveTask={onRemoveTask} />
           )}
           {(DS_VIEWS as string[]).includes(view) && (
-            <DbSearch view={view as DsView} onView={setView} meEmail={me_?.email ?? ""} isAdmin={isAdmin} onOpenLead={setLeadId} />
+            <Card className="flex flex-col items-start gap-3 p-6">
+              <h2 className="text-[16px] font-semibold">DB Search opens in its own tab</h2>
+              <p className="text-[13px] text-[var(--text-secondary)]">It has its own sign-in code, so it runs in a separate window. Leads you open from it come back here.</p>
+              <a href={`${dbSearchHref}#${view}`} target="lababidi-db-search" className={BTN}>Open DB Search</a>
+            </Card>
           )}
           {view === "tools" && <ToolsView />}
+          {(DS_CRM_VIEWS as string[]).includes(view) && isAdmin && (
+            <DsInCrm view={view as DsCrmView} dbSearchHref={dbSearchHref} onOpenLead={setLeadId} />
+          )}
           {view === "reports" && <ReportsView leads={leads} deals={deals.rows} users={users} userName={userName} spend={isAdmin ? spend : null} />}
           {view === "listings" && (
             <ListingsView t={listings} isAdmin={isAdmin} users={users} contacts={contacts} userName={userName}
@@ -432,6 +451,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             <TasksView tasks={tasks} users={users} isAdmin={isAdmin} userName={userName} onTask={onTask} onRemoveTask={onRemoveTask} />
           )}
           {view === "team" && isAdmin && <TeamView users={users} meId={me.id} onUser={onUser} />}
+          {view === "control" && isAdmin && <AccessControl meId={me.id} />}
           {view === "audit" && isAdmin && <AuditView userName={userName} />}
           {view === "monitor" && isAdmin && <TeamMonitor users={users} leads={leads} tasks={tasks} deals={deals.rows} />}
           {view === "team_docs" && isAdmin && <TeamDocuments users={users} />}

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { MessageCircle, Phone, UserPlus } from "lucide-react";
 
 import { ds, dsError } from "./api";
+import { DS_CLEAR, DS_GO, DS_INPUT, DS_ROW, DsBox } from "./ui";
 
 interface Contact { phone: string | null; dial: string | null; company: string | null; brn: string | null }
 interface Broker { name: string; company: string | null; nationality: string | null; brn: string | null; contactCount: number; contacts: Contact[] }
@@ -34,12 +35,15 @@ export function DsBrokers({ onExpired }: { onExpired: () => void }) {
 
   return (
     <div className="space-y-4">
-      <form onSubmit={run} className="flex h-[52px] overflow-hidden rounded-xl border border-[rgb(11_42_74/0.3)] bg-white shadow-[0_0_0_4px_rgb(11_42_74/0.05)]">
-        <label className="flex flex-1 items-center gap-3 px-4"><UserPlus size={18} className="text-[var(--accent)]" />
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Agent name" maxLength={120} className="h-full flex-1 bg-transparent text-[14px] outline-none" aria-label="Agent name" /></label>
-        <button disabled={busy} className="bg-[var(--accent-solid)] px-7 text-[13px] font-semibold text-white disabled:opacity-60">{busy ? "Searching…" : "Search"}</button>
-      </form>
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
+      <DsBox label="Agent name" icon={<UserPlus size={13} />}>
+        <form onSubmit={run} className={DS_ROW}>
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. Mohammed Ali" maxLength={120} autoComplete="off" className={DS_INPUT} aria-label="Agent name" />
+          <button disabled={busy} className={DS_GO}>{busy ? "Searching…" : "Search agents"}</button>
+          <button type="button" onClick={() => { setQ(""); setRows(null); setAsked(""); setError(null); }} className={DS_CLEAR}>Clear</button>
+        </form>
+        <p className="mt-2.5 text-[12px] text-[var(--text-muted)]">Names only. For a number, use the Phone tab: it flags the number if it belongs to an agent.</p>
+      </DsBox>
+      {error && <p role="alert" className="rounded-[10px] border border-[var(--bad-bd)] bg-[var(--bad-bg)] px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
       {busy && <div className="h-40 animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" />}
       {rows && !busy && (rows.length === 0
         ? <p className="rounded-xl border border-dashed border-[var(--hairline-strong)] bg-white px-6 py-8 text-center text-[13.5px] text-[var(--text-muted)]">No agent found for “{asked}”.</p>

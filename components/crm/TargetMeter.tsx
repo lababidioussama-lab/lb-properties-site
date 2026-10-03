@@ -37,20 +37,20 @@ export function TargetMeter({ me, deals, variant }: { me: CrmUser | undefined; d
   }
 
   return (
-    <div className="rounded-lg border border-[var(--side-border)] bg-[var(--side-field)] px-3 py-2.5">
-      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--side-faint)]">
-        <Target size={12} className="text-[var(--accent)]" /> Target · {q}
-        {target > 0 && <span className="figure ms-auto text-[12px] normal-case tracking-normal text-[var(--side-fg)]">{outcome.pct}%</span>}
+    <div className="border-t border-[var(--side-border)] px-3 pt-4">
+      <div className="flex items-center gap-2 text-[12px] font-medium text-[var(--side-muted)]">
+        <Target size={13} strokeWidth={1.5} /> Target for {q}
+        {target > 0 && <span className="figure ms-auto text-[12px] text-[var(--side-fg)]">{outcome.pct}%</span>}
       </div>
       {target ? (
         <>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--side-hover)]"><div className={`h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} /></div>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--hairline-strong)]"><div className={`h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} /></div>
           <div className="figure mt-1.5 flex justify-between text-[11px] text-[var(--side-muted)]">
             <span>AED {compact(achieved)} of {compact(target)}</span>
             <span>{days} days left</span>
           </div>
         </>
-      ) : <div className="mt-1 text-[11.5px] text-[var(--side-muted)]">No target set yet — ask your admin.</div>}
+      ) : <div className="mt-1 text-[11.5px] text-[var(--side-muted)]">No target set yet. Ask your admin.</div>}
     </div>
   );
 }

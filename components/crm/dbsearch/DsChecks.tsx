@@ -63,7 +63,7 @@ export function DsChecks({ mode, onMode, onExpired, onOpenOwner }: { mode: Check
           {permits.permits.map((p) => (
             <Card key={p.permit_number} className="p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--violet)]">Trakheesi permit</p><p className="figure mt-1 text-[22px] font-semibold">{p.permit_number}</p></div>
+                <div><p className="text-[12px] font-medium text-[var(--violet)]">Trakheesi permit</p><p className="figure mt-1 text-[22px] font-semibold">{p.permit_number}</p></div>
                 {p.validation_url && <a href={p.validation_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--accent)] hover:underline">Verify on DLD <ExternalLink size={13} /></a>}
               </div>
               <dl className="mt-4 grid gap-x-6 gap-y-2 text-[13px] sm:grid-cols-2">

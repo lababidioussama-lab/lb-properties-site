@@ -48,7 +48,7 @@ function Bars({ rows, format = String }: { rows: { label: string; value: number 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Card className="p-5">
-      <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{title}</h3>
+      <h3 className="mb-4 text-[12px] font-medium text-[var(--text-muted)]">{title}</h3>
       {children}
     </Card>
   );
@@ -135,7 +135,7 @@ export function ReportsView({ leads, deals, users, userName, spend }: {
         <Panel title="Agent leaderboard">
           <table className="w-full text-[12.5px]">
             <thead>
-              <tr className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+              <tr className="text-[12px] font-medium text-[var(--text-muted)]">
                 {["Agent", "Leads", "Won", "Overdue", "Reply time", "Deals", "Earned"].map((h) => <th key={h} className="pb-2 text-start font-semibold">{h}</th>)}
               </tr>
             </thead>
@@ -190,7 +190,7 @@ function PortalRoi({ leads, deals, spend, since }: { leads: CrmLead[]; deals: Cr
     <Panel title="Portals: speed, conversion and cost">
       <div className="overflow-x-auto">
         <table className="w-full text-[12.5px]">
-          <thead><tr className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">{head.map((h) => <th key={h} className="pb-2 pe-3 text-start font-semibold">{h}</th>)}</tr></thead>
+          <thead><tr className="text-[12px] font-medium text-[var(--text-muted)]">{head.map((h) => <th key={h} className="pb-2 pe-3 text-start font-semibold">{h}</th>)}</tr></thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.key} className="border-t border-[var(--hairline)]">

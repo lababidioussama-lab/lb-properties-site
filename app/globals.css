@@ -772,141 +772,199 @@ select {
 }
 
 /* ============================================================================
-   CRM SHELL — a light, calm workspace for a data app read for hours:
-   white cards on warm grey, brand navy for actions, gold only as a marker.
+   CRM SHELL
    ========================================================================= */
-/* CRM theme: design A's layout in DB Search's colours (dbsearchdubai.com).
-   Light: soft grey and the deep DB Search blue. Dark: near-black, glass
-   panels, the bright DB Search blue and the star field. Switched in the top
-   bar and remembered per browser (localStorage "crm:theme"). */
+/* CRM theme = dbsearchdubai.com's own look (its "v2" styles), so the CRM and
+   DB Search read as one product: slate night with an emerald and a blue glow,
+   glass panels, serif titles, mono labels and figures, quiet tinted buttons,
+   and the emerald-to-blue gradient only on each screen's main action.
+   Light is DB Search's paper theme. Switched in the top bar and remembered
+   per browser (localStorage "crm:theme"). */
 html.crm-shell {
   color-scheme: light;
-  --surface: #f3f3f3;
-  --surface-raised: #ffffff;
-  --surface-sunken: #f0f0f0;
-  --surface-hover: #f6f7f9;
-  --glass-bg: rgb(255 255 255 / 0.85);
-  --glass-bg-strong: rgb(255 255 255 / 0.95);
-  --glass-border: rgb(0 0 0 / 0.08);
-  --hairline: rgb(0 0 0 / 0.08);
-  --hairline-soft: rgb(0 0 0 / 0.05);
-  --hairline-strong: rgb(0 0 0 / 0.16);
-  --text-primary: #111111;
-  --text-secondary: #444444;
-  --text-muted: #666666;
-  --text-disabled: #a3a3a3;
+  --canvas: #e6dfdb;
+  --sheet: #fffdfc;
+  --ink: #1a1214;
+  --graphite: #6a5f63;
+  --rule: rgb(26 18 20 / 0.16);
+
+  --surface: var(--canvas);
+  --surface-raised: var(--sheet);
+  --surface-solid: var(--sheet);
+  --surface-sunken: #f4eeeb;
+  --surface-hover: rgb(0 0 0 / 0.045);
+  --glass-bg: var(--sheet);
+  --glass-bg-strong: var(--sheet);
+  --glass-border: var(--rule);
+  --hairline: var(--rule);
+  --hairline-soft: rgb(26 18 20 / 0.09);
+  --hairline-strong: rgb(26 18 20 / 0.22);
+  --text-primary: var(--ink);
+  --text-secondary: #3d3437;
+  --text-muted: var(--graphite);
+  --text-disabled: #a59a9e;
+  --input-bg: #fffdfc;
   --accent: #2158d0;
-  --accent-bright: #3d7dff;
-  --accent-wash: rgb(33 88 208 / 0.08);
-  --accent-dim: rgb(33 88 208 / 0.4);
+  --accent-bright: #3b82f6;
+  --accent-wash: rgb(33 88 208 / 0.075);
+  --accent-dim: rgb(33 88 208 / 0.32);
   --accent-solid: #2158d0;
   --accent-solid-hover: #1a48b0;
-  --accent-glow: rgb(33 88 208 / 0.35);
-  --violet: #7c5ce0; --violet-bg: rgb(139 92 246 / 0.08); --violet-bd: rgb(139 92 246 / 0.35);
-  --shadow-card: none;
-  --shadow-pop: 0 10px 30px rgb(0 0 0 / 0.12);
-  --shadow-lift: 0 20px 50px rgb(0 0 0 / 0.18);
-  --side-bg: #ffffff;
-  --side-border: rgb(0 0 0 / 0.08);
-  --side-fg: #111111;
-  --side-muted: #555555;
-  --side-faint: #8a8a8a;
-  --side-hover: rgb(0 0 0 / 0.04);
-  --side-active: rgb(33 88 208 / 0.1);
-  --side-active-fg: #2158d0;
-  --side-field: rgb(0 0 0 / 0.03);
-  --ok: #228844; --ok-bg: rgb(34 136 68 / 0.1); --ok-bd: rgb(34 136 68 / 0.3);
-  --warn: #9a6400; --warn-bg: rgb(245 158 11 / 0.14); --warn-bd: rgb(245 158 11 / 0.4);
+  --accent-glow: rgb(33 88 208 / 0.45);
+  --violet: var(--accent); --violet-bg: var(--accent-wash); --violet-bd: var(--accent-dim);
+  --emerald: #10b981;
+  --grad: linear-gradient(135deg, #10b981 0%, #0ea5e9 48%, #3b82f6 100%);
+  --shadow-card: 0 1px 2px rgb(26 18 20 / 0.055), 0 16px 34px -26px rgb(26 18 20 / 0.75);
+  --shadow-pop: 0 20px 50px rgb(0 0 0 / 0.12);
+  --shadow-lift: 0 30px 70px rgb(0 0 0 / 0.18);
+  --side-bg: rgb(255 253 252 / 0.72);
+  --side-border: var(--rule);
+  --side-fg: var(--ink);
+  --side-muted: #4f4549;
+  --side-faint: var(--graphite);
+  --side-hover: rgb(0 0 0 / 0.045);
+  --side-active: var(--accent-wash);
+  --side-active-fg: var(--accent);
+  --side-field: var(--sheet);
+  --ok: #188a4d; --ok-bg: rgb(24 138 77 / 0.09); --ok-bd: rgb(24 138 77 / 0.3);
+  --warn: #8a5a00; --warn-bg: rgb(214 140 0 / 0.12); --warn-bd: rgb(214 140 0 / 0.4);
   --bad: #cc2222; --bad-bg: rgb(204 34 34 / 0.08); --bad-bd: rgb(204 34 34 / 0.3);
-  --info: #2158d0; --info-bg: rgb(33 88 208 / 0.08); --info-bd: rgb(33 88 208 / 0.3);
-  --neutral: #555555; --neutral-bg: rgb(0 0 0 / 0.05); --neutral-bd: rgb(0 0 0 / 0.1);
-  --wa: #1c9f4f;
-  --font-display: var(--font-crm), system-ui, sans-serif;
-  --font-sans: var(--font-crm), system-ui, sans-serif;
-  --font-body: var(--font-crm), system-ui, sans-serif;
+  --info: var(--accent); --info-bg: var(--accent-wash); --info-bd: var(--accent-dim);
+  --neutral: var(--graphite); --neutral-bg: rgb(0 0 0 / 0.05); --neutral-bd: rgb(0 0 0 / 0.1);
+  --wa: #0f7a3d;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --font-display: var(--serif);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-body: var(--font-sans);
+  --font-numeric: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --radius-panel: 14px;
+  --radius-control: 9px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 16px;
+  --glass-edge: none;
+  --page-glow: radial-gradient(rgb(26 18 20 / 0.05) 1px, transparent 1px);
+  --stars-opacity: 0.8;
+  --snap: 140ms cubic-bezier(0.3, 0.9, 0.3, 1);
+  --cine: 520ms cubic-bezier(0.3, 0.7, 0.2, 1);
 }
 html.crm-shell[data-theme="dark"] {
   color-scheme: dark;
-  --surface: #050505;
-  --surface-raised: rgb(22 22 22 / 0.78);
-  --surface-sunken: rgb(31 31 31 / 0.85);
-  --surface-hover: rgb(255 255 255 / 0.04);
-  --glass-bg: rgb(22 22 22 / 0.78);
-  --glass-bg-strong: rgb(22 22 22 / 0.94);
-  --glass-border: rgb(255 255 255 / 0.07);
-  --hairline: rgb(255 255 255 / 0.08);
-  --hairline-soft: rgb(255 255 255 / 0.05);
-  --hairline-strong: rgb(255 255 255 / 0.16);
-  --text-primary: #ffffff;
-  --text-secondary: #c9c9c9;
-  --text-muted: #a0a0a0;
-  --text-disabled: #6b6b6b;
+  --canvas: #0f172a;
+  --sheet: rgb(30 41 59 / 0.55);
+  --ink: #e2e8f0;
+  --graphite: #94a3b8;
+  --rule: rgb(148 163 184 / 0.14);
+
+  --surface-solid: #172033;
+  --surface-sunken: rgb(15 23 42 / 0.65);
+  --surface-hover: rgb(255 255 255 / 0.05);
+  --glass-bg: rgb(30 41 59 / 0.78);
+  --glass-bg-strong: rgb(30 41 59 / 0.94);
+  --hairline-soft: rgb(148 163 184 / 0.08);
+  --hairline-strong: rgb(148 163 184 / 0.24);
+  --text-secondary: #c3cddb;
+  --text-disabled: #5b6b82;
+  --input-bg: rgb(15 23 42 / 0.65);
   --accent: #5b92ff;
-  --accent-bright: #86afff;
-  --accent-wash: rgb(61 125 255 / 0.12);
-  --accent-dim: rgb(61 125 255 / 0.45);
-  --accent-solid: #3d7dff;
+  --accent-bright: #93c5fd;
+  --accent-wash: rgb(59 130 246 / 0.14);
+  --accent-dim: rgb(59 130 246 / 0.45);
+  --accent-solid: #3b82f6;
   --accent-solid-hover: #2f6be6;
-  --accent-glow: rgb(61 125 255 / 0.8);
-  --violet: #a78bfa; --violet-bg: rgb(139 92 246 / 0.15); --violet-bd: rgb(139 92 246 / 0.4);
-  --shadow-pop: 0 10px 30px rgb(0 0 0 / 0.5);
-  --shadow-lift: 0 20px 50px rgb(0 0 0 / 0.6);
-  --side-bg: rgb(12 12 14 / 0.82);
-  --side-border: rgb(255 255 255 / 0.07);
-  --side-fg: #ffffff;
-  --side-muted: #b5b5b5;
-  --side-faint: #7d7d7d;
+  --accent-glow: rgb(59 130 246 / 0.7);
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 18px 40px -18px rgb(2 6 23 / 0.7);
+  --shadow-pop: 0 20px 50px rgb(2 6 23 / 0.6);
+  --shadow-lift: 0 30px 70px rgb(2 6 23 / 0.7);
+  --side-bg: rgb(15 23 42 / 0.55);
+  --side-muted: #b3bfcf;
   --side-hover: rgb(255 255 255 / 0.05);
-  --side-active: rgb(61 125 255 / 0.16);
-  --side-active-fg: #86afff;
-  --side-field: rgb(0 0 0 / 0.6);
-  --ok: #4ade80; --ok-bg: rgb(74 222 128 / 0.12); --ok-bd: rgb(74 222 128 / 0.4);
+  --side-field: rgb(15 23 42 / 0.65);
+  --ok: #43c97c; --ok-bg: rgb(67 201 124 / 0.12); --ok-bd: rgb(67 201 124 / 0.4);
   --warn: #fbbf24; --warn-bg: rgb(251 191 36 / 0.12); --warn-bd: rgb(251 191 36 / 0.4);
   --bad: #ff6b6b; --bad-bg: rgb(255 77 77 / 0.12); --bad-bd: rgb(255 77 77 / 0.4);
-  --info: #5b92ff; --info-bg: rgb(61 125 255 / 0.12); --info-bd: rgb(61 125 255 / 0.45);
-  --neutral: #b5b5b5; --neutral-bg: rgb(255 255 255 / 0.06); --neutral-bd: rgb(255 255 255 / 0.12);
-  --wa: #25d366;
+  --neutral-bg: rgb(255 255 255 / 0.06); --neutral-bd: rgb(255 255 255 / 0.12);
+  --wa: #3ddc84;
+  --glass-edge: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --page-glow: radial-gradient(1100px 620px at 8% -12%, rgb(16 185 129 / 0.09), transparent 62%), radial-gradient(1000px 640px at 105% 6%, rgb(59 130 246 / 0.11), transparent 60%);
+  --stars-opacity: 1;
 }
-/* Glass panels over the stars, as on DB Search. */
-html.crm-shell[data-theme="dark"] main .rounded-lg.border,
-html.crm-shell[data-theme="dark"] main .rounded-xl.border { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-/* Components written with literal white follow the theme. */
-html.crm-shell[data-theme="dark"] .bg-white { background-color: var(--surface-raised); }
-html.crm-shell[data-theme="dark"] header.bg-white { background-color: rgb(8 8 10 / 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-html.crm-shell[data-theme="dark"] input, html.crm-shell[data-theme="dark"] select, html.crm-shell[data-theme="dark"] textarea { color: var(--text-primary); background-color: rgb(0 0 0 / 0.6); }
-html.crm-shell[data-theme="dark"] option { background: #151515; }
-html.crm-shell[data-theme="dark"] ::-webkit-scrollbar-thumb { background: rgb(255 255 255 / 0.14); background-clip: content-box; }
-html.crm-shell .crm-stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-html.crm-shell body { font-family: var(--font-crm), system-ui, sans-serif; line-height: 1.45; -webkit-font-smoothing: antialiased; font-feature-settings: "tnum" 1; }
+html.crm-shell body {
+  background: var(--page-glow), var(--canvas);
+  background-attachment: fixed;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 1, "cv11" 1;
+}
+html.crm-shell:not([data-theme="dark"]) body { background-size: 23px 23px; }
 
-/* CRM motion: quick and quiet. It is a working tool, so nothing here is
-   slower than ~0.45s and nothing moves more than 10px. */
+/* Type roles, as DB Search sets them: serif titles, mono labels and figures. */
+html.crm-shell .display { font-family: var(--serif); font-weight: 600; letter-spacing: -0.022em; line-height: 1.06; }
+html.crm-shell .mono, html.crm-shell .figure { font-family: var(--font-numeric); font-variant-numeric: tabular-nums; letter-spacing: -0.015em; }
+html.crm-shell .figure { font-weight: 500; }
+html.crm-shell .ds-label { font-family: var(--font-numeric); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+
+/* Glass: one recipe for everything that floats over the ground. */
+html.crm-shell .panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius-panel); box-shadow: var(--shadow-card); }
+html.crm-shell[data-theme="dark"] .panel { backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2); }
+html.crm-shell :focus-visible { outline: 2px solid var(--emerald); outline-offset: 2px; }
+html.crm-shell[data-theme="dark"] main .rounded-lg.border,
+html.crm-shell[data-theme="dark"] main .rounded-xl.border { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+html.crm-shell .bg-white { background-color: var(--sheet); }
+html.crm-shell input, html.crm-shell select, html.crm-shell textarea { color: var(--text-primary); }
+html.crm-shell[data-theme="dark"] input, html.crm-shell[data-theme="dark"] select, html.crm-shell[data-theme="dark"] textarea { background-color: var(--input-bg); }
+html.crm-shell[data-theme="dark"] input:focus, html.crm-shell[data-theme="dark"] select:focus, html.crm-shell[data-theme="dark"] textarea:focus { border-color: rgb(16 185 129 / 0.6); box-shadow: 0 0 0 3px rgb(16 185 129 / 0.16); }
+html.crm-shell[data-theme="dark"] option { background: #172033; }
+html.crm-shell .crm-stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: var(--stars-opacity); transition: opacity 0.4s ease; }
+
+/* The one main action on a screen: DB Search's emerald-to-blue gradient. */
+html.crm-shell .btn-go { background-image: var(--grad); background-size: 160% 100%; background-position: 0 0; color: #fff; border-color: transparent; box-shadow: 0 8px 22px -12px rgb(16 185 129 / 0.6); transition: background-position 0.35s ease, transform 0.15s ease, box-shadow 0.2s ease; }
+html.crm-shell .btn-go:hover { background-position: 100% 0; box-shadow: 0 12px 28px -10px rgb(16 185 129 / 0.6); }
+html.crm-shell:not([data-theme="dark"]) .btn-go { box-shadow: 0 6px 16px -6px rgb(33 88 208 / 0.45); }
+
+/* Page head, as DB Search's section header: left aligned, a rule with a
+   short accent segment. */
+html.crm-shell .page-title { font-size: clamp(1.7rem, 3.4vw, 2.3rem); }
+html.crm-shell .page-head { position: relative; border-bottom: 1px solid var(--rule); }
+html.crm-shell .page-head::after { content: ""; position: absolute; left: 0; bottom: -1px; width: 64px; height: 1px; background: var(--accent); }
+
+/* Motion: DB Search's two speeds. */
 @keyframes crm-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes crm-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes crm-slide-in { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes crm-pop { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
-/* Each screen's top-level blocks arrive one after another. */
-html.crm-shell .crm-stagger > * { animation: crm-rise 0.45s var(--ease-lux) both; }
+html.crm-shell .crm-title { animation: crm-rise 0.46s cubic-bezier(0.16, 0.9, 0.28, 1) both; }
+html.crm-shell .crm-title-after { animation: crm-fade 0.46s ease 0.1s both; }
+html.crm-shell .crm-stagger > * { animation: crm-rise 0.46s cubic-bezier(0.16, 0.9, 0.28, 1) both; }
 html.crm-shell .crm-stagger > *:nth-child(2) { animation-delay: 0.05s; }
 html.crm-shell .crm-stagger > *:nth-child(3) { animation-delay: 0.1s; }
-html.crm-shell .crm-stagger > *:nth-child(4) { animation-delay: 0.15s; }
-html.crm-shell .crm-stagger > *:nth-child(n + 5) { animation-delay: 0.2s; }
+html.crm-shell .crm-stagger > *:nth-child(n + 4) { animation-delay: 0.15s; }
 html.crm-shell .crm-panel { animation: crm-slide-in 0.38s var(--ease-lux) both; }
 html.crm-shell .crm-backdrop { animation: crm-fade 0.3s ease both; }
 html.crm-shell .crm-pop { animation: crm-pop 0.22s var(--ease-lux) both; }
 html.crm-shell .crm-sheet { animation: crm-rise 0.3s var(--ease-lux) both; }
+html.crm-shell .row-actions { opacity: 0; transition: opacity var(--snap); }
+html.crm-shell .row:hover .row-actions, html.crm-shell .row:focus-within .row-actions { opacity: 1; }
+@media (hover: none) { html.crm-shell .row-actions { opacity: 1; } }
+html.crm-shell button:not(:disabled):active, html.crm-shell a.btn:active { transform: scale(0.975); }
 @media (prefers-reduced-motion: reduce) {
   html.crm-shell .crm-stagger > *, html.crm-shell .crm-panel, html.crm-shell .crm-backdrop,
-  html.crm-shell .crm-pop, html.crm-shell .crm-sheet { animation: none; }
+  html.crm-shell .crm-pop, html.crm-shell .crm-sheet, html.crm-shell .crm-title, html.crm-shell .crm-title-after { animation: none; }
+  html.crm-shell button:active { transform: none; }
 }
-html.crm-shell ::-webkit-scrollbar { width: 10px; height: 10px; }
-html.crm-shell ::-webkit-scrollbar-thumb { background: rgb(15 23 42 / 0.15); border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
+html.crm-shell ::-webkit-scrollbar { width: 8px; height: 8px; }
+html.crm-shell ::-webkit-scrollbar-thumb { background: rgb(148 163 184 / 0.25); border-radius: 8px; }
+html.crm-shell ::-webkit-scrollbar-track { background: transparent; }
 html.crm-shell select { cursor: pointer; }
 
-/* Tables: one treatment everywhere. */
-html.crm-shell main table thead tr { background: var(--surface-sunken); }
-html.crm-shell main table thead th { color: var(--text-muted); font-weight: 500; font-size: 11px; letter-spacing: 0.04em; }
-html.crm-shell main table tbody tr { transition: background-color 0.15s; }
+/* Tables: DB Search's mono column heads. */
+html.crm-shell main table thead tr { background: transparent; }
+html.crm-shell main table thead th { color: var(--text-muted); font-family: var(--font-numeric); font-weight: 600; font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase; }
+html.crm-shell main table tbody tr { transition: background-color var(--snap); }
 html.crm-shell main table tbody tr:hover { background: var(--surface-hover); }
 @media (max-width: 767px) {
   html.crm-shell main table th,

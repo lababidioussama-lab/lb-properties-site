@@ -81,7 +81,7 @@ export function ContactsView({ contacts, kyc, isAdmin, users, userName, onContac
       <Card className="overflow-x-auto">
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="border-b border-[var(--hairline)] text-start text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <tr className="border-b border-[var(--hairline)] text-start text-[12px] font-medium text-[var(--text-muted)]">
               {["Name", "Type", "Status", "KYC", "Phone", "Email", "Agent", "Added"].map((h) => <th key={h} className="px-4 py-3 text-start font-semibold">{h}</th>)}
             </tr>
           </thead>
@@ -237,7 +237,7 @@ export function ContactPanel({ contact, kyc, listings, leads, tasks, users, isAd
           <ul className="mb-3 space-y-1.5">
             {properties.map((p) => (
               <li key={p.id} className="flex items-center gap-3 rounded-lg border border-[var(--hairline)] px-3 py-2 text-[12.5px]">
-                <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${p.relation === "owns" ? "bg-emerald-50 text-emerald-700" : "bg-sky-50 text-sky-700"}`}>{p.relation}</span>
+                <span className={`rounded px-1.5 py-0.5 text-[12px] font-medium ${p.relation === "owns" ? "bg-emerald-50 text-emerald-700" : "bg-sky-50 text-sky-700"}`}>{p.relation}</span>
                 <span className="flex-1 text-[var(--text-primary)]">
                   {[p.community, p.building, p.unit && `Unit ${p.unit}`, p.bedrooms].filter(Boolean).join(" · ") || "—"}
                 </span>

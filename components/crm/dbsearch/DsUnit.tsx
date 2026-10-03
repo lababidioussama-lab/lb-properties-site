@@ -64,7 +64,7 @@ export function DsUnit({ initial, onExpired, onUsage, onOpenOwner }: {
       {unit && !busy && unit.chosen && (
         <div className="grid items-start gap-5 lg:grid-cols-[1.15fr_1fr]">
           <Card className="p-5">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--violet)]">{unit.chosen}</p>
+            <p className="text-[12px] font-medium text-[var(--violet)]">{unit.chosen}</p>
             <h2 className="mt-1 font-[family-name:var(--font-display)] text-[32px] font-semibold leading-none">Unit {unit.code}</h2>
             {unit.places.length > 1 && <button onClick={() => look(unit.code)} className="mt-2 text-[12.5px] font-semibold text-[var(--accent)] hover:underline">Different building</button>}
 

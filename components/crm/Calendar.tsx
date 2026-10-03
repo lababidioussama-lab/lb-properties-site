@@ -65,7 +65,7 @@ export function CalendarView({ isAdmin, users, leads, listings, userName }: {
         </div>
 
         <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-[var(--hairline)] bg-[var(--hairline)]">
-          {WEEKDAYS.map((d) => <div key={d} className="bg-[var(--surface-sunken)] py-2 text-center text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{d}</div>)}
+          {WEEKDAYS.map((d) => <div key={d} className="bg-[var(--surface-sunken)] py-2 text-center text-[12px] font-medium text-[var(--text-muted)]">{d}</div>)}
           {days.map((d) => {
             const inMonth = d.getMonth() === cursor.getMonth();
             const dayEvents = events.filter((e) => sameDay(new Date(e.starts_at), d));
@@ -88,7 +88,7 @@ export function CalendarView({ isAdmin, users, leads, listings, userName }: {
       </Card>
 
       <Card className="p-4">
-        <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Coming up</h3>
+        <h3 className="mb-3 text-[12px] font-medium text-[var(--text-muted)]">Coming up</h3>
         {upcoming.length === 0 ? <Empty>No upcoming appointments.</Empty> : (
           <ul className="space-y-2.5">
             {upcoming.map((e) => (

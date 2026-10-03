@@ -24,7 +24,7 @@ export function MyRequests({ t, listings, onlyUserId }: { t: Table<CrmAgentReque
   return (
     <Card className="p-5">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">My requests</h3>
+        <h3 className="text-[12px] font-medium text-[var(--text-muted)]">My requests</h3>
         <button onClick={() => setAdding((v) => !v)} className={BTN}><Plus size={14} /> New request</button>
       </div>
 
@@ -76,7 +76,7 @@ export function RequestsQueue({ t, userName }: { t: Table<CrmAgentRequest>; user
     <Card className="overflow-x-auto">
       <table className="w-full text-[13px]">
         <thead>
-          <tr className="border-b border-[var(--hairline)] text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+          <tr className="border-b border-[var(--hairline)] text-[12px] font-medium text-[var(--text-muted)]">
             {["Agent", "Type", "Title", "Details", "Status", "Added"].map((h) => <th key={h} className="px-4 py-3 text-start font-semibold">{h}</th>)}
           </tr>
         </thead>

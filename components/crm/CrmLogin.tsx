@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Image from "next/image";
+import { ArrowLeft, Lock, ShieldCheck } from "lucide-react";
 import { WELCOME_FLAG } from "./Greeting";
+import { Stars } from "./Stars";
 
 const MESSAGES: Record<string, string> = {
   rate_limited: "Too many attempts. Wait fifteen minutes.",
@@ -14,34 +16,35 @@ const MESSAGES: Record<string, string> = {
   code_expired: "That code has expired. Sign in again.",
   wait: "Wait 30 seconds before asking for another code.",
   invalid_credentials: "Email or password is not right.",
-  account_disabled: "Your account is switched off. Ask the admin to turn it on (Team page).",
+  account_disabled: "Your account is blocked. Ask the admin to allow it again.",
   invalid: "Enter your email and password.",
   bad_origin: "Blocked as a cross-site request. Open the CRM from its own address.",
-  admin_only: "The Documents are for the admin account only.",
+  admin_only: "Company documents are for the admin account only.",
 };
 
-/* The same sign-in serves the CRM and the Documents suite; only the words
-   change, so the two never drift apart in look or in behaviour. */
+/* The same sign-in serves the CRM and Company documents; only the words
+   change. Drawn as DB Search draws its sign-in: one glass card, the logo,
+   the two steps, the gradient button. No photo. */
 const COPY = {
   crm: {
-    kicker: "Private workspace",
-    headline: <>Every lead, listing and deal, <em className="text-[var(--accent)]">in one place</em>.</>,
-    blurb: "For the Lababidi Properties team only. Access is logged; sessions expire after ten hours.",
-    title: "Sign in",
-    intro: "Use the email and password your admin gave you. We will then email you a security code.",
-    mark: "Properties CRM",
+    title: "Lababidi CRM",
+    intro: "Sign in with the email and password your admin gave you. We then email you a security code.",
+    done: "Verify and sign in",
   },
   documents: {
-    kicker: "Documents · Admin only",
-    headline: <>The document suite, <em className="text-[var(--accent)]">behind its own key</em>.</>,
-    blurb: "Offers, receipts and forms. Opens with the admin account and a code emailed as a Documents sign-in; stays open for four hours.",
-    title: "Documents sign-in",
-    intro: "Use the admin email and password. We will email you a code marked “Documents sign-in”.",
-    mark: "Documents",
+    title: "Company documents",
+    intro: "Admin only. Sign in with the admin email and password; we then email you a code marked “Documents sign-in”.",
+    done: "Open the documents",
   },
 };
 
-export function CrmLogin({ configured, purpose = "crm" }: { configured: boolean; purpose?: "crm" | "documents" }) {
+export function CrmLogin({ configured, purpose = "crm", crmSignedIn = false }: {
+  configured: boolean;
+  purpose?: "crm" | "documents";
+  /** Documents only: the admin is already signed in to the CRM in this
+   *  browser (with a code), so the password alone opens the documents. */
+  crmSignedIn?: boolean;
+}) {
   const copy = COPY[purpose];
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,6 +54,8 @@ export function CrmLogin({ configured, purpose = "crm" }: { configured: boolean;
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [dark, setDark] = useState(true);
+  useEffect(() => { setDark(document.documentElement.dataset.theme !== "light"); }, []);
 
   async function call(body: Record<string, unknown>) {
     setBusy(true);
@@ -95,110 +100,92 @@ export function CrmLogin({ configured, purpose = "crm" }: { configured: boolean;
     else setError(MESSAGES[r.error ?? ""] ?? "Could not send a new code.");
   }
 
-  return (
-    <main className="grid min-h-screen bg-[var(--surface)] lg:grid-cols-[1.1fr_1fr]">
-      <section className="relative hidden overflow-hidden bg-[var(--accent-solid)] lg:block">
-        <Image src="/brand/reception.jpg" alt="" fill priority sizes="55vw" className="object-cover opacity-55" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgb(11_26_43/0.55),rgb(11_26_43/0.2)_40%,rgb(11_26_43/0.92))]" />
-        <div className="relative flex h-full flex-col justify-between p-12 text-white">
-          <div className="flex items-center gap-3">
-            <Image src="/logo-icon-white.png" alt="" width={40} height={40} priority />
-            <div className="leading-none">
-              <div className="font-[family-name:var(--font-wordmark)] text-[19px] tracking-[0.16em]">LABABIDI</div>
-              <div className="mt-1.5 text-[9.5px] font-semibold uppercase tracking-[0.34em] text-[var(--accent)]">Properties</div>
-            </div>
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">{copy.kicker}</p>
-            <h2 className="mt-4 max-w-[16ch] font-[family-name:var(--font-display)] text-[46px] font-medium leading-[1.05]">
-              {copy.headline}
-            </h2>
-            <p className="mt-5 max-w-[46ch] text-[14px] leading-[1.8] text-white/70">
-              {copy.blurb}
-            </p>
-          </div>
-        </div>
-      </section>
+  const oneStep = purpose === "documents" && crmSignedIn;
+  const stepCls = (on: boolean) => `rounded-[9px] py-2 ${on ? "bg-[image:var(--grad)] text-white" : "text-[var(--text-muted)]"}`;
 
-      <section className="flex items-center justify-center px-6 py-16">
-        <div className="w-full max-w-[380px]">
-          <div className="flex items-center gap-3 lg:hidden">
-            <Image src="/logo-icon.png" alt="" width={38} height={38} priority />
-            <div className="leading-none">
-              <div className="font-[family-name:var(--font-wordmark)] text-[17px] tracking-[0.16em] text-[var(--text-primary)]">LABABIDI</div>
-              <div className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.34em] text-[var(--gold)]">{copy.mark}</div>
-            </div>
-          </div>
-          <h1 className="mt-10 font-[family-name:var(--font-display)] text-[38px] font-semibold leading-none text-[var(--text-primary)] lg:mt-0">
-            {step === "password" ? copy.title : "Check your email"}
-          </h1>
-          <p className="mt-3 text-[13.5px] text-[var(--text-muted)]">{step === "password" ? copy.intro : purpose === "documents" ? "Enter the code from the email marked “Documents sign-in”." : "Enter the security code from your email."}</p>
+  return (
+    <main className="relative flex min-h-[100dvh] flex-col px-4">
+      <Stars />
+      {purpose === "documents" && (
+        <div className="relative z-10 mx-auto flex w-full max-w-[1100px] justify-end pt-3">
+          <a href="/admin" className="inline-flex h-8 items-center gap-1.5 rounded-[8px] px-2.5 text-[12px] font-semibold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+            <ArrowLeft size={14} /> Back to CRM
+          </a>
+        </div>
+      )}
+      <div className="relative z-10 flex flex-1 items-center justify-center py-12">
+        <div className="panel crm-title w-full max-w-[430px] px-7 py-8 !shadow-[var(--shadow-lift)] sm:px-8">
+          <Image src={dark ? "/logo-icon-white.png" : "/logo-icon.png"} alt="Lababidi Properties" width={52} height={52} priority />
+          <h1 className="display mt-4 text-[27px] text-[var(--text-primary)]">{step === "password" ? copy.title : "Check your email"}</h1>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--text-muted)]">
+            {step === "otp"
+              ? <>We emailed a 6-digit code to <span className="font-semibold text-[var(--text-primary)]">{hint}</span>. It expires in 10 minutes.</>
+              : oneStep ? "You are signed in to the CRM, so your password alone opens the documents. No second code." : copy.intro}
+          </p>
 
           {!configured ? (
-            <p className="mt-8 rounded-xl border border-[var(--hairline)] bg-white p-5 text-[13px] leading-[1.8] text-[var(--text-secondary)]">
+            <p className="mt-6 rounded-[10px] border border-[var(--hairline)] bg-[var(--input-bg)] p-4 text-[13px] leading-[1.7] text-[var(--text-secondary)]">
               Set <code className="figure">ADMIN_EMAIL</code>, <code className="figure">ADMIN_PASSWORD</code> (12+
               characters) and the Supabase keys on the server, then restart.
             </p>
           ) : (
-            <form onSubmit={submit} className="mt-8 space-y-5">
-              {step === "password" ? (
-                <>
-                  <Field label="Email">
-                    <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT} />
-                  </Field>
-                  <Field label="Password">
-                    <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={INPUT} />
-                  </Field>
-                </>
-              ) : (
-                <>
-                  <div className="rounded-xl border border-[var(--hairline)] bg-white p-4 text-[13px] leading-[1.6] text-[var(--text-secondary)]">
-                    We emailed a 6-digit code to <span className="font-semibold text-[var(--text-primary)]">{hint}</span>. It expires in 10 minutes.
-                  </div>
-                  <Field label="Security code">
-                    <input
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      autoFocus
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      placeholder="••••••"
-                      className={`${INPUT} figure text-center !text-[22px] tracking-[0.5em]`}
-                    />
-                  </Field>
-                </>
-              )}
-              {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[12.5px] text-[var(--bad)]">{error}</p>}
-              {note && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[12.5px] text-emerald-700">{note}</p>}
-              <button
-                type="submit"
-                disabled={busy || (step === "password" ? !email || !password : code.length !== 6)}
-                className="h-11 w-full rounded-lg bg-[var(--accent-solid)] text-[14px] font-semibold text-white shadow-[0_1px_2px_rgb(11_42_74/0.3)] transition hover:bg-[var(--accent-solid-hover)] disabled:opacity-50"
-              >
-                {busy ? "Checking…" : step === "password" ? "Continue" : purpose === "documents" ? "Open the documents" : "Verify and sign in"}
-              </button>
-              {step === "otp" && (
-                <div className="flex items-center justify-between text-[12.5px]">
-                  <button type="button" onClick={resend} disabled={busy} className="font-medium text-[var(--accent)] hover:underline">Resend code</button>
-                  <button type="button" onClick={() => { setStep("password"); setError(null); setNote(null); }} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">Use a different account</button>
+            <>
+              {!oneStep && (
+                <div className="mt-5 grid grid-cols-2 gap-1 rounded-[12px] border border-[var(--hairline)] bg-[var(--input-bg)] p-1 text-center text-[12.5px] font-bold">
+                  <span className={stepCls(step === "password")}>1. Password</span>
+                  <span className={stepCls(step === "otp")}>2. Email code</span>
                 </div>
               )}
-            </form>
+              <form onSubmit={submit} className="mt-5 space-y-4">
+                {step === "password" ? (
+                  <>
+                    <Field label="Email">
+                      <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT} />
+                    </Field>
+                    <Field label="Password">
+                      <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={INPUT} />
+                    </Field>
+                  </>
+                ) : (
+                  <Field label="Security code">
+                    <input inputMode="numeric" autoComplete="one-time-code" autoFocus value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000"
+                      className={`${INPUT} mono !h-14 text-center !text-[22px] tracking-[0.3em]`} />
+                  </Field>
+                )}
+                {error && <p role="alert" className="rounded-[10px] border border-[var(--bad-bd)] bg-[var(--bad-bg)] px-3 py-2 text-[12.5px] text-[var(--bad)]">{error}</p>}
+                {note && <p className="rounded-[10px] border border-[var(--ok-bd)] bg-[var(--ok-bg)] px-3 py-2 text-[12.5px] text-[var(--ok)]">{note}</p>}
+                <button type="submit" disabled={busy || (step === "password" ? !email || !password : code.length !== 6)}
+                  className="btn-go inline-flex h-12 w-full items-center justify-center gap-2 rounded-[9px] text-[14px] font-semibold disabled:opacity-60">
+                  <Lock size={15} /> {busy ? "Checking…" : step === "password" ? (oneStep ? copy.done : "Continue") : copy.done}
+                </button>
+                {step === "otp" && (
+                  <div className="flex items-center justify-between text-[12.5px]">
+                    <button type="button" onClick={resend} disabled={busy} className="font-semibold text-[var(--accent)] hover:underline">Send a new code</button>
+                    <button type="button" onClick={() => { setStep("password"); setError(null); setNote(null); }} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">Use a different account</button>
+                  </div>
+                )}
+              </form>
+            </>
           )}
-          <p className="mt-10 text-[11.5px] text-[var(--text-muted)]">© Lababidi Properties · DET licence 1652937</p>
+          <p className="mt-6 flex gap-2 border-t border-[var(--hairline)] pt-4 text-[11.5px] leading-relaxed text-[var(--text-muted)]">
+            <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+            {purpose === "documents" ? "Documents stay open for four hours. Every sign-in is recorded." : "Every sign-in is recorded. Sessions end after ten hours."}
+          </p>
         </div>
-      </section>
+      </div>
+      <p className="relative z-10 pb-6 text-center text-[11px] text-[var(--text-muted)]">© Lababidi Properties · DET licence 1652937</p>
     </main>
   );
 }
 
 export const INPUT =
-  "h-11 w-full rounded-lg border border-[var(--hairline-strong)] bg-white px-3.5 text-[14px] text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[rgb(11_42_74/0.12)]";
+  "h-12 w-full rounded-[10px] border border-[var(--hairline)] bg-[var(--input-bg)] px-3.5 text-[15px] text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[var(--accent-wash)]";
 
-export function Field({ label, children }: { label: string; children: React.ReactNode }) {
+export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[12px] font-semibold text-[var(--text-secondary)]">{label}</span>
+      <span className="ds-label mb-1.5 block">{label}</span>
       {children}
     </label>
   );

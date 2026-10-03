@@ -157,8 +157,10 @@ export interface DsSettings {
   lists: number;
   lockedAt: string | null;
   lockReason: string | null;
+  /** "Sign out now": DB Search sessions opened before this moment stop working. */
+  kickedAt: string | null;
 }
-const DEFAULT_SETTINGS: DsSettings = { access: false, searches: 200, reveals: 40, lists: 50, lockedAt: null, lockReason: null };
+const DEFAULT_SETTINGS: DsSettings = { access: false, searches: 200, reveals: 40, lists: 50, lockedAt: null, lockReason: null, kickedAt: null };
 
 export async function getSettings(db: SupabaseClient, userId: string): Promise<DsSettings> {
   const { data } = await db.from("crm_audit").select("detail")
@@ -286,7 +288,10 @@ export async function dsGate(request: NextRequest, { allowSignedOut = false } = 
       : { searches: settings.searches, reveals: settings.reveals, lists: settings.lists },
   };
 
-  const ds = readDsSession(request.cookies.get(DS_COOKIE)?.value);
+  const read = readDsSession(request.cookies.get(DS_COOKIE)?.value);
+  /* An admin's "Sign out now" ends every DB Search session opened before it. */
+  const kicked = !!read && !!settings.kickedAt && read.abs - DS_ABS_MS < Date.parse(settings.kickedAt);
+  const ds = kicked ? null : read;
   // The DB Search session must belong to the person signed in to the CRM.
   if (!ds || ds.id !== crm.id) {
     if (allowSignedOut) return { ok: true, user, db, done: (body, status = 200) => NextResponse.json({ ok: true, ...body }, { status, headers: { "Cache-Control": "no-store" } }) };
@@ -302,7 +307,8 @@ export async function dsGate(request: NextRequest, { allowSignedOut = false } = 
   return { ok: true, user, db, done };
 }
 
-export function signedIn(request: NextRequest, userId: string): DsSession | null {
+export function signedIn(request: NextRequest, userId: string, kickedAt: string | null = null): DsSession | null {
   const ds = readDsSession(request.cookies.get(DS_COOKIE)?.value);
+  if (ds && kickedAt && ds.abs - DS_ABS_MS < Date.parse(kickedAt)) return null;
   return ds && ds.id === userId ? ds : null;
 }
