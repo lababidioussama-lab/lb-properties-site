@@ -82,7 +82,6 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   const [contactId, setContactId] = useState<string | null>(null);
   const listings = useTable<CrmListing>("listings");
   const [listingPrefill, setListingPrefill] = useState<Record<string, string> | null>(null);
-  const [tempLeadPromote, setTempLeadPromote] = useState<Record<string, string> | null>(null);
   const [loaded, setLoaded] = useState(false);
   const deals = useTable<CrmDeal>("deals");
   const templates = useTable<CrmTemplate & { created_at?: string }>("templates");
@@ -411,13 +410,26 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
               isAdmin={isAdmin}
               users={users}
               userName={userName}
-              onPromote={(row) => {
-                setTempLeadPromote({ full_name: row.full_name, phone: row.phone, source: "referral" });
+              onPromote={async (row) => {
+                /* Promote really creates the lead, carrying the name, number
+                   and notes over, and opens it. */
+                type Dup = { existing: string };
+                const r = await api<{ rows: CrmLead[]; duplicates: Dup[] }>("POST", "data/leads", {
+                  rows: [{ full_name: row.full_name, phone: row.phone, notes: row.notes ?? null, source: "other", owner_id: row.owner_id ?? me.id }],
+                });
+                const made = (r.rows as CrmLead[] | undefined)?.[0];
+                if (!made) {
+                  const d = (r.duplicates as Dup[] | undefined)?.[0];
+                  return d ? `Already a lead in the CRM (as ${d.existing}). Nothing was created.` : `Could not create the lead (${r.error ?? "unknown error"}).`;
+                }
+                onLead(made);
                 setView("pipeline");
+                setLeadId(made.id);
+                return null;
               }}
             />
           )}
-          {view === "quick_wa" && <QuickWhatsAppView leads={leads} templates={templates.rows} meName={me_?.full_name ?? "the team"} />}
+          {view === "quick_wa" && <QuickWhatsAppView leads={leads} templates={templates.rows} meName={me_?.full_name ?? "the team"} meId={me.id} isAdmin={isAdmin} />}
           {view === "profile" && me_ && <AgentProfileView me={me_} isAdmin={isAdmin} deals={deals.rows} listings={listings.rows} onMeUpdate={onUser} />}
           {view === "requests" && isAdmin && <RequestsQueue t={requestsTable} userName={userName} />}
           {view === "owner_requests" && (

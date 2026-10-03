@@ -132,12 +132,16 @@ export function ReasonForm({ mode, onSubmit, onCancel }: {
 }) {
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
-  const reasons = mode === "lost" ? LOST_REASONS : ["Can't handle this area", "Manager asked", "Too many leads", ...LOST_REASONS.slice(0, 3)];
+  /* Releasing hands a LIVE lead to a colleague. A dead lead (no answer, low
+     budget, not interested) is disqualified instead, so it never comes back
+     round the pool for someone else to waste a call on. */
+  const reasons = mode === "lost" ? LOST_REASONS : ["Can't handle this area", "Too many leads right now", "Language: better with a colleague", "On leave", "Manager asked"];
   return (
     <div className="space-y-2.5 rounded-lg border border-red-200 bg-red-50/60 p-3">
       <div className="text-[13px] font-medium text-[var(--text-primary)]">
         {mode === "lost" ? "Disqualify this lead" : "Release this lead to the open pool"}
       </div>
+      {mode === "release" && <p className="text-[12px] text-[var(--text-secondary)]">Only for a lead a colleague can still win. If the client is not interested or cannot be reached, use Disqualify.</p>}
       <select value={reason} onChange={(e) => setReason(e.target.value)} className={INPUT}>
         <option value="">Choose a reason</option>
         {reasons.map((r) => <option key={r} value={r}>{r}</option>)}

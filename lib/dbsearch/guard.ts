@@ -220,11 +220,32 @@ export async function countSince(db: SupabaseClient, userId: string, actions: Ds
   return count ?? 0;
 }
 
+/* Numbers revealed are counted per RECORD, not per click: revealing an owner
+   and then saving them as a lead is one number seen, so it costs one, not
+   two. Rows with no target (older ones) each count once. */
+const REVEALS: DsAction[] = ["reveal", "to_lead", "to_contact"];
+export async function revealsSince(db: SupabaseClient, userId: string, since: string): Promise<number> {
+  const { data } = await db.from("crm_audit").select("detail")
+    .eq("entity", "dbsearch").eq("entity_id", userId).in("action", REVEALS).gte("created_at", since).limit(2000);
+  const seen = new Set<string>(); let loose = 0;
+  for (const r of data ?? []) {
+    const t = (r.detail as { target?: string | null } | null)?.target;
+    if (t) seen.add(t); else loose++;
+  }
+  return seen.size + loose;
+}
+/** Has this person already revealed this record today? Then saving it costs nothing more. */
+export async function revealedToday(db: SupabaseClient, userId: string, target: string): Promise<boolean> {
+  const { count } = await db.from("crm_audit").select("id", { count: "exact", head: true })
+    .eq("entity", "dbsearch").eq("entity_id", userId).in("action", REVEALS).gte("created_at", dubaiMidnight()).eq("detail->>target", target);
+  return (count ?? 0) > 0;
+}
+
 export async function usageToday(db: SupabaseClient, userId: string) {
   const since = dubaiMidnight();
   const [searches, reveals, lists] = await Promise.all([
     countSince(db, userId, LOOKUPS, since),
-    countSince(db, userId, ["reveal", "to_lead", "to_contact"], since),
+    revealsSince(db, userId, since),
     countSince(db, userId, ["to_temp"], since),
   ]);
   return { searches, reveals, lists };
@@ -240,7 +261,9 @@ const BURSTS: { actions: DsAction[]; minutes: number; max: number; reason: strin
 export async function lockIfBurst(db: SupabaseClient, user: DsUser, request: NextRequest): Promise<boolean> {
   if (user.role === "admin") return false;
   for (const b of BURSTS) {
-    const n = await countSince(db, user.id, b.actions, new Date(Date.now() - b.minutes * 60_000).toISOString());
+    const from = new Date(Date.now() - b.minutes * 60_000).toISOString();
+    // The reveal burst counts records, so reveal-then-save is not mistaken for scraping.
+    const n = b.actions.includes("reveal") ? await revealsSince(db, user.id, from) : await countSince(db, user.id, b.actions, from);
     if (n >= b.max) {
       await putSettings(db, null, user.id, { lockedAt: new Date().toISOString(), lockReason: b.reason });
       await audit(db, user, "locked", { detail: { reason: b.reason }, request });

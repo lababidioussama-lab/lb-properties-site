@@ -45,7 +45,16 @@ export const toInputDate = (iso: string | null) => {
 
 export const isOverdue = (iso: string | null) => !!iso && new Date(iso).getTime() < Date.now();
 
-export const whatsapp = (phone: string) => `https://wa.me/${phone.replace(/\D/g, "")}`;
+/** A number as wa.me needs it: digits only, in international form. UAE
+ *  numbers typed locally (050 123 4567, or 50 123 4567) get their 971. */
+export const waDigits = (phone: string) => {
+  let d = phone.replace(/\D/g, "");
+  if (d.startsWith("00")) d = d.slice(2);
+  if (/^0\d{9}$/.test(d)) d = `971${d.slice(1)}`;      // 05x xxx xxxx, 04 xxx xxxx
+  else if (/^5\d{8}$/.test(d)) d = `971${d}`;          // 5x xxx xxxx
+  return d;
+};
+export const whatsapp = (phone: string, text?: string) => `https://wa.me/${waDigits(phone)}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
 
 /* Design A · Ledger. Stages are ordinal, so they share one neutral chip and
    differ only by the dot: grey, blue, navy; won green; lost faded. */

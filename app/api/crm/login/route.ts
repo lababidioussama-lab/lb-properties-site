@@ -183,10 +183,12 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  if (otpDisabled()) {
+  /* CRM_OTP_DISABLED only ever skips the code for the CRM itself. DB Search
+     and Company documents always ask for theirs, whatever the setting. */
+  if (otpDisabled() && purpose === "crm") {
     const response = signedIn(user, purpose);
     if (!response) return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
-    await logSession(user.id, purpose === "documents" ? "docs_login" : purpose === "dbsearch" ? "ds_login" : "login", { ip, agent, otp: false });
+    await logSession(user.id, "login", { ip, agent, otp: false });
     return response;
   }
 
@@ -204,6 +206,7 @@ export async function DELETE(request: NextRequest) {
   const user = sessionFromRequest(request);
   if (user) await logSession(user.id, "logout", {});
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(CRM_COOKIE, "", { ...SESSION_COOKIE_OPTIONS, maxAge: 0 });
+  // One sign-out closes all three: the CRM, DB Search and Company documents.
+  for (const name of [CRM_COOKIE, DS_COOKIE, DOCS_COOKIE]) response.cookies.set(name, "", { ...SESSION_COOKIE_OPTIONS, maxAge: 0 });
   return response;
 }

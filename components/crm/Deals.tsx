@@ -200,6 +200,7 @@ export function DealsView({ t, isAdmin, users, listings, contacts, kyc, userName
 const DEAL_ERRORS: Record<string, string> = {
   kyc_contact_required: "Choose the client. A deal needs a client with a complete KYC file.",
   kyc_incomplete: "The client's KYC file is not complete. Finish it on the contact, or (admin) override with a reason.",
+  kyc_needs_approval: "This client's file needs the admin's approval first (possible sanctions match, PEP or high risk). The admin approves it on the contact.",
 };
 
 /** Steps done out of the checklist for this deal type. */
@@ -277,7 +278,11 @@ function DealForm({ deal, isAdmin, users, listings, contacts, kyc, error, onClos
         <label><Label>Agent split %</Label><input type="number" value={f.agent_split_pct} onChange={set("agent_split_pct")} disabled={!isAdmin} className={`${INPUT} figure`} /></label>
         {isAdmin && (
           <label><Label>Agent</Label>
-            <select value={f.agent_id} onChange={set("agent_id")} className={INPUT}>
+            <select value={f.agent_id} onChange={(e) => {
+              // Picking the agent fills in their slab; the admin can still type another split.
+              const slab = users.find((u) => u.id === e.target.value)?.slab_pct;
+              setF((cur) => ({ ...cur, agent_id: e.target.value, ...(slab != null ? { agent_split_pct: String(slab) } : {}) }));
+            }} className={INPUT}>
               <option value="">Me</option>
               {users.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
             </select>

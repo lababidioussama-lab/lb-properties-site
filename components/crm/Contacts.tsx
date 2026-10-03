@@ -28,8 +28,11 @@ export function ContactsView({ contacts, kyc, isAdmin, users, userName, onContac
     return q ? contacts.filter((c) => `${c.full_name} ${c.phone ?? ""} ${c.email ?? ""}`.toLowerCase().includes(q)) : contacts;
   }, [contacts, query]);
 
-  async function create() {
-    const r = await api<{ contact: CrmContact }>("POST", "contacts", { ...form, owner_id: form.owner_id || null });
+  const [dup, setDup] = useState<string | null>(null);
+  async function create(force = false) {
+    const r = await api<{ contact: CrmContact; existing: { id: string; full_name: string; mine: boolean } }>("POST", "contacts", { ...form, owner_id: form.owner_id || null, ...(force ? { allow_duplicate: true } : {}) });
+    if (r.error === "duplicate_contact") return setDup(r.existing?.full_name ?? "another contact");
+    setDup(null);
     if (r.contact) {
       onContact(r.contact as CrmContact);
       setForm({ full_name: "", phone: "", email: "", kind: "buyer", owner_id: "" });
@@ -73,7 +76,12 @@ export function ContactsView({ contacts, kyc, isAdmin, users, userName, onContac
                 {users.filter((u) => u.active).map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
               </select>
             )}
-            <button onClick={create} disabled={!form.full_name.trim()} className={BTN}>Save</button>
+            <button onClick={() => void create()} disabled={!form.full_name.trim()} className={BTN}>Save</button>
+            {dup && (
+              <p role="alert" className="basis-full text-[13px] text-[var(--warn)]">
+                This number is already saved as <b>{dup}</b>. <button onClick={() => void create(true)} className="font-semibold underline">Add anyway</button>
+              </p>
+            )}
           </div>
         </Card>
       )}

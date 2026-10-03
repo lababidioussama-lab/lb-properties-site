@@ -7,7 +7,7 @@ import { api, whatsapp, INPUT, BTN, Label, Card } from "./shared";
 
 type ListKey = "all" | "new" | "unassigned" | "starred";
 
-export function QuickWhatsAppView({ leads, templates, meName }: { leads: CrmLead[]; templates: CrmTemplate[]; meName: string }) {
+export function QuickWhatsAppView({ leads, templates, meName, meId, isAdmin }: { leads: CrmLead[]; templates: CrmTemplate[]; meName: string; meId: string; isAdmin: boolean }) {
   const [templateId, setTemplateId] = useState("");
   const [custom, setCustom] = useState("");
   const [list, setList] = useState<ListKey>("new");
@@ -15,11 +15,14 @@ export function QuickWhatsAppView({ leads, templates, meName }: { leads: CrmLead
 
   const recipients = useMemo(() => leads.filter((l) => {
     if (!l.phone) return false;
+    /* An agent messages only their own leads: pool leads are unclaimed (and
+       their numbers hidden), so two agents never message one client. */
+    if (!isAdmin && l.owner_id !== meId) return false;
     if (list === "new") return l.stage === "new";
     if (list === "unassigned") return !l.owner_id;
     if (list === "starred") return l.starred;
     return true;
-  }), [leads, list]);
+  }), [leads, list, isAdmin, meId]);
 
   const message = templateId ? templates.find((t) => t.id === templateId)?.body ?? "" : custom;
 
@@ -28,11 +31,14 @@ export function QuickWhatsAppView({ leads, templates, meName }: { leads: CrmLead
     setSent({ count: 0, total: recipients.length });
     for (let i = 0; i < recipients.length; i++) {
       const r = recipients[i];
-      window.open(`${whatsapp(r.phone)}?text=${encodeURIComponent(fillTemplate(message, r.full_name, meName))}`, "_blank", "noopener,noreferrer");
+      const text = fillTemplate(message, r.full_name, meName);
+      window.open(whatsapp(r.phone, text), "_blank", "noopener,noreferrer");
+      // Each send is written on the lead, so nobody messages the same client again tomorrow.
+      void api("POST", "activities", { lead_id: r.id, kind: "whatsapp", body: `Quick WhatsApp: ${text.slice(0, 300)}` });
       setSent({ count: i + 1, total: recipients.length });
       if (i < recipients.length - 1) await new Promise((res) => setTimeout(res, 400));
     }
-    await api("POST", "data/campaigns", { message, recipients: recipients.length });
+    if (isAdmin) await api("POST", "data/campaigns", { message, recipients: recipients.length });
   }
 
   return (
@@ -44,7 +50,7 @@ export function QuickWhatsAppView({ leads, templates, meName }: { leads: CrmLead
         <label><Label>Send to</Label>
           <select value={list} onChange={(e) => setList(e.target.value as ListKey)} className={INPUT}>
             <option value="new">New leads not yet contacted</option>
-            <option value="unassigned">Unassigned (open pool)</option>
+            {isAdmin && <option value="unassigned">Unassigned (open pool)</option>}
             <option value="starred">Starred leads</option>
             <option value="all">All leads with a phone number</option>
           </select>

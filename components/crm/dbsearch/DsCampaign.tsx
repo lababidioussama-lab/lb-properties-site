@@ -31,7 +31,7 @@ const first = (n: string) => {
   const w = n.trim().split(/\s+/)[0] ?? n;
   return w === w.toUpperCase() ? w.charAt(0) + w.slice(1).toLowerCase() : w;
 };
-function fill(body: string, r: Recipient, seed: number) {
+function fill(body: string, r: Recipient, seed: number, agent = "") {
   let i = 0;
   const spun = body.replace(/\{([^{}]*\|[^{}]*)\}/g, (_, alts: string) => {
     const opts = alts.split("|");
@@ -39,6 +39,7 @@ function fill(body: string, r: Recipient, seed: number) {
   });
   return spun
     .replaceAll("{name}", r.name ? first(r.name) : "")
+    .replaceAll("{agent}", agent)
     .replaceAll("{community}", r.community)
     .replaceAll("{building}", r.building || r.community)
     .replaceAll("{unit}", r.unit)
@@ -54,7 +55,10 @@ const toDial = (s: string) => {
   return d.length === 9 ? `971${d}` : d;
 };
 
-export function DsCampaign({ onExpired, onUsage }: { onExpired: () => void; onUsage: (u: DsUsage, s?: { endsAt: number }) => void }) {
+const KEEP = "ds:campaign";
+
+export function DsCampaign({ onExpired, onUsage, meName = "" }: { onExpired: () => void; onUsage: (u: DsUsage, s?: { endsAt: number }) => void; /** Fills {agent} in CRM templates. */ meName?: string }) {
+  const agent = first(meName);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +71,22 @@ export function DsCampaign({ onExpired, onUsage }: { onExpired: () => void; onUs
   const [working, setWorking] = useState<string | null>(null);
   const sends = useRef<number[]>([]);
   const [, tick] = useState(0);
+
+  /* The campaign survives leaving the page: the list, the message and who
+     was already messaged are kept for this browser tab, so going back to
+     Search, opening a record or a session timeout does not wipe the work. */
+  const restored = useRef(false);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(KEEP) ?? "null") as { list: Recipient[]; msg: string; queue: Recipient[] | null; state: Record<string, Sent> } | null;
+      if (saved) { setList(saved.list ?? []); if (saved.msg) setMsg(saved.msg); setQueue(saved.queue ?? null); setState(saved.state ?? {}); }
+    } catch {}
+    restored.current = true;
+  }, []);
+  useEffect(() => {
+    if (!restored.current) return;
+    try { sessionStorage.setItem(KEEP, JSON.stringify({ list, msg, queue, state })); } catch {}
+  }, [list, msg, queue, state]);
 
   useEffect(() => {
     void api<{ rows: CrmTemplate[] }>("GET", "data/templates").then((r) => r.ok && setTemplates(r.rows ?? []));
@@ -95,10 +115,18 @@ export function DsCampaign({ onExpired, onUsage }: { onExpired: () => void; onUs
     setList((all) => [...all, ...fresh]);
   }
 
-  function addNumbers() {
-    const nums = manual.split(/[\n,;]+/).map((s) => s.trim()).filter((s) => digitsOf(s).length >= 9);
+  async function addNumbers() {
+    let nums = manual.split(/[\n,;]+/).map((s) => s.trim()).filter((s) => digitsOf(s).length >= 9);
     if (!nums.length) return setError("Type at least one full number, e.g. 0501234567.");
     setError(null);
+    // Hand-typed numbers are checked against the do-not-contact list too.
+    const check = await ds<{ blocked: string[] }>("POST", "dnc", { phones: nums.map(toDial) });
+    if (!check.ok) return check.error === "ds_signin_required" ? onExpired() : setError(dsError(check.error));
+    const blocked = new Set(check.blocked.map((p) => p.slice(-9)));
+    const before = nums.length;
+    nums = nums.filter((n) => !blocked.has(toDial(n).slice(-9)));
+    if (before !== nums.length) setError(`${before - nums.length} number${before - nums.length === 1 ? " is" : "s are"} on the do-not-contact list and ${before - nums.length === 1 ? "was" : "were"} left out.`);
+    if (!nums.length) return;
     setList((all) => {
       const have = new Set(all.map((x) => x.key));
       return [...all, ...nums.filter((n) => !have.has(`n:${toDial(n)}`)).map((n) => ({ key: `n:${toDial(n)}`, ref: null, phone: toDial(n), name: "", community: "", building: "", unit: "", on: true }))];
@@ -107,12 +135,12 @@ export function DsCampaign({ onExpired, onUsage }: { onExpired: () => void; onUs
   }
 
   const chosen = list.filter((x) => x.on);
-  const preview = chosen[0] ? fill(msg, chosen[0], 0) : null;
+  const preview = chosen[0] ? fill(msg, chosen[0], 0, agent) : null;
   const recent = sends.current.filter((t) => Date.now() - t < PACE_MS);
   const waitMin = recent.length >= PACE_MAX ? Math.ceil((PACE_MS - (Date.now() - recent[0])) / 60_000) : 0;
 
   async function send(r: Recipient, i: number) {
-    const text = fill(msg, r, i);
+    const text = fill(msg, r, i, agent);
     if (r.phone) {
       window.open(`https://wa.me/${r.phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
       setState((s) => ({ ...s, [r.key]: "sent" }));
@@ -147,7 +175,7 @@ export function DsCampaign({ onExpired, onUsage }: { onExpired: () => void; onUs
         <div className={`${DS_ROW} mt-2`}>
           <textarea value={manual} onChange={(e) => setManual(e.target.value)} rows={1} placeholder="…or type numbers, comma or new line: 0501234567, 971551234567"
             className={`${DS_INPUT} !h-auto min-h-11 py-2.5`} aria-label="Phone numbers" />
-          <button type="button" onClick={addNumbers} className={DS_CLEAR}><Plus size={14} /> Add numbers</button>
+          <button type="button" onClick={() => void addNumbers()} className={DS_CLEAR}><Plus size={14} /> Add numbers</button>
         </div>
         {error && <p role="alert" className="mt-2 text-[13px] text-[var(--bad)]">{error}</p>}
 
@@ -157,7 +185,7 @@ export function DsCampaign({ onExpired, onUsage }: { onExpired: () => void; onUs
               <span className="flex-1"><b className="text-[var(--text-primary)]">{chosen.length}</b> of {list.length} selected. Anyone already in the CRM starts unticked.</span>
               <button onClick={() => setList((l) => l.map((x) => ({ ...x, on: true })))} className="font-semibold text-[var(--accent)] hover:underline">All</button>
               <button onClick={() => setList((l) => l.map((x) => ({ ...x, on: false })))} className="font-semibold text-[var(--accent)] hover:underline">None</button>
-              <button onClick={() => { setList([]); setQueue(null); setState({}); }} className="font-semibold text-[var(--text-muted)] hover:underline">Clear list</button>
+              <button onClick={() => { setList([]); setQueue(null); setState({}); try { sessionStorage.removeItem(KEEP); } catch {} }} className="font-semibold text-[var(--text-muted)] hover:underline">Clear list</button>
             </div>
             <ul className="max-h-[280px] overflow-y-auto">
               {list.map((r) => (
@@ -213,7 +241,7 @@ export function DsCampaign({ onExpired, onUsage }: { onExpired: () => void; onUs
                   <span className="figure w-6 text-[12px] text-[var(--text-muted)]">{i + 1}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13.5px] font-semibold">{r.name || `+${r.phone}`}</span>
-                    <span className="block truncate text-[12px] text-[var(--text-muted)]">{fill(msg, r, i)}</span>
+                    <span className="block truncate text-[12px] text-[var(--text-muted)]">{fill(msg, r, i, agent)}</span>
                   </span>
                   {st === "sent" ? <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--ok)]"><Check size={14} /> Opened</span>
                     : st === "dnc" ? <span className="text-[12px] font-semibold text-[var(--bad)]">Do not contact</span>

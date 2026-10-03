@@ -84,6 +84,14 @@ export function DsPhone({ onExpired, onUsage, onOpenLead, initialQuery = null, h
         </DsBox>
       )}
       {error && <p role="alert" className="rounded-[10px] border border-[var(--bad-bd)] bg-[var(--bad-bg)] px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
+      {data && !busy && core.length === 9 && !agent && (
+        <p className="flex flex-wrap items-center gap-2 text-[12.5px] text-[var(--text-muted)]">
+          The number you searched: <b className="figure text-[var(--text-primary)]">+971 {core.slice(0, 2)} {core.slice(2, 5)} {core.slice(5)}</b>
+          <a href={`tel:+971${core}`} className="inline-flex h-7 items-center gap-1 rounded-md border border-[var(--hairline)] px-2 text-[12px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"><Phone size={12} /> Call</a>
+          <a href={`https://wa.me/971${core}`} target="_blank" rel="noopener noreferrer" className="inline-flex h-7 items-center gap-1 rounded-md border border-[var(--ok-bd)] bg-[var(--ok-bg)] px-2 text-[12px] font-semibold text-[var(--ok)]"><MessageCircle size={12} /> WhatsApp</a>
+          <span>No reveal needed for a number you already have.</span>
+        </p>
+      )}
       {busy && <div className="h-40 animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" />}
       {data && !busy && (
         <DsResultsList key={asked} data={data} query={null} summary={summary} actions={{ onExpired, onUsage, onOpenLead }}

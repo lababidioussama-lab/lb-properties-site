@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { LEADS_TABLE } from "@/lib/supabase";
 import { LEAD_SLA_HOURS } from "@/lib/crm";
-import { DS_COOKIE, audit, dsGate, fail, getSettings, lockIfBurst, putSettings, readRef, readRefInfo, signedIn as signedInAs, usageToday, type DsSettings, type DsUser } from "@/lib/dbsearch/guard";
+import { DS_COOKIE, audit, dsGate, fail, getSettings, lockIfBurst, putSettings, readRef, readRefInfo, revealedToday, signedIn as signedInAs, usageToday, type DsSettings, type DsUser } from "@/lib/dbsearch/guard";
 import { crmLinks, emailOf, ownerDetail, phoneAt, unitLookup } from "@/lib/dbsearch/search";
 import { MAX_QUERY, communityList, phoneList, phonesForRef, searchFull, soldFlags } from "@/lib/dbsearch/results";
 import { areaOwners, brokers, listedNow, marketOverview, permitLookup, portfolioOwners, propertyNumber, rentals, suggest, valuation } from "@/lib/dbsearch/tools";
@@ -137,6 +137,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         : action === "community" ? await communityList(db, user, q, includeEmpty)
         : await phoneList(db, user, q);
       return done({ ...result, usage: await usageToday(db, user.id) });
+    }
+
+    /* Numbers an agent typed by hand into a campaign: which of them are on
+       the do-not-contact list. Nothing is revealed; it only says "not this one". */
+    case "dnc": {
+      const nums = (Array.isArray(b.phones) ? b.phones : []).slice(0, 200).map((p) => String(p).replace(/\D/g, "")).filter((p) => p.length >= 9);
+      if (!nums.length) return done({ blocked: [] });
+      const intl = nums.map((p) => toInternational(p));
+      const { data } = await db.from("wa_consent").select("phone").in("phone", intl).not("opted_out_at", "is", null);
+      const out = new Set((data ?? []).map((x) => String(x.phone).replace(/\D/g, "").slice(-9)));
+      return done({ blocked: nums.filter((p) => out.has(p.slice(-9))) });
     }
 
     case "sold": {
@@ -286,7 +297,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (!info) return fail("expired_ref", 410);
       const ids = info.ids;
       const as = b.as === "contact" ? "contact" : b.as === "temp" ? "temp" : "lead";
-      const limited = await quota(user, db, as === "temp" ? "lists" : "reveals");
+      // A record already revealed today is saved to the CRM without a second charge.
+      const already = as !== "temp" && (await revealedToday(db, user.id, ids.join(",")));
+      const limited = already ? null : await quota(user, db, as === "temp" ? "lists" : "reveals");
       if (limited) return limited;
       const phone = await phoneAt(db, ids, Number(b.index ?? 0));
       if (!phone) return fail("no_phone", 422);

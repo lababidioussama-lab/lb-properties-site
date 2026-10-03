@@ -102,7 +102,7 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
         {!isAdmin && <p className="mt-2 text-center text-[11px] text-[var(--text-muted)]">Slab % and quarterly target are set by an admin, under Team.</p>}
       </Card>
 
-      <AgentDocuments t={documents} onlyUserId={me.id} />
+      <AgentDocuments t={documents} onlyUserId={me.id} canDelete={isAdmin} />
       <MyRequests t={requests} listings={listings} onlyUserId={me.id} />
     </div>
   );

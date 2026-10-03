@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getSupabaseAdmin, LEADS_TABLE } from "@/lib/supabase";
 import { parseFilePath, pathFromUrl } from "@/lib/crm-files";
-import { hashPassword, liveUser, sameOrigin, sessionFromRequest, type SessionUser } from "@/lib/crm-auth";
+import { CRM_COOKIE, SESSION_COOKIE_OPTIONS, createSession, cutSessions, hashPassword, liveUser, sameOrigin, sessionFromRequest, verifyPassword, type SessionUser } from "@/lib/crm-auth";
 import { PORTALS, PORTAL_LABEL, ingestPortalLead, portalSecret, type Portal } from "@/lib/portal-intake";
 import { licenceValid, ACTIVITY_KINDS, CONTACT_KINDS, CONTACT_STATUSES, LEAD_SLA_HOURS, LOST_REASONS, STAGES, STAGE_LABEL, STAR_LIMIT, complianceIssues, type Stage } from "@/lib/crm";
 
@@ -255,6 +255,13 @@ export async function POST(request: NextRequest, { params }: Ctx) {
         notes: str(b.notes, 4000),
         owner_id: user.role === "admin" ? (str(b.owner_id, 60) ?? user.id) : user.id,
       };
+      // One client, one card: the same number is not saved twice unless asked to.
+      const core = (row.phone ?? "").replace(/\D/g, "").slice(-9);
+      if (core.length >= 7 && b.allow_duplicate !== true) {
+        const { data: same } = await db.from("crm_contacts").select("id, full_name, phone, owner_id").ilike("phone", `%${core.slice(-4)}`).limit(200);
+        const exact = (same ?? []).find((x) => String(x.phone ?? "").replace(/\D/g, "").slice(-9) === core);
+        if (exact) return NextResponse.json({ ok: false, error: "duplicate_contact", existing: { id: exact.id, full_name: exact.full_name, mine: exact.owner_id === user.id } }, { status: 409 });
+      }
       const { data, error } = await db.from("crm_contacts").insert(row).select().single();
       if (error) return fail(error.message, 502);
 
@@ -299,7 +306,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
       if (!error && leadId && ["call", "whatsapp", "email", "meeting"].includes(kind)) {
         await db.from(LEADS_TABLE).update({ first_response_at: new Date().toISOString() }).eq("id", leadId).is("first_response_at", null);
       }
-      if (!error && leadId) {
+      if (!error && leadId && ["call", "whatsapp", "email", "meeting"].includes(kind)) {
         await db.from(LEADS_TABLE).update({ expires_at: slaDeadline() }).eq("id", leadId)
           .not("owner_id", "is", null).in("stage", OPEN_STAGES);
       }
@@ -348,7 +355,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
   switch (resource) {
     case "leads": {
-      const { data: current } = await db.from(LEADS_TABLE).select("owner_id, stage, starred, first_response_at").eq("id", id).maybeSingle();
+      const { data: current } = await db.from(LEADS_TABLE).select("owner_id, stage, starred, first_response_at, next_follow_up_at, expires_at").eq("id", id).maybeSingle();
       if (!current) return fail("not_found", 404);
 
       // Claim an unassigned lead from the open pool.
@@ -426,10 +433,16 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
       if (current.stage === "new" && patch.stage && patch.stage !== "new") patch.first_response_at = new Date().toISOString();
 
-      // Any real update restarts the clock; closed leads have none.
+      /* The 48-hour clock restarts only on a real step with the client: a
+         stage move, a new follow-up date, or a new owner. Starring a lead,
+         editing a note or retyping the brief no longer buys two more days;
+         logging a call, WhatsApp, email or meeting still does (activities). */
       const stageAfter = (patch.stage as string | undefined) ?? current.stage;
       const ownerAfter = "owner_id" in patch ? patch.owner_id : current.owner_id;
-      patch.expires_at = ownerAfter && OPEN_STAGES.includes(stageAfter) ? slaDeadline() : null;
+      const realStep = "stage" in patch || "owner_id" in patch
+        || ("next_follow_up_at" in patch && patch.next_follow_up_at !== current.next_follow_up_at);
+      if (!ownerAfter || !OPEN_STAGES.includes(stageAfter)) patch.expires_at = null;
+      else if (realStep || !current.expires_at) patch.expires_at = slaDeadline();
 
       const { data, error } = await db.from(LEADS_TABLE).update(patch).eq("id", id).select().single();
       if (error) return fail(error.message, 502);
@@ -486,16 +499,37 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
         for (const k of ["brn_expiry", "visa_expiry", "emirates_id_expiry", "rera_cert_date"] as const) {
           if (k in b) patch[k] = typeof b[k] === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b[k] as string) ? b[k] : null;
         }
-        if (typeof b.password === "string") {
-          if (b.password.length < 10) return fail("password_too_short");
-          patch.password_hash = hashPassword(b.password);
-        }
         if (self && (patch.active === false || patch.role === "agent")) return fail("cannot_demote_self");
+      }
+      /* Passwords. Anyone changes their OWN by proving the current one; an
+         admin resets someone else's without it. Either way every session
+         that person has open ends, so a reset really locks the old holder out. */
+      let passwordChanged = false;
+      if (typeof b.password === "string") {
+        if (b.password.length < 10) return fail("password_too_short");
+        if (self) {
+          const { data: row } = await db.from("crm_users").select("password_hash").eq("id", id).maybeSingle();
+          if (!verifyPassword(typeof b.current_password === "string" ? b.current_password : "", (row?.password_hash as string) ?? "")) return fail("current_password_wrong", 403);
+        } else if (user.role !== "admin") return fail("forbidden", 403);
+        patch.password_hash = hashPassword(b.password);
+        passwordChanged = true;
       }
       if (!Object.keys(patch).length) return fail("empty_patch");
       const { data, error } = await db.from("crm_users").update(patch).eq("id", id)
         .select("id, email, full_name, role, active, slab_pct, quarterly_target_aed, phone, languages, specialties, bio, avatar_url, brn_no, brn_expiry, visa_expiry, emirates_id_expiry, rera_cert_date").single();
-      return error ? fail(error.message, 502) : ok({ user: data });
+      if (error) return fail(error.message, 502);
+      if (passwordChanged) {
+        await cutSessions(id, user.id, self ? "password changed" : "password reset by admin");
+        // The person changing their own password stays signed in, on a fresh session.
+        const res = ok({ user: data });
+        if (self) {
+          await new Promise((r) => setTimeout(r, 5));
+          const fresh = createSession({ id, role: user.role });
+          if (fresh) res.cookies.set(CRM_COOKIE, fresh, SESSION_COOKIE_OPTIONS);
+        }
+        return res;
+      }
+      return ok({ user: data });
     }
   }
   return fail("not_found", 404);

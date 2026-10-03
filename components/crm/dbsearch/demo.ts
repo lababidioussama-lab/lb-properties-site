@@ -112,6 +112,7 @@ export async function demoDs(method: string, action: string, body?: Record<strin
     case "sold": return ok({ found: [] });
     case "stats": return ok({ stats: { owners: 16742311, properties: 1015530, projects: 4210, phones: 9120442 } });
     case "owner": return ok({ owner: body?.ref === "d1" ? OWNER : { ...OWNER, ...HITS.find((h) => h.ref === body?.ref), properties: [{ ref: String(body?.ref), status: HITS.find((h) => h.ref === body?.ref)?.status ?? "likely", statusDate: null, property: HITS.find((h) => h.ref === body?.ref)?.property ?? OWNER.properties[0].property }] } });
+    case "dnc": return ok({ blocked: ((body?.phones as string[]) ?? []).filter((p) => String(p).endsWith("0000")) });
     case "reveal":
       if (!body?.reason) return { ok: false, error: "reason_required" };
       usage.reveals++;

@@ -215,7 +215,7 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
           {tab === "ds_search" && <DsSearch onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={searchQuery} onPhone={(q) => { setPhoneQuery(q); onView("ds_phone"); }} onAreaFilter={() => onView("ds_area")} />}
           {tab === "ds_phone" && <DsPhone onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={phoneQuery} />}
           {tab === "ds_brokers" && <DsBrokers onExpired={onExpired} />}
-          {tab === "ds_campaign" && <DsCampaign onExpired={onExpired} onUsage={onUsage} />}
+          {tab === "ds_campaign" && <DsCampaign onExpired={onExpired} onUsage={onUsage} meName={info.user.name} />}
           {tab === "ds_unit" && <DsUnit {...shared} initial={unitQuery} />}
           {tab === "ds_area" && <DsArea {...shared} />}
           {tab === "ds_market" && <DsMarket mode={marketMode} onMode={setMarketMode} onExpired={onExpired} />}

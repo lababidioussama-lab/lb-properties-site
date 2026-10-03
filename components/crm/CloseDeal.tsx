@@ -8,6 +8,7 @@ import { api, money, INPUT, BTN, BTN_GHOST, Label } from "./shared";
 const DEAL_ERRORS: Record<string, string> = {
   kyc_contact_required: "Save the client as a contact and complete their KYC file first.",
   kyc_incomplete: "The client's KYC file is not complete yet.",
+  kyc_needs_approval: "This client's file needs the admin's approval first (possible sanctions match, PEP or high risk).",
 };
 
 /** Shown when an agent moves a lead to Won: turns it into a real, linked deal record. */

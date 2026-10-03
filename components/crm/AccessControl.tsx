@@ -196,8 +196,10 @@ export function AccessControl({ meId }: { meId: string }) {
                     {!admin && (p.ds.lockedAt
                       ? <button onClick={() => void change(p, { unlock: true })} className={toggle(false)}><Unlock size={13} /> Unlock</button>
                       : <button onClick={() => void change(p, { lock: true }, `Lock DB Search for ${p.full_name} until you unlock it?`)} className={toggle(false)}><Lock size={13} /> Lock</button>)}
-                    <button onClick={() => void change(p, { kick: true }, `Sign ${p.full_name} out of DB Search now? They can sign in again with a new code.`)} className={toggle(false)}>
-                      <LogOut size={13} /> Sign out of DB Search
+                    <button onClick={() => void change(p, { signout_all: true }, self
+                      ? "Sign yourself out on every device? You will need to sign in again here too."
+                      : `Sign ${p.full_name} out everywhere? This ends their CRM, DB Search and Documents sessions on every device. They can sign in again with a new code.`)} className={toggle(false)}>
+                      <LogOut size={13} /> Sign out everywhere
                     </button>
                     <button onClick={() => setWho(p.id)} className={toggle(false)}>Activity</button>
                   </div>

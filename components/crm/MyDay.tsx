@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Hand, MapPin, IdCard, MessageCircle, Phone } from "lucide-react";
 import { SOURCE_LABEL, STAGE_LABEL, leadBrief, licenceAlerts, sourceKey, type CrmEvent, type CrmLead, type CrmTask, type CrmTenancy, type CrmUser } from "@/lib/crm";
 import { renewalState } from "./Rentals";
-import { BTN_GHOST, BTN_ICON, Card, CardHead, Chip, Empty, StatusLine, whatsapp, type Tone } from "./shared";
+import { BTN, BTN_GHOST, BTN_ICON, Card, CardHead, Chip, Empty, StatusLine, whatsapp, type Tone } from "./shared";
 import { TaskGroup } from "./TaskList";
 import { useTable } from "./useTable";
 import { clockTime, firstName, greetingFor, useClock } from "./Greeting";
@@ -66,11 +66,11 @@ export function MyDay({ me, isAdmin, leads, tasks, tenancies = [], userName, onO
   /* One list, in the order an agent should work it: an unanswered enquiry
      first, then promises already broken, then what is about to happen, then
      leads about to fall back to the pool. */
-  type Row = { key: string; lead: CrmLead | null; name: string; kind: string; why: string; due: string; tone: Tone; rank: number; phone: string | null; onOpen: () => void };
+  type Row = { key: string; lead: CrmLead | null; name: string; kind: string; why: string; due: string; tone: Tone; rank: number; phone: string | null; claim?: boolean; onOpen: () => void };
   const rows: Row[] = [];
   for (const l of waiting) {
     const h = hours(l.created_at);
-    rows.push({ key: `w${l.id}`, lead: l, name: l.full_name, kind: `New · ${SOURCE_LABEL[sourceKey(l.source)]}`, why: leadBrief(l), due: h < 1 ? "Just in" : `${h}h no reply`, tone: h >= 1 ? "bad" : "warn", rank: 0 + h / 1000, phone: l.phone, onOpen: () => onOpenLead(l.id) });
+    rows.push({ key: `w${l.id}`, lead: l, name: l.full_name, kind: `New · ${SOURCE_LABEL[sourceKey(l.source)]}${l.owner_id ? "" : " · open pool"}`, why: leadBrief(l), due: h < 1 ? "Just in" : `${h}h no reply`, tone: h >= 1 ? "bad" : "warn", rank: 0 + h / 1000, phone: l.owner_id ? l.phone : null, claim: !l.owner_id, onOpen: () => onOpenLead(l.id) });
   }
   for (const l of followUps) {
     const at = new Date(l.next_follow_up_at!).getTime();
@@ -131,7 +131,7 @@ export function MyDay({ me, isAdmin, leads, tasks, tenancies = [], userName, onO
                   <a href={`tel:${r.phone.replace(/\s/g, "")}`} aria-label={`Call ${r.name}`} className={BTN_ICON}><Phone size={15} /></a>
                   <a href={whatsapp(r.phone)} target="_blank" rel="noopener noreferrer" aria-label={`WhatsApp ${r.name}`} className={`${BTN_ICON} !text-[var(--wa)]`}><MessageCircle size={15} /></a>
                 </>}
-                <button onClick={r.onOpen} className={`${BTN_GHOST} hidden sm:inline-flex`}>Open</button>
+                <button onClick={r.onOpen} className={r.claim ? BTN : `${BTN_GHOST} hidden sm:inline-flex`}>{r.claim ? "Claim" : "Open"}</button>
               </div>
             ))}
           </Card>

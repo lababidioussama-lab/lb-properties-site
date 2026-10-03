@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { FILE_BUCKET, parseFilePath, pathFromUrl } from "@/lib/crm-files";
 import { getSupabaseAdmin, LEADS_TABLE } from "@/lib/supabase";
 import { liveUser, sameOrigin, sessionFromRequest, type SessionUser } from "@/lib/crm-auth";
-import { LEAD_SOURCES, LISTING_STATUSES, PROPERTY_TYPES, OWNER_REQUEST_STATUSES, TEMP_LEAD_STATUSES, REQUEST_KINDS, REQUEST_STATUSES, DOC_KINDS, PAYMENT_METHODS, complianceIssues, goamlRequired, kycMissing } from "@/lib/crm";
+import { LEAD_SLA_HOURS, licenceValid, LEAD_SOURCES, LISTING_STATUSES, PROPERTY_TYPES, OWNER_REQUEST_STATUSES, TEMP_LEAD_STATUSES, REQUEST_KINDS, REQUEST_STATUSES, DOC_KINDS, PAYMENT_METHODS, complianceIssues, goamlRequired, kycMissing } from "@/lib/crm";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -271,7 +271,13 @@ async function kycGate(db: Db, row: Row, isAdmin: boolean): Promise<string | nul
   if (isAdmin && row.kyc_override_reason) return null;
   if (!row.contact_id) return "kyc_contact_required";
   const { data } = await db.from("crm_kyc").select("*").eq("contact_id", row.contact_id as string).maybeSingle();
-  return kycMissing(data as never).length ? "kyc_incomplete" : null;
+  if (kycMissing(data as never).length) return "kyc_incomplete";
+  /* The agent fills the file, but cannot wave through the cases that carry
+     real risk: a possible sanctions match, a politically exposed person or a
+     high risk rating all wait for the admin's approval of the file. */
+  const k = data as { status?: string; sanctions_result?: string; is_pep?: boolean; risk_rating?: string } | null;
+  const risky = k?.sanctions_result === "match" || k?.is_pep === true || k?.risk_rating === "high";
+  return risky && k?.status !== "approved" ? "kyc_needs_approval" : null;
 }
 
 const totals = (r: Row) => {
@@ -322,8 +328,45 @@ export async function POST(request: NextRequest, { params }: Ctx) {
       }))
       .filter((r) => r.full_name && r.phone && String(r.phone).length >= 5);
     if (!rows.length) return fail("no_valid_rows");
-    const { data, error } = await c.db.from(LEADS_TABLE).insert(rows).select();
-    return error ? fail(error.message, 502) : NextResponse.json({ ok: true, rows: data, skipped: input.length - rows.length });
+
+    /* Duplicates: the same number (last 9 digits) already on an open lead, or
+       twice in this paste, is not added again, so two agents never work one
+       client. The caller is told who already has it. allow_duplicates skips
+       the check for the rare real case (two people, one phone). */
+    const core = (p: unknown) => String(p ?? "").replace(/\D/g, "").slice(-9);
+    const duplicates: { full_name: string; phone: string; existing: string }[] = [];
+    let fresh = rows;
+    if (body.allow_duplicates !== true) {
+      const { data: open } = await c.db.from(LEADS_TABLE).select("full_name, phone, stage").not("stage", "in", "(won,lost)").limit(5000);
+      const taken = new Map<string, string>();
+      for (const l of open ?? []) { const k = core(l.phone); if (k.length >= 7) taken.set(k, String(l.full_name)); }
+      fresh = [];
+      for (const r of rows) {
+        const k = core(r.phone);
+        if (k.length >= 7 && taken.has(k)) { duplicates.push({ full_name: String(r.full_name), phone: String(r.phone), existing: taken.get(k)! }); continue; }
+        if (k.length >= 7) taken.set(k, String(r.full_name));
+        fresh.push(r);
+      }
+      if (!fresh.length) return NextResponse.json({ ok: false, error: "all_duplicates", duplicates }, { status: 409 });
+    }
+
+    /* An assigned lead joins the 48-hour rule from the start, and never goes
+       to an agent whose broker card has expired: those land in the pool. */
+    const owners = [...new Set(fresh.map((r) => r.owner_id).filter(Boolean))] as string[];
+    const valid = new Set<string>();
+    if (owners.length) {
+      const { data: us } = await c.db.from("crm_users").select("id, role, brn_no, brn_expiry, active").in("id", owners);
+      for (const u of us ?? []) if (u.active && ((u.role === "admin" && !u.brn_no) || licenceValid(u as never))) valid.add(String(u.id));
+    }
+    const deadline = new Date(Date.now() + LEAD_SLA_HOURS * 3_600_000).toISOString();
+    let unlicensed = 0;
+    const toInsert = fresh.map((r) => {
+      const ok = r.owner_id && valid.has(String(r.owner_id));
+      if (r.owner_id && !ok) unlicensed++;
+      return { ...r, owner_id: ok ? r.owner_id : null, expires_at: ok ? deadline : null };
+    });
+    const { data, error } = await c.db.from(LEADS_TABLE).insert(toInsert).select();
+    return error ? fail(error.message, 502) : NextResponse.json({ ok: true, rows: data, skipped: input.length - rows.length, duplicates, unlicensed });
   }
 
   const spec = SPECS[name];
@@ -346,6 +389,12 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   if (name === "invoices") Object.assign(row, await invoiceNumbers(c.db, row));
   if (spec.required.some((k) => !row[k])) return fail(`${spec.required.join(", ")} required`);
   if (spec.owner && (c.user.role !== "admin" || !row[spec.owner])) row[spec.owner] = c.user.id;
+  /* A deal's split is the agent's own slab unless the admin typed another:
+     an agent cannot set it, and it used to fall back to a flat 50%. */
+  if (name === "deals" && (c.user.role !== "admin" || row.agent_split_pct == null) && row.agent_id) {
+    const { data: who } = await c.db.from("crm_users").select("slab_pct").eq("id", row.agent_id as string).maybeSingle();
+    if (who?.slab_pct != null) row.agent_split_pct = who.slab_pct;
+  }
   // An uploaded document must live in its owner's own folder.
   if (name === "agent_documents") {
     const file = parseFilePath(pathFromUrl(row.url as string));
@@ -406,6 +455,8 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   if (!spec) return fail("not_found", 404);
   const rowId = request.nextUrl.searchParams.get("id");
   if (!rowId || !(await allowed(spec, c.user, rowId))) return fail("forbidden", 403);
+  // Compliance documents (IDs, visas, licences) are the company's record: only the admin removes them.
+  if (spec.table === "crm_agent_documents" && c.user.role !== "admin") return fail("admin_only", 403);
   const { data: gone } = spec.table === "crm_agent_documents"
     ? await c.db.from(spec.table).select("url").eq("id", rowId).maybeSingle()
     : { data: null };

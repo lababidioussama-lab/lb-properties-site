@@ -1,0 +1,1865 @@
+[
+ {
+  "kind": "remove",
+  "area": "admin / Team vs Access & activity",
+  "title": "Same on/off switch lives in two admin screens with two names",
+  "what": "Team.tsx:97-110 shows a 'Can sign in / Switched off' pill and a 'Switch off / Turn on' button that PATCHes users {active}. AccessControl.tsx:104-112 and :188-190 does the identical PATCH users {active} but calls it 'CRM allowed / blocked' with a different confirm text. The owner has to remember which screen he used, and the two screens show stale state for the same person because neither reloads the other (Team gets users from CrmApp props, AccessControl keeps its own `people` state).",
+  "proposal": "Drop the Switch off/Turn on button and status pill from Team.tsx (keep Team for identity, role, slab, target, BRN/visa dates). Access & activity stays the one place for blocking, with its richer wording.",
+  "benefit": "One answer to 'can this person log in?', no contradictory pills between tabs.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Team.tsx:97-110",
+   "components/crm/AccessControl.tsx:104-112",
+   "components/crm/AccessControl.tsx:188-190",
+   "app/api/crm/[resource]/route.ts:493"
+  ],
+  "checked": false,
+  "id": 0
+ },
+ {
+  "kind": "remove",
+  "area": "admin / Agent performance vs Access & activity",
+  "title": "Sign-in history is shown twice, with different device parsing",
+  "what": "TeamMonitor.tsx:182-203 renders a 'Sign-in history' list (last 25 of 30 days) from team_activity. AccessControl.tsx:211-246 renders the same session rows (login/logout/login_failed/otp_failed) from crm_audit with filters, person select, text search and CSV. TeamMonitor also recomputes 'Online now / Active today / Last sign-in' (:97-108, :148-155) that AccessControl already shows per person (:162). Two KPI strips, two feeds, two `ago()` helpers (TeamMonitor.tsx:17-25, AccessControl.tsx:38-46).",
+  "proposal": "Remove the Sign-in history card and the four sign-in KPIs from TeamMonitor; leave it as the pure performance table (calls, WhatsApp, leads, deals, target). Link its Status cell to Access & activity with `who` preselected (the Activity button already does this at AccessControl.tsx:202).",
+  "benefit": "The owner stops scrolling past the same list in two tabs; Agent performance becomes a one-screen scoreboard.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/TeamMonitor.tsx:97-108",
+   "components/crm/TeamMonitor.tsx:182-203",
+   "components/crm/AccessControl.tsx:135-142",
+   "components/crm/AccessControl.tsx:211-246"
+  ],
+  "checked": false,
+  "id": 1
+ },
+ {
+  "kind": "fix",
+  "area": "admin / Requests",
+  "title": "Admin can only change status; cannot write the admin note agents see",
+  "what": "RequestsQueue (AgentRequests.tsx:74-103) has one control: a status select (:91-93). The API already accepts admin_note (app/api/crm/data/[table]/route.ts:199-201) and the agent's MyRequests renders it (:61), but nothing in the admin UI lets the owner type it. So 'rejected' arrives with no reason and 'approved' with no pickup date; the agent walks to the office to ask. The queue also has no filter, so done/rejected rows pile up above pending ones, and the linked listing for a video shoot (listing_id, :37-40) is never shown to the admin.",
+  "proposal": "Add an inline admin_note input per row (blur-to-save like Team.tsx does) and show the listing title when kind is video_shoot. Default the queue to status=pending with a 'Show all' toggle, and a pending count badge on the Requests tab (CrmApp.tsx:186).",
+  "benefit": "A SIM, shoot or document request closes in one exchange instead of a WhatsApp follow-up.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/AgentRequests.tsx:61",
+   "components/crm/AgentRequests.tsx:74-103",
+   "app/api/crm/data/[table]/route.ts:199-201",
+   "components/crm/CrmApp.tsx:186"
+  ],
+  "checked": true,
+  "id": 2
+ },
+ {
+  "kind": "fix",
+  "area": "admin / Integrations (portal intake)",
+  "title": "'Send test lead' lands a fake lead on a real agent with a 48-hour SLA",
+  "what": "IntegrationsView.test() (Integrations.tsx:29-34) calls integration_test, which runs the full ingestPortalLead path (app/api/crm/[resource]/route.ts:239-243): it picks the least-loaded licensed agent (portal-intake.ts:85-95), inserts a lead in stage 'new' with expires_at = now+48h (:97-111) and an activity 'Lead received from Bayut'. Only the audit row carries test:true (:117); the lead itself is not marked, so the agent gets a new-lead badge and an SLA clock for 'Test lead (Bayut)' and must delete it by hand (the message even says so, route.ts:240).",
+  "proposal": "Have integration_test assign the test lead to the admin who clicked (owner = me.id) with no expires_at, and prefix the title/notes with [TEST]; or stop before insert and only report the parsed fields and who it would have gone to.",
+  "benefit": "No agent chases a phantom enquiry; the owner still sees the pipeline works.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Integrations.tsx:29-34",
+   "app/api/crm/[resource]/route.ts:235-243",
+   "lib/portal-intake.ts:97-117"
+  ],
+  "checked": true,
+  "id": 3
+ },
+ {
+  "kind": "fix",
+  "area": "admin / portal intake",
+  "title": "Portal leads silently fall into the open pool when no agent qualifies",
+  "what": "ingestPortalLead assigns only to agents with a valid BRN (portal-intake.ts:81-82, :90-91). When the listing's agent has an expired BRN or every agent is unlicensed, owner becomes null, expires_at is null (:108) and the lead is inserted with no owner. Nobody is told: the Integrations card counts it as 'received' (route.ts:175), the audit row has assigned_to:null (:117) but no UI reads it, and the only hint is the Leads badge for unassigned (CrmApp.tsx:176). A paid Bayut enquiry can sit untouched until the owner happens to open Pipeline.",
+  "proposal": "On the Integrations card show an 'Unassigned (30d)' count from assigned_to === null in the same audit log, in red, with a link to Pipeline filtered to the open pool; and when owner is null, insert a crm_activities system note 'No licensed agent available, needs manual assignment' so it's visible on the lead.",
+  "benefit": "The owner sees paid portal leads that nobody is working, the day they arrive.",
+  "effort": "S",
+  "evidence": [
+   "lib/portal-intake.ts:81-82",
+   "lib/portal-intake.ts:90-95",
+   "lib/portal-intake.ts:108",
+   "lib/portal-intake.ts:117",
+   "app/api/crm/[resource]/route.ts:170-178",
+   "components/crm/CrmApp.tsx:176"
+  ],
+  "checked": false,
+  "id": 4
+ },
+ {
+  "kind": "improve",
+  "area": "admin / Audit log",
+  "title": "Audit log is a raw 500-row dump with no filter, period or export",
+  "what": "AuditView (Audit.tsx:7-39) fetches `audit` once (route.ts:148: last 500 rows of every entity) and renders a flat table. No person/entity/period filter, no search, no CSV, no 'load more'. The Detail column is `k: v` of the raw JSON (:31), so a DB Search settings change shows as 'change: [object Object]'. Meanwhile Access & activity (AccessControl.tsx:217-225) already has person, period, kind and text filters plus CSV for the dbsearch/session slice of the same table. The owner trying to answer 'who changed this lead's owner last week' has to scroll 500 rows.",
+  "proposal": "Reuse the AccessControl filter bar (person select, period, text) in AuditView and pass them to the audit GET (add user/days params like control/route.ts:51-60 already does). Render detail objects as JSON.stringify or a per-key list; add the same downloadCsv button.",
+  "benefit": "Disputes ('I never reassigned that lead') get answered in seconds instead of by scrolling.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Audit.tsx:10-14",
+   "components/crm/Audit.tsx:31",
+   "app/api/crm/[resource]/route.ts:146-150",
+   "components/crm/AccessControl.tsx:217-225",
+   "app/api/crm/control/route.ts:51-60"
+  ],
+  "checked": false,
+  "id": 5
+ },
+ {
+  "kind": "fix",
+  "area": "admin / Team",
+  "title": "Reset password goes through window.prompt with no length check",
+  "what": "Team.tsx:46-49 opens a browser prompt for the new password and PATCHes it. The server rejects < 10 chars with 'password_too_short' (route.ts:490), but patch() maps every non-demote error to the generic 'Could not save.' (Team.tsx:43), so the owner sees 'Could not save' with no reason. On a phone, window.prompt is also easy to dismiss by accident. The 'Add a team member' form, by contrast, validates length client-side (:23) and shows the temp password back to copy (:27).",
+  "proposal": "Replace the prompt with the same inline pattern as 'Add a team member': a small password field next to the row that validates 10+ chars and shows 'New password for X: …, give it to them' on success. Map password_too_short to a real message in patch().",
+  "benefit": "Password resets, the most common admin chore, stop failing silently.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Team.tsx:23-27",
+   "components/crm/Team.tsx:43",
+   "components/crm/Team.tsx:46-49",
+   "app/api/crm/[resource]/route.ts:490"
+  ],
+  "checked": true,
+  "id": 6
+ },
+ {
+  "kind": "improve",
+  "area": "admin / Access & activity",
+  "title": "People list loads one query per person times five, and locks are hidden in the activity feed",
+  "what": "control GET view=people (control/route.ts:78-100) runs getSettings + usageToday + a 5000-row week scan + two latest-row queries for every user, so the admin page waits on 5×N round trips before showing anything (AccessControl.tsx:147 shows a pulse until then). On the client, the 'Locked now' KPI (:136) is the only signal that an agent hit a limit; the lock reason appears only per row (:163), and the feed defaults to 'Everything · Today' (:67-68) so an automatic lock from last night is below hundreds of search rows. The agent is meanwhile blocked and has no way to ask for an unlock except WhatsApp.",
+  "proposal": "In the client, when totals.locked > 0, render a 'Needs attention' strip at the top listing the locked people with reason and an Unlock button (the change() handler already exists at :196-198). Server-side, fetch the week's dbsearch rows once for all users and group by entity_id instead of once per user.",
+  "benefit": "The owner unlocks a stuck agent in one click the moment he opens the tab; the tab opens faster.",
+  "effort": "M",
+  "evidence": [
+   "app/api/crm/control/route.ts:78-100",
+   "components/crm/AccessControl.tsx:67-68",
+   "components/crm/AccessControl.tsx:136",
+   "components/crm/AccessControl.tsx:163",
+   "components/crm/AccessControl.tsx:196-198"
+  ],
+  "checked": false,
+  "id": 7
+ },
+ {
+  "kind": "add",
+  "area": "admin / Team documents",
+  "title": "Team documents show files but never which ones are missing or expiring",
+  "what": "TeamDocuments (TeamMonitor.tsx:215-270) lists whatever each agent uploaded, with a person and type filter, and says 'Agents add documents from My profile' (:233). There is no view of who has NOT uploaded a passport/visa/Emirates ID/BRN, and no link between the uploaded doc and the expiry dates the owner types by hand in Team.tsx:121-128. Compliance.tsx:97 computes licence alerts from those dates, but the documents screen, where the owner goes before a RERA inspection, does not surface them.",
+  "proposal": "Add a per-agent coverage row above the table: for each DOC_KIND_LABEL kind show present/missing per active agent, and reuse licenceAlerts(u) chips (Team.tsx:117-119) beside the name so expired visa/BRN sits next to the document itself.",
+  "benefit": "One screen answers 'are we inspection-ready' instead of cross-checking Team, Compliance and Documents.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/TeamMonitor.tsx:215-233",
+   "components/crm/Team.tsx:117-128",
+   "components/crm/Compliance.tsx:97"
+  ],
+  "checked": true,
+  "id": 8
+ },
+ {
+  "kind": "remove",
+  "area": "admin / navigation",
+  "title": "Every admin screen is listed twice in the nav model",
+  "what": "CrmApp.tsx:146 and :159-168 put control, compliance, invoices, monitor, team, integrations, team_docs, requests, audit into the flat `nav` list under group 'Admin', and :182-187 lists the same views again inside the 'Reports' and 'Team & rules' sections, with different labels ('Integrations' vs 'Lead sources', 'Agent performance' vs 'Team', 'Team documents' vs 'Documents'). The owner sees one name in the command palette/home tiles and another in the sidebar tabs for the same screen.",
+  "proposal": "Pick one label per view and use it in both lists (suggest the section labels: 'Lead sources', 'Documents'), or derive the flat nav from `sections` so a view cannot have two names.",
+  "benefit": "Owner and agents stop asking 'is Lead sources the same as Integrations?'.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/CrmApp.tsx:146",
+   "components/crm/CrmApp.tsx:159-168",
+   "components/crm/CrmApp.tsx:182-187"
+  ],
+  "checked": true,
+  "id": 9
+ },
+ {
+  "kind": "fix",
+  "area": "deals / commission",
+  "title": "Deal form ignores the agent's slab; defaults to 50%",
+  "what": "components/crm/Deals.tsx:14 hard-codes agent_split_pct \"50\" in BLANK, and the Agent select at Deals.tsx:280-283 defaults to \"Me\" with no link to the selected agent's slab_pct. CloseDeal (via LeadPanel.tsx:51) already uses users.find(owner).slab_pct, so the same deal gets 50% when recorded from Deals and the real slab (45/55…) when recorded from a won lead. The admin must remember to retype the split on every deal, and the \"Company share\" and \"Agent share\" totals at Deals.tsx:50-61 are wrong whenever he forgets.",
+  "proposal": "In DealForm, when agent_id changes (or on open), set agent_split_pct from users.find(u => u.id === agent_id)?.slab_pct ?? 50, exactly as LeadPanel does; keep the field editable for one-off overrides.",
+  "benefit": "Commission statements match the slab the owner actually agreed with each agent; one less field to fix per deal.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Deals.tsx:14",
+   "components/crm/Deals.tsx:277-283",
+   "components/crm/LeadPanel.tsx:51",
+   "components/crm/CloseDeal.tsx:51"
+  ],
+  "checked": true,
+  "id": 10
+ },
+ {
+  "kind": "fix",
+  "area": "deals / invoices",
+  "title": "Deal 'paid' and invoice 'paid' are two unsynced truths",
+  "what": "Deals.tsx:189-192 'Mark commission paid' sets deal.paid_at only; Invoices.tsx:241-244 saving an invoice as paid sets invoice.paid_at/paid_aed only. Nothing links them: an invoice marked paid still shows the deal as 'Unpaid' (Deals.tsx:134-136, 'Unpaid commission' KPI at :53), and a deal marked paid still shows as owed in 'Who owes commission' (Invoices.tsx:54-62) and 'Outstanding'. The owner has to click twice in two screens for every payment received, and the two dashboards disagree until he does.",
+  "proposal": "On invoice PATCH to status=paid with a deal_id, also set the deal's paid_at (and vice versa: marking a deal paid marks its non-void invoice paid with total_aed). Show the invoice number/status on the deal row instead of a separate Paid/Unpaid pill.",
+  "benefit": "One click per payment; 'Unpaid commission' and 'Outstanding' finally agree.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Deals.tsx:189-192",
+   "components/crm/Invoices.tsx:241-244",
+   "components/crm/Invoices.tsx:53-65",
+   "app/api/crm/data/[table]/route.ts:374-381"
+  ],
+  "checked": true,
+  "id": 11
+ },
+ {
+  "kind": "remove",
+  "area": "deals / invoices",
+  "title": "Duplicate 'create invoice from deal' paths with drifting defaults",
+  "what": "Deals.tsx:35-45 (invoiceFor) and Invoices.tsx:67-75 (fromDeal) build the same invoice from the same deal with copy-pasted bill_to/description logic. The Deals path posts immediately with vat 5 and due in 14 days and no TRN/address; the Invoices path opens a form. Both drop the client's TRN/address even when the KYC file holds the legal_name and trade_license (crm.ts:492-499), so the admin retypes 'Bill to' details that the CRM already has.",
+  "proposal": "Keep one function (export fromDeal in Invoices or a lib helper) used by both buttons, and prefill bill_to_name from kyc.legal_name, bill_to_trn and address from the KYC/contact record when present.",
+  "benefit": "One code path to maintain; tax invoices come out with the legal name and TRN without retyping.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Deals.tsx:35-45",
+   "components/crm/Invoices.tsx:67-75",
+   "lib/crm.ts:485-516"
+  ],
+  "checked": true,
+  "id": 12
+ },
+ {
+  "kind": "improve",
+  "area": "off-plan",
+  "title": "Off-plan commission trigger computed but never acted on",
+  "what": "Deals.tsx:242-243 and :391-395 compute paidPct vs commission_trigger_pct and print 'Commission trigger reached — invoice the developer', but only inside the open form. The 'commission_trigger' and 'developer_invoice' milestones (crm.ts:572-573) remain manual checkboxes, developer_invoice_status (Deals.tsx:383-387) is a third manual field duplicating the invoice table, and Invoices.tsx:64-65 'Deals not invoiced yet' lists every unpaid deal including off-plan ones whose trigger is months away. Payment-plan due dates (PlanInstalment.due, crm.ts:555) are never surfaced anywhere (Compliance dealDates at Compliance.tsx:108-113 only covers NOC and transfer).",
+  "proposal": "Derive: tick 'commission_trigger' automatically when paidPct >= trigger; derive developer_invoice_status from the linked invoice; in 'Deals not invoiced yet' hide off-plan deals until the trigger is reached and label them 'trigger reached'; add 'instalment due within 14 days' items for the agent (Rentals-style KPI or Compliance row) so they chase the buyer before the developer does.",
+  "benefit": "The owner invoices developers the week the trigger hits instead of discovering it at quarter end; agents see which buyers to chase.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Deals.tsx:242-243",
+   "components/crm/Deals.tsx:391-395",
+   "components/crm/Deals.tsx:383-387",
+   "lib/crm.ts:568-574",
+   "components/crm/Invoices.tsx:64-65",
+   "components/crm/Compliance.tsx:108-113"
+  ],
+  "checked": true,
+  "id": 13
+ },
+ {
+  "kind": "add",
+  "area": "commission slabs",
+  "title": "Slab upgrade/downgrade is announced but never applied",
+  "what": "slabOutcome (crm.ts:328-334) labels each quarter 'slab upgrade' / 'slab downgrade' / 'unchanged', and Deals.tsx:146-172 shows it per agent, but slab_pct only ever changes by hand in Team.tsx:86. There is no quarter-end step, no record of what the slab was last quarter, and no definition of what an upgrade means in points. The owner recalculates every agent's slab manually each quarter from the label.",
+  "proposal": "Add a quarter-end review in the Deals slab card (admin only): for each agent show current slab, computed outcome and a proposed new slab (e.g. ±5 pts, bounded), with one 'Apply' button that patches slab_pct and writes an audit entry. Deals already closed keep their stored agent_split_pct.",
+  "benefit": "The fäm-style slab rule the app advertises actually runs; no spreadsheet at quarter end.",
+  "effort": "M",
+  "evidence": [
+   "lib/crm.ts:327-334",
+   "components/crm/Deals.tsx:146-172",
+   "components/crm/Team.tsx:86",
+   "components/crm/TeamMonitor.tsx:93"
+  ],
+  "checked": true,
+  "id": 14
+ },
+ {
+  "kind": "fix",
+  "area": "deals / slab",
+  "title": "Quarterly slab card empties when a month filter is picked",
+  "what": "Deals.tsx:48 filters rows by the month selector, then Deals.tsx:64-66 computes the slab card from those same rows filtered again to the current quarter. Choosing any month outside the current quarter (e.g. to review last quarter's deals) blanks the slab card to '—', and selecting a single month inside the quarter shows a one-month figure labelled as the quarter's achievement.",
+  "proposal": "Compute byAgent from t.rows (unfiltered) for the current quarter, or let the month selector drive the quarter shown; do not mix the two filters.",
+  "benefit": "The slab figure is always the full-quarter figure the owner uses to pay bonuses.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Deals.tsx:47-48",
+   "components/crm/Deals.tsx:63-75"
+  ],
+  "checked": true,
+  "id": 15
+ },
+ {
+  "kind": "improve",
+  "area": "rentals / cheques",
+  "title": "Cheques due are counted but not listed or actionable",
+  "what": "Rentals.tsx:50-55 counts 'Cheques due in 14 days' and 'Bounced cheques' as KPIs, but there is no list of which cheque, which tenant, which bank; the only way to mark a cheque deposited/cleared is to open each tenancy and edit the row (Rentals.tsx:238-250). The Cheque type has a 'bank' field (crm.ts:607) that generate() sets to '' (Rentals.tsx:190) and the form never shows, so the bank is unknown when a cheque bounces. Compliance.tsx:120 flags bounced only; nothing flags a cheque due this week.",
+  "proposal": "Add a 'Cheques' strip under the KPIs in Rentals: one row per pending/deposited cheque in the next 14 days (property, tenant + WhatsApp, date, amount, cheque no, bank) with Deposited / Cleared / Bounced one-click buttons that patch the tenancy's cheques array. Either show the bank input in the schedule or drop the field.",
+  "benefit": "The agent deposits on time and chases bounces the same day, without opening six tenancies.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Rentals.tsx:49-56",
+   "components/crm/Rentals.tsx:187-191",
+   "components/crm/Rentals.tsx:238-250",
+   "lib/crm.ts:607",
+   "components/crm/Compliance.tsx:115-122"
+  ],
+  "checked": false,
+  "id": 16
+ },
+ {
+  "kind": "add",
+  "area": "rentals / renewals",
+  "title": "No 'Renew' action; renewal ends at 'notice sent'",
+  "what": "Rentals.tsx:263 'Mark notice sent' sets renewal_notice_sent_at and status 'renewing', then the flow stops: moving to 'renewed' is a manual dropdown (Rentals.tsx:223-227) and the new 12-month tenancy must be re-typed from scratch (property, tenant, landlord, listing, deposit, cheque count). ejari_expiry is silently set to end_date (Rentals.tsx:195) and is never alerted on (no reads anywhere in components/crm). The WhatsApp notice text (Rentals.tsx:198) has no rent figure, so the agent edits it every time.",
+  "proposal": "Add a 'Renew tenancy' button in the renewal section that creates a new tenancy pre-filled from the current one (dates +12 months, same parties/listing/deposit/cheque count, new rent field, Ejari cleared), marks the old one 'renewed', and links them; include the proposed rent in the notice message.",
+  "benefit": "A renewal takes one click and a rent number instead of a fresh form; nothing lapses between 'renewing' and 'renewed'.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Rentals.tsx:256-266",
+   "components/crm/Rentals.tsx:193-198",
+   "components/crm/Rentals.tsx:223-227",
+   "lib/crm.ts:609-629"
+  ],
+  "checked": false,
+  "id": 17
+ },
+ {
+  "kind": "fix",
+  "area": "invoices / VAT",
+  "title": "Printed tax invoice uses CSS variables that do not exist in the print window",
+  "what": "printInvoice (Invoices.tsx:260-287) opens a blank window and writes inline CSS with var(--accent-solid), var(--text-muted), var(--hairline) (Invoices.tsx:264-269). Those tokens are defined in the app stylesheet, not in the new document, so every colour resolves to the browser default: no brand colour, muted labels print in the same black as body text, table hairlines and the total rule are invisible. The invoice also prints no 'Amount received / Balance due' line even though paid_aed is stored, and no bank details unless typed into Notes each time.",
+  "proposal": "Use literal hex colours in the print stylesheet; add Received and Balance due rows under Total when paid_aed > 0; pull default bank details/terms from an env var (like COMPANY.trn) so Notes is not retyped per invoice.",
+  "benefit": "The invoice the client receives looks like the brand and shows what is still owed.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Invoices.tsx:260-287",
+   "components/crm/Invoices.tsx:13-18",
+   "components/crm/Invoices.tsx:237"
+  ],
+  "checked": true,
+  "id": 18
+ },
+ {
+  "kind": "improve",
+  "area": "compliance / KYC",
+  "title": "Agent can clear sanctions and set risk themselves; gate is paper",
+  "what": "The deal gate (route.ts:270-275) blocks a deal until kycMissing is empty, which requires sanctions_result = 'clear' and a risk_rating (crm.ts:540-543). Both are plain selects on the agent's KYC form (Kyc.tsx:100, :113); kycDerived (route.ts:258-265) only stamps screened_by with whoever picked it. So an agent in a hurry sets 'clear' and 'low' and the gate passes, while the Compliance 'KYC files to approve' queue (Compliance.tsx:77-82) is approval after the deal is already recorded. Meanwhile the deal form asks for 'Client pays by' again (Deals.tsx:298-303) although the KYC file already has payment_method (crm.ts:510).",
+  "proposal": "Keep the fields visible but let only an admin set sanctions_result and risk_rating (server-side adminFields on kyc), and gate the deal on status 'approved' rather than 'complete', with the agent seeing 'waiting for compliance' and the admin getting the file in the approve queue. Prefill the deal's payment_method from the KYC file.",
+  "benefit": "The AML control the owner is liable for is real; agents stop filling the same payment-method question twice.",
+  "effort": "M",
+  "evidence": [
+   "app/api/crm/data/[table]/route.ts:269-275",
+   "app/api/crm/data/[table]/route.ts:247-266",
+   "lib/crm.ts:539-543",
+   "components/crm/Kyc.tsx:100",
+   "components/crm/Kyc.tsx:113",
+   "components/crm/Compliance.tsx:77-82",
+   "components/crm/Deals.tsx:298-303",
+   "lib/crm.ts:510"
+  ],
+  "checked": true,
+  "id": 19
+ },
+ {
+  "kind": "fix",
+  "area": "tools-whatsapp / Quick WhatsApp",
+  "title": "Quick WhatsApp leaves no trace on the leads it messages",
+  "what": "QuickWhatsApp.tsx:26-36 opens a wa.me chat per lead and then posts only a single row to data/campaigns with a message and a recipient count. Nothing is written per lead: no activity, no stage change, no first_response_at. The one-off template send in LeadPanel.tsx:179 does log a 'whatsapp' activity. So after an agent blasts the 'New leads not yet contacted' list, every lead is still stage 'new' and the same list comes back tomorrow; the Today count (CrmApp.tsx:131) and the SLA logic keep treating them as untouched.",
+  "proposal": "On each opened chat, POST activities {kind:'whatsapp', body:'Quick WhatsApp: <template name>', lead_id} exactly as LeadPanel does, and offer a checkbox 'Move to Contacted' that PATCHes stage for the leads opened. Keep the campaign row as the summary.",
+  "benefit": "Agents stop re-messaging the same people, the owner can see in the lead timeline who was blasted and when, and the 'not yet contacted' list becomes true.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/QuickWhatsApp.tsx:26-36",
+   "components/crm/LeadPanel.tsx:177-179",
+   "components/crm/CrmApp.tsx:131"
+  ],
+  "checked": true,
+  "id": 20
+ },
+ {
+  "kind": "fix",
+  "area": "tools-whatsapp / Quick WhatsApp",
+  "title": "Agents' campaign log is silently dropped (admin-only write)",
+  "what": "QuickWhatsApp.tsx:35 posts to data/campaigns for every user, but the campaigns table is declared adminOnlyWrite: true in app/api/crm/data/[table]/route.ts:185-191. For an agent the request fails, the error is never read (the await result is discarded), and the UI still says 'Opened N of N chats'. The owner therefore has no record of any agent's bulk sends; only his own.",
+  "proposal": "Either drop adminOnlyWrite for campaigns and stamp user_id server-side, or route the write through the per-lead activities above and remove the campaigns call. Surface the api error if it does fail.",
+  "benefit": "The owner can actually answer 'who sent what to whom this week'; today the log is only his own sends.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/QuickWhatsApp.tsx:35",
+   "app/api/crm/data/[table]/route.ts:185-191"
+  ],
+  "checked": true,
+  "id": 21
+ },
+ {
+  "kind": "improve",
+  "area": "tools-whatsapp / Quick WhatsApp",
+  "title": "Pop-up loop does not work on a phone or past the first tab",
+  "what": "QuickWhatsApp.tsx:29-34 loops window.open every 400 ms. Only the first open is inside the click gesture; Chrome/Safari block the rest unless the agent has changed pop-up settings, which the page itself admits at line 41 ('your browser has to allow the pop-ups'). On a phone (where agents actually use WhatsApp) it never gets past one chat, and on desktop the 'All leads with a phone number' option (line 49) can open hundreds of tabs at once with no cap and no confirm.",
+  "proposal": "Replace the loop with a step-through: one big button 'Open chat 3 of 27 · Ahmed' that opens the current recipient on each tap (a real user gesture, works on mobile), marks it sent, and advances; add a 'Skip' and a cap/confirm when the list is over ~50. Keep the counter.",
+  "benefit": "Bulk WhatsApp becomes usable from the phone, which is where the agent is when they do this; no browser-settings tutorial needed.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/QuickWhatsApp.tsx:29-34",
+   "components/crm/QuickWhatsApp.tsx:41",
+   "components/crm/QuickWhatsApp.tsx:49"
+  ],
+  "checked": true,
+  "id": 22
+ },
+ {
+  "kind": "fix",
+  "area": "tools-whatsapp / shared",
+  "title": "wa.me links break for local 05x numbers",
+  "what": "shared.tsx:48 builds https://wa.me/<digits> by stripping non-digits only. A lead saved as '050 123 4567' (how numbers are typed in Dubai, and how the bulk-paste in LeadTools.tsx:81 will often be filled) becomes wa.me/0501234567, which WhatsApp rejects as an invalid number. This helper is used by every WhatsApp action: LeadPanel.tsx:170 and 178, QuickWhatsApp.tsx:31. Agents then retype the number manually in WhatsApp.",
+  "proposal": "Normalise in whatsapp(): strip leading '00', drop a leading '0' on a 10-digit UAE mobile and prefix 971, leave numbers that already start with a country code alone. Apply the same normaliser when a lead is saved so CommandSearch digit matching stays consistent.",
+  "benefit": "Every WhatsApp button opens the right chat first time, on every lead, regardless of how the number was typed.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/shared.tsx:48",
+   "components/crm/LeadPanel.tsx:170",
+   "components/crm/LeadPanel.tsx:178",
+   "components/crm/QuickWhatsApp.tsx:31",
+   "components/crm/LeadTools.tsx:81"
+  ],
+  "checked": false,
+  "id": 23
+ },
+ {
+  "kind": "improve",
+  "area": "tools-whatsapp / Quick WhatsApp",
+  "title": "'New leads' list sends to leads the agent has not claimed",
+  "what": "For an agent the leads array contains their own leads plus the whole unassigned open pool (app/api/crm/[resource]/route.ts:131-133). QuickWhatsApp.tsx:16-22 filters 'new' purely on stage, so an agent's 'New leads not yet contacted' list includes every unclaimed pool lead. Two agents can blast the same pool lead on the same morning, and nobody claims it, so the pool rules (claim, SLA, release reason) are bypassed. There is also no 'My leads' option and no 'exclude leads messaged in the last N days'.",
+  "proposal": "Scope the 'new' and 'all' options to leads where owner_id === me for agents (admins keep everything), add a 'My open leads' option, and grey out recipients that already have a whatsapp activity in the last 7 days with a count 'skipping 4 messaged this week'.",
+  "benefit": "No double-messaging of the same client by two agents, and the pool-claim discipline the owner built stays intact.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/QuickWhatsApp.tsx:16-22",
+   "app/api/crm/[resource]/route.ts:131-133"
+  ],
+  "checked": false,
+  "id": 24
+ },
+ {
+  "kind": "add",
+  "area": "tools-whatsapp / Templates",
+  "title": "Templates only know {name} and {agent}; add property and agent-phone fields",
+  "what": "lib/crm.ts:240-241 fills exactly two placeholders. The lead already carries location, budget_aed, beds, deal_kind (crm.ts:73-74, 644-647 leadBrief) and the agent profile stores a phone (AgentProfile.tsx:83), but none of it can be used in a message, so every template is generic ('Hi {name}, we have great options') and agents edit by hand in WhatsApp. Templates.tsx also has no preview with a real lead, and for agents the page is read-only disabled fields (Templates.tsx:45-62).",
+  "proposal": "Extend fillTemplate to accept the lead and agent objects and support {location}, {budget}, {beds}, {deal} (sale/rent), {agent_phone}; list the available fields above the editor; show the preview filled from a real lead. Hide the Templates screen from agents (they can pick templates from the lead panel and Quick WhatsApp already) or show it as a read-only list with a 'copy' button instead of disabled inputs.",
+  "benefit": "One template ('Hi {name}, about the {beds} in {location} up to {budget}…') replaces five, and the message reads as if typed for that client.",
+  "effort": "M",
+  "evidence": [
+   "lib/crm.ts:240-241",
+   "lib/crm.ts:73-74",
+   "lib/crm.ts:644-647",
+   "components/crm/Templates.tsx:45-62",
+   "components/crm/AgentProfile.tsx:83"
+  ],
+  "checked": true,
+  "id": 25
+ },
+ {
+  "kind": "improve",
+  "area": "tools-whatsapp / Calculators",
+  "title": "Calculators copy text but cannot send it to a lead",
+  "what": "Tools.tsx:12-22 offers only 'Copy for WhatsApp' (clipboard). The agent has to leave Tools, open the lead, hit WhatsApp, and paste. The sheets are already formatted for WhatsApp (Tools.tsx:72-78) and the app has a wa.me helper and a lead list, but the two are not joined. There is also no way to open a cost sheet from the lead panel pre-filled with the lead's budget_aed.",
+  "proposal": "Add a 'Send on WhatsApp' button next to Copy that opens a small lead picker (reuse CommandSearch's lead matching) and opens wa.me/<phone>?text=<sheet>, logging a whatsapp activity on that lead. In LeadPanel, add a 'Cost sheet' link that opens Tools with price = budget_aed.",
+  "benefit": "The most common client question ('what will it cost me all-in') is answered in the chat in two taps, with a record on the lead.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Tools.tsx:12-22",
+   "components/crm/Tools.tsx:72-78",
+   "components/crm/shared.tsx:48",
+   "lib/crm.ts:74"
+  ],
+  "checked": true,
+  "id": 26
+ },
+ {
+  "kind": "fix",
+  "area": "tools-whatsapp / Calculators",
+  "title": "Cost sheet hides a hard-coded 4.5% / 25-year / first-property mortgage",
+  "what": "Tools.tsx:95 calls calculateMortgage with ratePct: 4.5, termYears: 25 and status 'first' fixed, with no inputs for any of them, while the separate Mortgage payment card (Tools.tsx:172-189) does let the agent set rate and term. A client buying a second property, or at today's bank rate, gets a down-payment and 'Total cash needed' figure that is wrong, and the sheet is sent under the brokerage name (Tools.tsx:74).",
+  "proposal": "Fold the Mortgage payment card into the Cost sheet's mortgage mode: show rate, term and 'first / additional property' inputs there, and include the monthly instalment line in the same sheet. Drop the standalone Mortgage payment card.",
+  "benefit": "One sheet instead of two with consistent numbers, and no silently wrong LTV when it is the buyer's second property.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Tools.tsx:95",
+   "components/crm/Tools.tsx:172-189",
+   "components/crm/Tools.tsx:74",
+   "lib/mortgage.ts:140-152"
+  ],
+  "checked": true,
+  "id": 27
+ },
+ {
+  "kind": "improve",
+  "area": "tools-whatsapp / Command search",
+  "title": "Search misses temp leads and owner requests; listing hits land on the list",
+  "what": "CommandSearch.tsx:52-57 searches leads, contacts and listings only. The calling list (temp_leads) and owner_requests, both of which carry phone numbers (demo.ts:89-96 shows the shape), are invisible, so a number from the cold list returns 'No matches' and the agent assumes it is a fresh enquiry. Picking a listing hit just calls setView('listings') (CrmApp.tsx:287) without opening that listing, so the agent still has to find it again in the list.",
+  "proposal": "Add temp_leads and owner_requests to the hit sources (title = name, sub = 'Calling list · status' / 'Owner request · community'), and make the listing hit open that listing's panel the same way lead and contact hits open theirs.",
+  "benefit": "One search box answers 'who is this number' across everything the CRM knows, and a listing search actually opens the listing.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/CommandSearch.tsx:52-57",
+   "components/crm/CrmApp.tsx:283-288",
+   "components/crm/demo.ts:89-96"
+  ],
+  "checked": true,
+  "id": 28
+ },
+ {
+  "kind": "add",
+  "area": "security-auth / sessions",
+  "title": "Give the owner a 'sign out everywhere' lever for the CRM",
+  "what": "Revoking a leaving agent is all-or-nothing. The only kick is for DB Search (app/api/crm/control/route.ts:123 sets kickedAt; lib/dbsearch/guard.ts:293 honours it). For the CRM itself the admin can only 'Switch off' the account (components/crm/Team.tsx:100-110), and a password reset (app/api/crm/[resource]/route.ts:489-492) leaves every existing 10-hour cookie valid because the token carries only id.role.expiry.nonce (lib/crm-auth.ts:66, :70-80) and liveUser only checks role/active (lib/crm-auth.ts:105-107).",
+  "proposal": "Store a per-user 'sessions_before' timestamp (same pattern as DsSettings.kickedAt, no new table needed: a crm_audit snapshot row) and have liveUser reject CRM, Documents and DB Search cookies issued before it. Set it automatically on every password reset and expose it as a 'Sign out of everything' button next to 'Sign out of DB Search' in AccessControl.tsx:199.",
+  "benefit": "When an agent leaves or loses a phone, the owner ends every open session in one click without blocking the account, and a password reset actually locks the old holder out.",
+  "effort": "M",
+  "evidence": [
+   "lib/crm-auth.ts:66 payload = `${user.id}.${user.role}.${Date.now() + SESSION_MS}.${nonce}` — nothing ties the cookie to the password",
+   "lib/crm-auth.ts:105-107 liveUser checks only role and active",
+   "app/api/crm/[resource]/route.ts:489-492 password_hash rewritten, sessions untouched",
+   "app/api/crm/control/route.ts:123 kick exists only for DsSettings",
+   "components/crm/AccessControl.tsx:199-201 'Sign out of DB Search' is the only kick button"
+  ],
+  "checked": true,
+  "id": 29
+ },
+ {
+  "kind": "fix",
+  "area": "security-auth / sessions",
+  "title": "CRM sign-out leaves the Documents cookie alive for four hours",
+  "what": "DELETE /api/crm/login clears only lb_crm (app/api/crm/login/route.ts:203-209). The Documents session is independent: /documents checks only lb_docs (app/documents/route.ts:27-28) and never the CRM cookie. So an admin who signs out of the CRM on a shared or borrowed laptop can still have the whole document suite opened by the next person for up to 4 hours (lib/crm-auth.ts:118). The DB Search cookie survives too, though guard.ts:296 at least rejects it when the CRM user differs.",
+  "proposal": "In the DELETE handler also expire lb_docs and lb_ds (set maxAge 0 for all three cookies). Optionally make /documents also require a live CRM admin session, since the sign-in already assumes one (login/route.ts:166-177).",
+  "benefit": "'Sign out' means signed out of everything, which is what the owner expects when he hands his laptop to someone.",
+  "effort": "S",
+  "evidence": [
+   "app/api/crm/login/route.ts:203-209 DELETE clears CRM_COOKIE only",
+   "app/documents/route.ts:27-28 gate reads only DOCS_COOKIE",
+   "lib/crm-auth.ts:118 DOCS_MS = 4h",
+   "lib/dbsearch/guard.ts:296 DS cookie rejected only if ds.id !== crm.id"
+  ],
+  "checked": true,
+  "id": 30
+ },
+ {
+  "kind": "add",
+  "area": "security-auth / passwords",
+  "title": "Agents cannot change their own password; resets go over WhatsApp",
+  "what": "PATCH users accepts `password` only inside the admin branch (app/api/crm/[resource]/route.ts:479-492), so an agent has no way to change a password. Resets are a window.prompt the admin types into (components/crm/Team.tsx:46-49), and the temporary password is echoed on screen for the admin to forward (Team.tsx:27). There is no 'forgot password' on the login card (components/crm/CrmLogin.tsx:139-168). Every agent therefore keeps the password the owner chose and sent in clear text, and a locked-out agent at a viewing must call the owner.",
+  "proposal": "Add 'Change password' (current + new) to the agent's own profile by allowing `password` on self-patches when `current_password` verifies. Add 'Forgot password?' on CrmLogin that emails a one-time reset link through the existing Resend/issueTicket plumbing (lib/crm-otp.ts:47-55, :110). Both should trigger the sign-out-everywhere from the previous point.",
+  "benefit": "No more passwords pasted into WhatsApp, and the owner stops being the help desk for lockouts.",
+  "effort": "M",
+  "evidence": [
+   "app/api/crm/[resource]/route.ts:479 `if (user.role === \"admin\")` wraps the password branch (:489-492)",
+   "components/crm/Team.tsx:46-49 window.prompt reset",
+   "components/crm/Team.tsx:27 temp password shown in the success message",
+   "components/crm/CrmLogin.tsx:139-168 no forgot-password control"
+  ],
+  "checked": true,
+  "id": 31
+ },
+ {
+  "kind": "fix",
+  "area": "security-auth / owner account",
+  "title": "Owner's password is pinned to the env var forever",
+  "what": "Every owner sign-in with ADMIN_EMAIL + ADMIN_PASSWORD rewrites password_hash from the environment (lib/crm-auth.ts:154-165). If the owner uses 'Reset password' on his own row, the new password works until he next types the env one, which silently restores it. Anyone who ever learned ADMIN_PASSWORD (a previous developer, a chat log) keeps a permanent admin login that no in-app action can revoke; only a Netlify env change does.",
+  "proposal": "Bootstrap only when the owner row does not exist (the `existing` branch at :162-163 should not touch password_hash). Afterwards authenticate the owner from the DB hash like everyone else, and show a one-time banner 'Change your bootstrap password' in his profile.",
+  "benefit": "The owner can rotate his own password from the CRM, and the bootstrap secret stops being a permanent backdoor.",
+  "effort": "S",
+  "evidence": [
+   "lib/crm-auth.ts:156 env password compared first, before the DB",
+   "lib/crm-auth.ts:160-163 fields.password_hash = hashPassword(ownerPassword) applied on update of the existing row"
+  ],
+  "checked": true,
+  "id": 32
+ },
+ {
+  "kind": "improve",
+  "area": "security-auth / friction",
+  "title": "DB Search asks for a second emailed code the CRM already proved",
+  "what": "Opening DB Search requires email + password + a fresh emailed code (components/crm/dbsearch/DsSignIn.tsx:61, app/api/crm/login/route.ts:178-200) even though the server already insists the caller holds a live CRM session for the same user (login/route.ts:94-95). The DS session then lasts 2h and dies after 20 idle minutes (lib/dbsearch/guard.ts:24-25), so an agent on calls repeats the full three-step flow several times a day, each one consuming one of the 5 code emails per 15 minutes (login/route.ts:27, :33-35). Documents already gets a one-step 'password only while CRM is signed in' shortcut (login/route.ts:166-177); DB Search does not.",
+  "proposal": "Mirror the Documents shortcut: when a live CRM session for the same user exists and the CRM login itself was OTP-verified, re-entering DB Search (especially after the idle timeout) needs the password only. Keep the emailed code for the first DB Search sign-in of the day if the owner wants it.",
+  "benefit": "Agents stop bouncing to their inbox mid-call; fewer code emails means fewer 'wait 30 seconds' and 'rate_limited' dead ends.",
+  "effort": "S",
+  "evidence": [
+   "app/api/crm/login/route.ts:94-95 dbSearchRefusal already requires sessionFromRequest(request).id === user.id",
+   "app/api/crm/login/route.ts:166-177 documents-only password shortcut",
+   "lib/dbsearch/guard.ts:24-25 DS_ABS_MS 2h, DS_IDLE_MS 20min",
+   "components/crm/dbsearch/DsSignIn.tsx:49 'Your DB Search session has ended. Sign in again.'",
+   "app/api/crm/login/route.ts:27,:33-35 MAX_CODE_EMAILS=5 per 15 min shared across purposes"
+  ],
+  "checked": true,
+  "id": 33
+ },
+ {
+  "kind": "add",
+  "area": "security-auth / friction",
+  "title": "Remember this device so the daily code stops on phones",
+  "what": "The CRM cookie lasts 10 hours (lib/crm-auth.ts:17) and every new sign-in needs an emailed 6-digit code (app/api/crm/login/route.ts:193-200). An agent on a phone therefore types a code at least once a day, sometimes twice, and there is no trusted-device option on the card (components/crm/CrmLogin.tsx:139-168). The email itself already prints the device name (lib/crm-otp.ts:103-108, :119) so the plumbing to identify a browser exists.",
+  "proposal": "After a successful code, set a 30-day HMAC-signed 'lb_trust' cookie bound to the user id; on the next password sign-in from that browser skip the code for the CRM purpose only (never for DB Search or Documents). Show 'This device is remembered' with a 'Forget' link in the profile.",
+  "benefit": "One code per phone per month instead of one per day; the owner keeps the second factor where it matters (owner data, documents).",
+  "effort": "M",
+  "evidence": [
+   "lib/crm-auth.ts:17 SESSION_MS = 10h",
+   "app/api/crm/login/route.ts:193-200 code always issued for purpose crm",
+   "components/crm/CrmLogin.tsx:173 'Sessions end after ten hours.'",
+   "lib/crm-otp.ts:103-108 deviceOf already fingerprints the browser"
+  ],
+  "checked": true,
+  "id": 34
+ },
+ {
+  "kind": "remove",
+  "area": "security-auth / rate limits",
+  "title": "In-memory throttles are dead on Netlify; email lockout is a DoS handle",
+  "what": "Two throttles live in process memory: the per-IP `attempts` map (app/api/crm/login/route.ts:44-55) and the OTP `tries` map (lib/crm-otp.ts:70-83). On Netlify functions each invocation may be a fresh instance, so these reset constantly and `tries.clear()` at crm-otp.ts:81 wipes every counter at once. The real limiter is the database one at login/route.ts:150, but it is keyed on email alone, so anyone who knows an agent's address can post 8 wrong passwords and lock that agent out for 15 minutes, repeatedly, from any IP, with no admin notification.",
+  "proposal": "Delete the two in-memory maps and keep only the crm_audit-backed counters (countRecent). Key the password lockout on email+IP (or email with an escalating delay instead of a hard 429), and surface 'N failed sign-ins on X's account in the last hour' as a card in AccessControl so the owner sees an attack.",
+  "benefit": "Agents cannot be locked out of their own CRM by a prankster, and the owner sees brute-force attempts instead of silent 429s.",
+  "effort": "S",
+  "evidence": [
+   "app/api/crm/login/route.ts:46-55 attempts Map, cleared when size > 2000",
+   "lib/crm-otp.ts:70-83 tries Map, cleared when size > 5000",
+   "app/api/crm/login/route.ts:150 countRecent('login_failed', { email }) >= 8 → rate_limited for anyone using that email",
+   "app/api/crm/login/route.ts:158 login_failed logged with user_id null, so TeamMonitor cannot attribute it to the agent"
+  ],
+  "checked": false,
+  "id": 35
+ },
+ {
+  "kind": "fix",
+  "area": "security-auth / configuration",
+  "title": "One env flag silently removes the second factor everywhere",
+  "what": "CRM_OTP_DISABLED=true (lib/crm-otp.ts:44) makes step 1 hand out the session directly for every purpose, including DB Search and Documents (app/api/crm/login/route.ts:186-191). The login cards still promise a code (components/crm/CrmLogin.tsx:31, components/crm/dbsearch/DsSignIn.tsx:93), and nothing in AccessControl shows the flag is on, so a flag left over from a debugging session would leave the owner data behind password-only without anyone noticing.",
+  "proposal": "Limit the bypass to purpose 'crm' and to non-production (NODE_ENV !== 'production'), and show a red 'Email codes are OFF' chip in AccessControl whenever otpDisabled() is true.",
+  "benefit": "The owner can be sure owner phone numbers and company documents are always behind the emailed code on the live site.",
+  "effort": "S",
+  "evidence": [
+   "lib/crm-otp.ts:44 otpDisabled reads CRM_OTP_DISABLED",
+   "app/api/crm/login/route.ts:186-191 signedIn(user, purpose) for any purpose when disabled",
+   "components/crm/CrmLogin.tsx:31 copy says a code will be emailed"
+  ],
+  "checked": true,
+  "id": 36
+ },
+ {
+  "kind": "fix",
+  "area": "listings",
+  "title": "Any edit of a live listing is rejected until all docs are perfect",
+  "what": "ListingForm.submit sends every field including the current status (components/crm/Listings.tsx:176-180). The PATCH gate in app/api/crm/data/[table]/route.ts:384-392 fires whenever patch.status === \"available\", not when status changes, so an agent fixing a typo in the description of an already-available listing without a permit/Form A/photos gets 422 \"Cannot publish: …\". Meanwhile POST (route.ts:329-356) has no gate at all and BLANK.status is \"available\" (Listings.tsx:19), so a brand-new non-compliant listing is created live without complaint.",
+  "proposal": "Run the compliance gate only on a status transition to available (compare existing.status) and on approval=approved; run the same gate on POST when status is available, otherwise default a new listing to off_market/pending until docs exist.",
+  "benefit": "Agents stop hitting a wall when editing stock they already have; the owner stops getting non-compliant listings that slipped in at creation.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Listings.tsx:19",
+   "components/crm/Listings.tsx:176-180",
+   "app/api/crm/data/[table]/route.ts:329-356",
+   "app/api/crm/data/[table]/route.ts:384-392"
+  ],
+  "checked": true,
+  "id": 37
+ },
+ {
+  "kind": "add",
+  "area": "listings",
+  "title": "Photo upload from the phone instead of pasting URLs",
+  "what": "Listing photos are a textarea of links, one per line (components/crm/Listings.tsx:273), and the API only accepts http(s) URLs (app/api/crm/data/[table]/route.ts:46-47). uploadFile only allows kind \"avatar\" | \"doc\" (components/crm/shared.tsx:310) and the upload route rejects anything else (app/api/crm/upload/route.ts:23,35). An agent at a viewing with photos on their phone has nowhere to put them; AgentDocuments.tsx:19-24 and AgentProfile.tsx:32-40 already have a working upload+shrink flow.",
+  "proposal": "Add a \"listing\" kind to uploadFile and the upload route (folder listings/<agentId>/), and replace the textarea with a multi-file picker (accept image/*, capture) that reuses shrinkImage and appends the returned URLs to photos. Keep the URL textarea as a fallback.",
+  "benefit": "\"No photos\" stops being the most common compliance blocker (lib/crm.ts:305) and listings go live the same day they are signed.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Listings.tsx:273",
+   "app/api/crm/data/[table]/route.ts:46-47",
+   "components/crm/shared.tsx:310",
+   "app/api/crm/upload/route.ts:23",
+   "app/api/crm/upload/route.ts:35",
+   "components/crm/AgentProfile.tsx:32-40"
+  ],
+  "checked": true,
+  "id": 38
+ },
+ {
+  "kind": "add",
+  "area": "listings",
+  "title": "Portal export (Property Finder / Bayut XML feed) does not exist",
+  "what": "Listings carry ref_code, permit_no, photos, size, price and description (lib/crm.ts:144-178) and portal leads are matched back by ref_code (lib/portal-intake.ts:75-78), but nothing produces a feed: grep for feed/xml across app/ finds only robots/sitemap/manifest, and crm_listings is read by no public route (grep crm_listings: only api routes and portal-intake). Agents re-type every listing into each portal by hand and the ref the portal sends back never equals ref_code unless they copy it manually.",
+  "proposal": "Add a signed, secret-keyed GET route (e.g. app/api/listings/feed/[portal]) that emits approved, available, non-off-market listings in the Property Finder and Bayut XML schemas using ref_code as the reference and permit_no as the Trakheesi number; show the feed URL on the Integrations page.",
+  "benefit": "One entry per listing instead of three; portal enquiries auto-route to the listing agent because the reference finally matches.",
+  "effort": "L",
+  "evidence": [
+   "lib/crm.ts:144-178",
+   "lib/portal-intake.ts:75-78",
+   "app/api/crm/data/[table]/route.ts:354",
+   "components/crm/Listings.tsx:114"
+  ],
+  "checked": true,
+  "id": 39
+ },
+ {
+  "kind": "add",
+  "area": "matching",
+  "title": "Reverse matching: show who wants this listing",
+  "what": "Matching only runs from a person to stock: ContactPanel.matches (components/crm/Contacts.tsx:154-162) and matchListings for leads (components/crm/LeadLifecycle.tsx:75-85). When a new listing is saved, nobody is told which of the agent's leads/contacts fit it; the ListingForm has no buyers section (Listings.tsx:152-307). The agent would have to open every contact to find out.",
+  "proposal": "In ListingForm (edit mode) add a \"Buyers who fit\" section: run matchListings in reverse over leads (deal_kind, location, beds, budget) and over contacts' \"wants\" rows, with the same WhatsApp \"Send\" link LeadLifecycle.Matches already builds (LeadLifecycle.tsx:91-96).",
+  "benefit": "The agent sends a fresh listing to the five people who asked for it within a minute of saving it.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Contacts.tsx:154-162",
+   "components/crm/LeadLifecycle.tsx:75-85",
+   "components/crm/LeadLifecycle.tsx:91-96",
+   "components/crm/Listings.tsx:152-307"
+  ],
+  "checked": true,
+  "id": 40
+ },
+ {
+  "kind": "improve",
+  "area": "matching",
+  "title": "Contact matching ignores sale/rent and has no Send button",
+  "what": "ContactPanel.matches (components/crm/Contacts.tsx:156-162) matches on (sameArea || sameBeds) && inBudget and never checks purpose: a tenant wanting a 1BR gets sale listings at AED 1.2M, and any 1BR anywhere in Dubai matches a \"1BR in Marina\" want. The matched list is read-only (Contacts.tsx:270-277) whereas the lead version has per-listing WhatsApp Send and Send-all (LeadLifecycle.tsx:102-118). The CrmProperty \"wants\" row has no purpose field (lib/crm.ts:101-111).",
+  "proposal": "Derive purpose from contact.kind (tenant → rent, buyer/investor → sale) or add it to the wants row, require area AND beds when both are set, and reuse LeadLifecycle.Matches (or its send() helper) so the contact panel gets the same Send / Send-all links.",
+  "benefit": "Matches are believable and actionable from the contact card, not just from the lead.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Contacts.tsx:156-162",
+   "components/crm/Contacts.tsx:270-277",
+   "components/crm/LeadLifecycle.tsx:102-118",
+   "lib/crm.ts:101-111"
+  ],
+  "checked": true,
+  "id": 41
+ },
+ {
+  "kind": "fix",
+  "area": "contacts",
+  "title": "Duplicate contacts: no phone check on create",
+  "what": "POST contacts inserts unconditionally (app/api/crm/[resource]/route.ts:246-258); DB Search's add refuses when the phone already exists (app/api/ds/[action]/route.ts:296-298) and portal intake dedupes leads, but the CRM contact path does not. ContactsView's New contact form (Contacts.tsx:31-38) and LeadPanel's \"Save as contact\" (LeadPanel.tsx:85-94) both create fresh rows; two agents saving the same buyer get two cards, and admin only notices in the CSV export.",
+  "proposal": "In POST contacts, normalise the phone to its 9-digit core and look up crm_contacts first; return 409 { existing } and have the client offer \"Open existing contact\" (and link the lead to it) instead of inserting.",
+  "benefit": "One card per client, so KYC, notes and deals stop being split across duplicates.",
+  "effort": "S",
+  "evidence": [
+   "app/api/crm/[resource]/route.ts:246-258",
+   "app/api/ds/[action]/route.ts:296-298",
+   "components/crm/Contacts.tsx:31-38",
+   "components/crm/LeadPanel.tsx:85-94"
+  ],
+  "checked": true,
+  "id": 42
+ },
+ {
+  "kind": "add",
+  "area": "kyc",
+  "title": "KYC ID copies are pasted links, not uploads",
+  "what": "The KYC file's id_doc_url and passport_doc_url are plain text inputs labelled \"Link to ID copy\" (components/crm/Kyc.tsx:89-90) and the API only accepts http(s) URLs (app/api/crm/data/[table]/route.ts:42,70). An agent photographing a client's passport at a meeting has to host it somewhere else first; AgentDocuments already uploads PDFs/photos into private storage (AgentDocuments.tsx:19-24). kycMissing counts \"Copy of ID / passport\" as a blocker (lib/crm.ts:538), and a deal cannot be recorded until KYC is complete (route.ts:270-275,341-343).",
+  "proposal": "Add a \"kyc\" upload kind (folder kyc/<contactOwnerId>/) and replace the two text inputs with camera/file pickers that store the private URL; keep the link fields as fallback.",
+  "benefit": "KYC gets completed on the spot, so the KYC gate stops delaying deal entry; passport copies live in the brokerage's own storage, not on an agent's phone or WhatsApp.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Kyc.tsx:89-90",
+   "app/api/crm/data/[table]/route.ts:42",
+   "app/api/crm/data/[table]/route.ts:70",
+   "lib/crm.ts:538",
+   "app/api/crm/data/[table]/route.ts:270-275",
+   "components/crm/AgentDocuments.tsx:19-24"
+  ],
+  "checked": false,
+  "id": 43
+ },
+ {
+  "kind": "improve",
+  "area": "owner-linking",
+  "title": "Owner link is one-way and hides the owner's phone",
+  "what": "ListingForm sets owner_contact_id via a bare dropdown of names (components/crm/Listings.tsx:202-207) and shows nothing else about the owner: no phone, no WhatsApp, no Form A end reminder tied to them. ContactPanel never shows the listings a contact owns (listings prop is used only for matching, Contacts.tsx:154-162), and instead has a separate manual \"owns\" property row (Contacts.tsx:251-261, lib/crm.ts:101-111) that is not connected to any listing. Owner requests (OwnerRequests.tsx:88-90 → CrmApp.tsx:428-436) prefill a listing but never create or link the owner as a contact.",
+  "proposal": "In ListingForm show the chosen owner's phone + WhatsApp/tel links next to the select; in ContactPanel add \"Listings owned\" from listings.filter(l => l.owner_contact_id === contact.id) with a click-through; when creating a listing from an owner request, create/find the contact by phone and pre-set owner_contact_id.",
+  "benefit": "The agent calls the landlord from the listing and sees the landlord's stock from the contact without re-keying an \"owns\" row.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Listings.tsx:202-207",
+   "components/crm/Contacts.tsx:154-162",
+   "components/crm/Contacts.tsx:251-261",
+   "lib/crm.ts:101-111",
+   "components/crm/OwnerRequests.tsx:88-90",
+   "components/crm/CrmApp.tsx:428-436"
+  ],
+  "checked": false,
+  "id": 44
+ },
+ {
+  "kind": "remove",
+  "area": "listings",
+  "title": "Drop the misleading Off-market checkbox and status duplicate",
+  "what": "The form has both a status option off_market (lib/crm.ts:141, Listings.tsx:201) and a separate boolean checkbox \"Off-market (hide from the public site)\" (Listings.tsx:250-253, stored at route.ts:121). Nothing public reads crm_listings (grep: only api routes and portal-intake), so \"hide from the public site\" promises something the app does not do, and a listing can be status=available with off_market=true, which Compliance still treats as live (Compliance.tsx:101).",
+  "proposal": "Remove the checkbox and the boolean from the form; keep the single off_market status. If a feed/public page is added later, derive visibility from status and approval only.",
+  "benefit": "One way to say off-market; agents stop wondering why a \"hidden\" listing is still counted as live.",
+  "effort": "S",
+  "evidence": [
+   "lib/crm.ts:141",
+   "lib/crm.ts:174",
+   "components/crm/Listings.tsx:201",
+   "components/crm/Listings.tsx:250-253",
+   "app/api/crm/data/[table]/route.ts:121",
+   "components/crm/Compliance.tsx:101"
+  ],
+  "checked": true,
+  "id": 45
+ },
+ {
+  "kind": "improve",
+  "area": "listings",
+  "title": "Stock list filters by status only",
+  "what": "ListingsView offers a text search and a status dropdown (components/crm/Listings.tsx:65-75); there is no sale/rent, bedrooms, community, or \"mine vs team\" filter and no sort. An agent asked for \"2BR for rent in JVC\" scrolls a card grid (up to 3000 rows, route.ts:298). The card hides the key_status until the form is opened (Listings.tsx:302-304).",
+  "proposal": "Add purpose, bedrooms and community chips plus a sort (price, newest) to the toolbar, and for admin a \"my listings\" toggle; show the key status on the card footer.",
+  "benefit": "Finding the right unit for a client takes seconds instead of scrolling.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Listings.tsx:65-75",
+   "components/crm/Listings.tsx:49-55",
+   "components/crm/Listings.tsx:302-304",
+   "app/api/crm/data/[table]/route.ts:298"
+  ],
+  "checked": true,
+  "id": 46
+ },
+ {
+  "kind": "fix",
+  "area": "Temp leads → Leads promotion",
+  "title": "Temp-lead Promote button is wired to nothing",
+  "what": "TempLeads.tsx:74-76 shows Promote for status=interested; CrmApp.tsx:414-417 stores {full_name, phone, source:'referral'} in `tempLeadPromote` and switches to the pipeline. That state is read nowhere (only CrmApp.tsx:85 declares it and :415 sets it; Pipeline.tsx:11-19 accepts no prefill prop, ImportLeads in LeadTools.tsx:16-21 accepts none). The agent lands on an unchanged Pipeline, must open Add leads and retype name/phone; the temp row stays 'interested' forever and its notes (CrmTempLead.notes, crm.ts:390) and real source (crm.ts:388) are dropped; source is hardcoded to referral.",
+  "proposal": "Make Promote actually create the lead: POST data/leads with name, phone, notes and the temp row's source, owner_id = current agent, then PATCH the temp row to pre_exist (or a new 'promoted' status) and open the new lead's panel. Delete the dead `tempLeadPromote` state.",
+  "benefit": "Qualified cold calls become leads in one tap instead of being retyped or silently lost; the call list stops showing already-promoted numbers.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/CrmApp.tsx:85",
+   "components/crm/CrmApp.tsx:414-417",
+   "components/crm/TempLeads.tsx:74-76",
+   "components/crm/Pipeline.tsx:11-19",
+   "lib/crm.ts:383-392"
+  ],
+  "checked": true,
+  "id": 47
+ },
+ {
+  "kind": "fix",
+  "area": "Duplicates",
+  "title": "Manual and bulk lead imports never check for duplicates",
+  "what": "Only portal intake dedupes by phone (lib/portal-intake.ts:61-72). The Add leads / Paste list path (LeadTools.tsx:35-37 → app/api/crm/data/[table]/route.ts:311-326) inserts every row that has a name and 5+ phone chars; `skipped` only counts malformed rows. The post-hoc warning (CrmApp.tsx:247-254, LeadPanel.tsx:191-196) is a plain string with no link to the other record, and for agents `leads` holds only their own + pool rows (route.ts:131-133), so a phone already owned by another agent produces no warning at all. DB Search → lead creation (app/api/ds/[action]/route.ts:318) also bypasses the check.",
+  "proposal": "In the data/leads POST, look up open leads from the last 30 days by last-9-digit phone (same rule as portal-intake.ts:61-67) and return them as `duplicates` instead of inserting; show the existing lead/owner in the import panel with an 'open existing' action. In LeadPanel make each duplicate a button that opens that lead/contact.",
+  "benefit": "Two agents stop working the same client; the owner stops paying double on one enquiry; the 'repeat enquiry' already in the portal path becomes the rule everywhere.",
+  "effort": "M",
+  "evidence": [
+   "app/api/crm/data/[table]/route.ts:311-326",
+   "lib/portal-intake.ts:61-72",
+   "components/crm/CrmApp.tsx:247-254",
+   "components/crm/LeadPanel.tsx:191-196",
+   "app/api/crm/[resource]/route.ts:131-133"
+  ],
+  "checked": true,
+  "id": 48
+ },
+ {
+  "kind": "fix",
+  "area": "48h return-to-pool rule",
+  "title": "Any field edit restarts the 48h clock, including starring",
+  "what": "app/api/crm/[resource]/route.ts:432 sets `expires_at = now+48h` on every successful lead PATCH regardless of which field changed: starring (:399-406), deal value (:414), internal notes (:424), partner agency (:415), requirements. An agent can hold a lead indefinitely by toggling the star every two days without ever contacting the client. QuickUpdate's caption 'Each update keeps the lead yours for 48h' (LeadLifecycle.tsx:205) and the pool text (LeadPanel.tsx:75) promise the rule is about updates on the client.",
+  "proposal": "Restart the clock only when the patch includes stage, next_follow_up_at, or a logged contact activity (activities POST already does this at :302-305); leave `expires_at` untouched for starred / deal_value / notes / partner / requirements-only patches.",
+  "benefit": "The 48h rule becomes enforceable: leads nobody is actually calling return to the pool, which is the whole point of the rule.",
+  "effort": "S",
+  "evidence": [
+   "app/api/crm/[resource]/route.ts:429-432",
+   "app/api/crm/[resource]/route.ts:399-406",
+   "app/api/crm/[resource]/route.ts:424",
+   "components/crm/LeadLifecycle.tsx:205"
+  ],
+  "checked": false,
+  "id": 49
+ },
+ {
+  "kind": "fix",
+  "area": "Claiming / open pool",
+  "title": "Pool leads show masked phone as Call/WhatsApp buttons",
+  "what": "For agents, pool leads are masked server-side to phone like '•••••••12' (route.ts:103-114). MyDay includes unowned new leads in `waiting` (MyDay.tsx:37) and renders tel:/wa.me buttons whenever `r.phone` is truthy (MyDay.tsx:130-133), so the agent taps Call and dials bullet characters. The pool card's button is labelled 'Claim' (MyDay.tsx:173) but only opens the panel; the real claim is a second tap at LeadPanel.tsx:80. In the pool panel itself (LeadPanel.tsx:71-83) `lead.notes` is always null for agents (route.ts:108), so the agent decides whether to claim from name + 'Investor Advisory' only, although deal_kind/budget/location are in POOL_FIELDS (route.ts:99-102) and never displayed.",
+  "proposal": "In MyDay hide the phone buttons when the phone contains '•' (same test Matches uses, LeadLifecycle.tsx:89) and make the pool 'Claim' button call PATCH {claim:true} directly, then open the panel. In the pool panel show leadBrief(lead) and the source so the agent knows what they are claiming.",
+  "benefit": "No dead taps on the phone; one-tap claiming from the home screen; agents claim the right leads instead of guessing.",
+  "effort": "S",
+  "evidence": [
+   "app/api/crm/[resource]/route.ts:99-114",
+   "components/crm/MyDay.tsx:37",
+   "components/crm/MyDay.tsx:130-133",
+   "components/crm/MyDay.tsx:173",
+   "components/crm/LeadPanel.tsx:71-83",
+   "components/crm/LeadLifecycle.tsx:89"
+  ],
+  "checked": false,
+  "id": 50
+ },
+ {
+  "kind": "improve",
+  "area": "First reply",
+  "title": "'No reply for Xh' ignores the recorded first response",
+  "what": "`first_response_at` is written when a call/WhatsApp/email/meeting activity is logged (route.ts:299-301) or the stage leaves New (:427), but the red 'No reply' badges are computed only from stage==='new' and created_at (Pipeline.tsx:130-132, :195-199; MyDay.tsx:72-73). Sending a WhatsApp template (LeadPanel.tsx:179) or the plain WhatsApp/Call buttons (LeadPanel.tsx:170, :187) do not change the stage, so a lead the agent already messaged keeps screaming 'No reply for 9h' and sits at rank 0 in Do next; meanwhile `first_response_at` is used only in Reports.tsx:10.",
+  "proposal": "Drive the badge and the MyDay 'waiting for a first reply' bucket from `!first_response_at` instead of stage; when the template is sent or the WhatsApp/Call button is tapped, auto-log the activity (template already does) and move New → Contacted, matching what QuickUpdate does at LeadLifecycle.tsx:183.",
+  "benefit": "Do next stops listing clients already contacted; the owner's response-time KPI and the agent's screen agree on the same facts.",
+  "effort": "S",
+  "evidence": [
+   "app/api/crm/[resource]/route.ts:299-301",
+   "app/api/crm/[resource]/route.ts:427",
+   "components/crm/Pipeline.tsx:130-132",
+   "components/crm/Pipeline.tsx:195-199",
+   "components/crm/MyDay.tsx:72-73",
+   "components/crm/LeadPanel.tsx:170-187",
+   "components/crm/Reports.tsx:10"
+  ],
+  "checked": true,
+  "id": 51
+ },
+ {
+  "kind": "fix",
+  "area": "Release to pool",
+  "title": "Release reasons recycle dead leads into the pool",
+  "what": "ReasonForm builds release reasons as ['Can't handle this area','Manager asked','Too many leads', ...LOST_REASONS.slice(0,3)] (LeadLifecycle.tsx:135), i.e. 'No answer (WhatsApp sent)', 'Low budget', 'Not interested anymore'. Releasing on those puts a client who is not interested or has no budget back into the open pool for the next agent to claim and call again. The release PATCH (route.ts:375-382) only clears owner_id; nothing stops the same agent re-claiming immediately (claim at :355-368 has no check) to reset the 48h clock.",
+  "proposal": "Keep only pool-relevant reasons for release (area, language, workload, manager asked); route 'not interested / low budget / no answer' to Lost instead. On claim, refuse the agent who released that lead in the last 48h (last 'Released to the pool' activity by user_id).",
+  "benefit": "The pool holds only workable leads; agents cannot game the clock with release-and-reclaim.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/LeadLifecycle.tsx:135",
+   "lib/crm.ts:253-264",
+   "app/api/crm/[resource]/route.ts:355-368",
+   "app/api/crm/[resource]/route.ts:375-382"
+  ],
+  "checked": true,
+  "id": 52
+ },
+ {
+  "kind": "remove",
+  "area": "Lead record",
+  "title": "Lead panel carries fields that belong elsewhere",
+  "what": "Every lead shows a 'Partnership (co-broker)' block (LeadPanel.tsx:238-257) even though partner data is only meaningful at deal time; a 'Deal value (AED)' field (LeadPanel.tsx:228-231) that duplicates `budget_aed` in Requirements (LeadLifecycle.tsx:60) and the deal price captured in CloseDealForm; the subtitle prints the website service ('Investor Advisory') and locale (LeadPanel.tsx:101) which crm.ts:641-642 already admits is meaningless for portal leads, and Pipeline cards print the same service label (Pipeline.tsx:194) instead of the brief; 'What they submitted' dumps raw payload keys like portal/reference/ad_id as a key:value grid (LeadPanel.tsx:96, :118-126).",
+  "proposal": "Drop the service/locale from the subtitle and cards and show leadBrief(l) there (Pipeline.tsx:194); collapse Partnership behind a 'Co-broker deal?' toggle shown only when partner_agency is set or when stage is Offer; remove Deal value from the lead and let budget_aed carry pipeline value (Pipeline.tsx:43 sums deal_value_aed, switch it to budget); render payload only for a known allow-list (message, reference, listing title).",
+  "benefit": "The panel an agent opens 30 times a day gets shorter on a phone, and what remains is what they need to call the client.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/LeadPanel.tsx:96-129",
+   "components/crm/LeadPanel.tsx:101",
+   "components/crm/LeadPanel.tsx:228-231",
+   "components/crm/LeadPanel.tsx:238-257",
+   "components/crm/Pipeline.tsx:43",
+   "components/crm/Pipeline.tsx:194",
+   "lib/crm.ts:639-653"
+  ],
+  "checked": true,
+  "id": 53
+ },
+ {
+  "kind": "add",
+  "area": "Follow-ups",
+  "title": "No-answer attempts are not counted; nothing suggests giving up",
+  "what": "QuickUpdate's 'No answer' sets a 3h follow-up and logs a call activity (LeadLifecycle.tsx:157, :180-191) every time; the lead can bounce through 'No answer' indefinitely, and the 3h offset ignores the time of day (a 9pm tap lands the follow-up at midnight, which MyDay then shows as 'Overdue' next morning). Nothing on the lead shows how many attempts were made; the only trace is the Timeline. 'Client unreachable' exists as a lost reason (crm.ts:261) but the agent must find it by hand.",
+  "proposal": "Count 'Called — no answer' activities for the lead; show 'Attempt 3 of 3' on the No answer button and, after the third, offer 'Mark unreachable' (stage lost, reason 'Client unreachable') right in QuickUpdate. Clamp auto follow-ups falling after 20:00 to 09:30 next day.",
+  "benefit": "Agents stop dialing dead numbers; the owner gets a clean 'unreachable' count instead of leads rotting in Contacted.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/LeadLifecycle.tsx:155-160",
+   "components/crm/LeadLifecycle.tsx:180-191",
+   "lib/crm.ts:253-264",
+   "components/crm/MyDay.tsx:38-40"
+  ],
+  "checked": true,
+  "id": 54
+ },
+ {
+  "kind": "fix",
+  "area": "Assignment",
+  "title": "Import can assign leads to agents with an expired BRN",
+  "what": "PATCH leads refuses owner_id for an agent without a valid licence (route.ts:394-398), portal intake skips them (portal-intake.ts:81-82, :91), autoAssign filters them (LeadTools.tsx:97). But Add leads' 'Assign to' dropdown lists every active user with no licence check (LeadTools.tsx:62-69) and the data/leads POST stores owner_id as given (app/api/crm/data/[table]/route.ts:321) with no `expires_at`, so an imported-and-assigned lead never enters the 48h clock either (expireLeads at route.ts:80-93 only acts on rows that have expires_at).",
+  "proposal": "In the data/leads POST apply the same hasLicence check as PATCH and set expires_at = now+48h whenever owner_id is set; disable unlicensed agents in the Assign dropdown like LeadPanel.tsx:216-219 does.",
+  "benefit": "One assignment rule everywhere; imported leads cannot sit outside the return-to-pool rule.",
+  "effort": "S",
+  "evidence": [
+   "app/api/crm/data/[table]/route.ts:311-326",
+   "components/crm/LeadTools.tsx:62-69",
+   "app/api/crm/[resource]/route.ts:394-398",
+   "app/api/crm/[resource]/route.ts:80-93",
+   "components/crm/LeadPanel.tsx:216-219"
+  ],
+  "checked": true,
+  "id": 55
+ },
+ {
+  "kind": "improve",
+  "area": "Lost reasons",
+  "title": "Lost reasons mix junk leads with real lost deals",
+  "what": "LOST_REASONS (crm.ts:253-264) puts 'Spam', 'It was an agent', 'Wrong contact details', 'Client unreachable', 'General enquiry' next to genuine losses ('Low budget', 'Already bought / rented', 'Don't have stock'). The reason is stored (route.ts:387-391) but surfaces only as a chip on the lead (LeadPanel.tsx:108); Reports win rate counts every lost lead as a decided deal (Reports.tsx:70-75), so a portal full of spam drags the team's rate down, and the owner has no view of why leads are lost per source or per agent.",
+  "proposal": "Tag each reason as junk vs lost (a small map in crm.ts); exclude junk from win-rate's denominator and add a 'Why leads are lost' breakdown by source and agent to Reports. 'Don't have stock' should also create an owner-visible signal (count per location) since it is the one reason the brokerage can act on.",
+  "benefit": "The owner sees which portal sends spam and where stock is missing; win rate reflects real selling.",
+  "effort": "M",
+  "evidence": [
+   "lib/crm.ts:253-264",
+   "app/api/crm/[resource]/route.ts:387-391",
+   "components/crm/LeadPanel.tsx:108",
+   "components/crm/Reports.tsx:70-75"
+  ],
+  "checked": true,
+  "id": 56
+ },
+ {
+  "kind": "fix",
+  "area": "dbsearch-tools / WhatsApp campaign",
+  "title": "Campaign template chips leave a literal {agent} in the message",
+  "what": "DsCampaign loads the CRM's templates as one-tap chips (components/crm/dbsearch/DsCampaign.tsx:72, :178) but its own fill() only replaces {name} {community} {building} {unit} and the {A|B} spinner (DsCampaign.tsx:34-47). CRM templates are written for fillTemplate(), which substitutes {name} and {agent} (lib/crm.ts:240-241). An agent who taps a chip and sends gets a WhatsApp opened with '{agent}' printed in the text, and the preview at DsCampaign.tsx:110 shows the same, so it is easy to miss on a phone.",
+  "proposal": "In fill(), also replace {agent} with the signed-in user's first name (DbSearch already has meEmail; pass the display name down like QuickWhatsApp does with meName). Share one placeholder list between QuickWhatsApp and DsCampaign so a template written once works in both.",
+  "benefit": "Templates become usable from the campaign without rewriting; no embarrassing '{agent}' messages to owners.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsCampaign.tsx:34-47 fill() replaces only name/community/building/unit",
+   "components/crm/dbsearch/DsCampaign.tsx:178 chips set msg to t.body unchanged",
+   "lib/crm.ts:240-241 fillTemplate replaces {name} and {agent}",
+   "components/crm/QuickWhatsApp.tsx:31 uses fillTemplate(message, r.full_name, meName)"
+  ],
+  "checked": false,
+  "id": 57
+ },
+ {
+  "kind": "add",
+  "area": "dbsearch-tools / WhatsApp campaign",
+  "title": "Campaign sends leave no trace: no follow-up list, no campaign record",
+  "what": "When an agent taps WhatsApp on a recipient, DsCampaign only reveals the number (reason owner_outreach) and flips a local 'Opened' badge (DsCampaign.tsx:114-135). The server logs a 'reveal' audit row (app/api/ds/[action]/route.ts:190) and nothing else: no crm_temp_leads row, no crm_campaigns row. The CRM-side QuickWhatsApp does at least POST data/campaigns (QuickWhatsApp.tsx:35) and the lib type CrmCampaign exists (lib/crm.ts:394-400). Next morning nobody can see who was messaged, who replied, or who to chase; the agent has to search the owner again and reveal again (costing another reveal).",
+  "proposal": "On each successful send, call the existing 'add' action with as:'temp' (route.ts:329-335, already dedupes against the CRM and the DNC list) with notes carrying the campaign name and the exact message, status to_call; and at queue creation POST data/campaigns with message + recipient count like QuickWhatsApp does. Then Temp leads becomes the follow-up board for the campaign.",
+  "benefit": "Every outreach becomes a trackable lead with a reply/no-reply status instead of vanishing; the owner can see campaign volume per agent.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/dbsearch/DsCampaign.tsx:114-135 send() only reveals and sets local state",
+   "app/api/ds/[action]/route.ts:161-198 reveal writes an audit row only",
+   "app/api/ds/[action]/route.ts:329-336 'add' as temp already creates the temp lead and audits to_temp",
+   "components/crm/QuickWhatsApp.tsx:35 CRM campaign records data/campaigns",
+   "lib/crm.ts:394-400 CrmCampaign type"
+  ],
+  "checked": true,
+  "id": 58
+ },
+ {
+  "kind": "fix",
+  "area": "dbsearch-tools / WhatsApp campaign",
+  "title": "Campaign queue and progress are wiped by any navigation",
+  "what": "DsCampaign keeps the recipient list, the message, the send queue and per-row sent/dnc/failed state in component state (DsCampaign.tsx:58-67). DbSearch renders it conditionally under <main key={tab}> (DbSearch.tsx:210, :218), so tapping 'Back to Search' (DbSearch.tsx:212), opening an owner, checking a unit, or the 20-minute session expiry (DbSearch.tsx:149 -> sign-in) unmounts it and everything is gone. Because the tool itself enforces 14 sends per 10 minutes (DsCampaign.tsx:26-27, :205), a 40-person campaign takes 30+ minutes, which is exactly when an agent will look something up or the phone will sleep.",
+  "proposal": "Persist the draft (list, message, queue, state, send timestamps) in sessionStorage keyed by user, restore on mount, and clear on 'Clear list'. Keep the 'Opened' marks so resuming after sign-in shows where the agent stopped.",
+  "benefit": "An agent can run a long campaign across interruptions without rebuilding the list and burning reveals twice.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsCampaign.tsx:58-68 all campaign state is useState/useRef",
+   "components/crm/dbsearch/DbSearch.tsx:210-218 <main key={tab}> with conditional render of DsCampaign",
+   "components/crm/dbsearch/DbSearch.tsx:149 session expiry swaps to DsSignIn",
+   "components/crm/dbsearch/DsCampaign.tsx:26-27,:203-206 14-per-10-minute pacing"
+  ],
+  "checked": false,
+  "id": 59
+ },
+ {
+  "kind": "improve",
+  "area": "dbsearch-tools / Area + campaign",
+  "title": "Area calling list and campaign build the same list twice; join them",
+  "what": "DsArea lets an agent filter a building (not in CRM, number abroad), tick owners, and 'Send to Temp leads' (DsArea.tsx:45-46, :113-120). DsCampaign makes the agent rebuild a recipient list from scratch with a plain search that returns only strict name/building hits and no filters (DsCampaign.tsx:77-96). The area list is the natural campaign audience, but there is no 'WhatsApp these' handoff, and the area 'list' is just a text prefix written into each temp lead's notes (route.ts:275), so it cannot be reopened, exported or reused. 'Select all' silently caps at 100 (DsArea.tsx:93) and area_send caps at 100 (route.ts:255) with no message.",
+  "proposal": "Add a second button next to 'Send to Temp leads': 'WhatsApp campaign (N)' that hands the picked refs (name, unit, building, community) to DsCampaign as the pre-filled recipient list (lift the Recipient[] into DbSearch state). Show 'first 100 selected' when the cap hits. Treat the list name as the campaign name in point 2's temp-lead notes.",
+  "benefit": "One pass per building instead of two; the filters agents actually use (not in CRM, abroad) apply to campaigns too.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/dbsearch/DsArea.tsx:45-46 filters notInCrm/abroad",
+   "components/crm/dbsearch/DsArea.tsx:93 slice(0,100) on select-all, no notice",
+   "components/crm/dbsearch/DsArea.tsx:113-120 only action is Send to Temp leads",
+   "components/crm/dbsearch/DsCampaign.tsx:82-95 recipients come only from a fresh strict search",
+   "app/api/ds/[action]/route.ts:255,:275 refs capped at 100; list name only survives as a notes prefix"
+  ],
+  "checked": true,
+  "id": 60
+ },
+ {
+  "kind": "fix",
+  "area": "dbsearch-tools / WhatsApp campaign",
+  "title": "Campaign pace guard and reveal budget are invisible until it is too late",
+  "what": "The 14-in-10-minutes guard counts only sends made in this component instance (sends ref, DsCampaign.tsx:68, :111, :131). Reveals made in the owner panel, Search or another browser tab are not counted, while the server locks at 15 reveals per 10 minutes regardless of where they came from (DsAccess.tsx:95, route.ts:191 lockIfBurst). Also each send consumes one daily reveal (route.ts:168), but the agent sees the reveal budget only when a send fails with 'You have used all N reveals' (DsCampaign.tsx:128); the header shows searches only (DbSearch.tsx:169).",
+  "proposal": "Show 'N reveals left today' next to the 'Manual send' button and disable it when the queue is larger than the remaining budget (usage/limits are already in DsSessionInfo). Have the reveal response include the server's rolling 10-minute count and drive waitMin from that instead of the local array.",
+  "benefit": "No agent gets locked out mid-campaign for the owner to unlock; no half-sent campaigns because the budget ran out at recipient 31.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsCampaign.tsx:68,:111-112,:131 local-only pace timestamps",
+   "components/crm/dbsearch/DsCampaign.tsx:128 daily_limit only surfaces on failure",
+   "components/crm/dbsearch/DsAccess.tsx:95 server lock rule 15 reveals / 10 min",
+   "app/api/ds/[action]/route.ts:168,:191 quota('reveals') and lockIfBurst on every reveal",
+   "components/crm/dbsearch/DbSearch.tsx:169 header shows searches, not reveals"
+  ],
+  "checked": true,
+  "id": 61
+ },
+ {
+  "kind": "improve",
+  "area": "dbsearch-tools / Unit + Checks",
+  "title": "Unit history dead-ends; link it to 'Listed right now?' and outreach",
+  "what": "DsUnit shows ownership history and the current owner (DsUnit.tsx:64-111) with one action, 'Open the owner' (DsUnit.tsx:107). The question an agent asks next, 'is this unit on the portals and with whom', lives in a different tool (DsChecks 'listed' mode, DsChecks.tsx:17, :101-110) and needs the building and unit retyped. DsChecks 'pnumber' results do link to the owner (DsChecks.tsx:93) but neither tool links to the other, and DsChecks clears its result when the mode changes (DsChecks.tsx:34).",
+  "proposal": "On the DsUnit result card add 'Listed right now?' that opens DsChecks in listed mode with `${unit.chosen} ${unit.code}` prefilled and run (DbSearch already holds checkMode; add a checkQuery state like unitQuery). Conversely, on a listing row in DsChecks add 'Unit history' that opens DsUnit.",
+  "benefit": "The seller-prospecting loop (who owns it, is it listed, by which agency) becomes three taps instead of three searches.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsUnit.tsx:107 only action is Open the owner",
+   "components/crm/dbsearch/DsChecks.tsx:17 listed placeholder requires building + unit typed",
+   "components/crm/dbsearch/DsChecks.tsx:34 results reset per run, no cross-link",
+   "components/crm/dbsearch/DbSearch.tsx:67-70 unitQuery exists, no equivalent for checks"
+  ],
+  "checked": false,
+  "id": 62
+ },
+ {
+  "kind": "fix",
+  "area": "dbsearch-tools / Market",
+  "title": "Market tool charges a search just to open and lacks area suggestions",
+  "what": "Sales and Rents both fire load('') on mount (DsMarket.tsx:115, :190), and each market/rentals call is quota-counted as a search and audited (route.ts:221-226). Switching the Sales/Rents/Valuation pills unmounts the sub-component (DsMarket.tsx:71-73) so flipping back re-fetches and re-charges. The Sales picker passes items={[]} (DsMarket.tsx:121), so there is no autocomplete there while Rents and Valuation have it (DsMarket.tsx:177, :232); a misspelt area yields a fuzzy 'areas matching' result (DsMarket.tsx:128) that an agent may quote to a client.",
+  "proposal": "Wire useSuggest('community' or a market kind) into the Sales picker. Keep each mode's last result in DsMarket (or DbSearch) state so switching pills does not refetch, and only auto-load the all-Dubai overview once per session.",
+  "benefit": "Agents stop losing daily searches to opening a dashboard, and quote figures for the right area.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsMarket.tsx:115,:190 load('') on mount",
+   "components/crm/dbsearch/DsMarket.tsx:71-73 mode switch unmounts Sales/Rents",
+   "components/crm/dbsearch/DsMarket.tsx:121 Picker items={[]} for Sales",
+   "components/crm/dbsearch/DsMarket.tsx:177,:232 useSuggest used for Rents and Valuation",
+   "app/api/ds/[action]/route.ts:213-226 market/rentals/valuation hit quota('searches')"
+  ],
+  "checked": true,
+  "id": 63
+ },
+ {
+  "kind": "improve",
+  "area": "dbsearch-tools / Portfolio",
+  "title": "Portfolio finder is admin-only and lands on a name search",
+  "what": "The Tools menu hides Portfolio from agents (DbSearch.tsx:33 admin:true, :155) and the API refuses them (route.ts:220). A row tap only pushes the name into Search (DsPortfolio.tsx:77, DbSearch.tsx:224), where the agent has to pick the right person again; the tool itself warns results are name-aggregated (DsPortfolio.tsx:92). It also auto-runs min=4 on every mount (DsPortfolio.tsx:39), spending a search each time the admin opens it.",
+  "proposal": "Open it to agents (it is the investor-prospecting list they would use most), keep the autoload but cache the result in DbSearch state, and make a row open the owner panel directly when the server can return a ref alongside the name; otherwise add a per-row 'Add to campaign' that reuses the strict search.",
+  "benefit": "Agents can target multi-unit investors (the sellers most likely to transact) without asking the owner to run it.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/dbsearch/DbSearch.tsx:33,:155 admin-only gating",
+   "app/api/ds/[action]/route.ts:220 forbidden for non-admin",
+   "components/crm/dbsearch/DsPortfolio.tsx:39 load(4) on mount",
+   "components/crm/dbsearch/DsPortfolio.tsx:77 row click -> onSearchName only",
+   "components/crm/dbsearch/DsPortfolio.tsx:92 counted by name caveat"
+  ],
+  "checked": true,
+  "id": 64
+ },
+ {
+  "kind": "remove",
+  "area": "dbsearch-tools / Vastu & sun",
+  "title": "Vastu & sun is a novelty with no link to any unit or owner",
+  "what": "DsVastu is a pure solar/Vastu calculator driven by a manually chosen bearing (DsVastu.tsx:77-78); it reads nothing from the unit, listing or owner the agent is working on, and nothing in DsUnit, DsSearch or the owner panel leads to it. It sits as one of four items in the Tools menu (DbSearch.tsx:32) next to tools agents need daily, so it competes for the menu slot and for the owner's attention when something breaks.",
+  "proposal": "Drop it from the DB Search Tools menu. If the owner wants to keep it for buyer conversations, move it to the Documents suite as a buyer-facing page or a link from a listing, not inside the owner-lookup tool.",
+  "benefit": "The Tools menu is three items agents actually use; less surface to maintain.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsVastu.tsx:77-80 state is a hand-picked bearing only",
+   "components/crm/dbsearch/DsVastu.tsx:7-14 'Pure calculation — no owner data'",
+   "components/crm/dbsearch/DbSearch.tsx:29-34 MORE menu lists it with market/checks/portfolio",
+   "components/crm/dbsearch/DbSearch.tsx:223 rendered with no props"
+  ],
+  "checked": true,
+  "id": 65
+ },
+ {
+  "kind": "improve",
+  "area": "dbsearch-tools / WhatsApp campaign",
+  "title": "Campaign list hides why someone is unticked and offers no export",
+  "what": "Recipients already in the CRM start unticked (DsCampaign.tsx:92 on:!c.inCrm) but the row shows only name, place and 'number hidden' (DsCampaign.tsx:164-168), so the agent cannot tell an in-CRM owner from one they deselected, and cannot open the owner from the row. There is no way to export the recipient list or the send list (DsCampaign.tsx:154-172, :197-231), while DsArea at least pushes rows into Temp leads. The manual-number path (DsCampaign.tsx:98-107) never checks the do-not-contact list client-side and sends straight (DsCampaign.tsx:116-119), so an opted-out number typed by hand gets messaged.",
+  "proposal": "Show an 'in CRM' chip on those rows (the search card already carries inCrm) and an 'Open' link via onOpenOwner. Add 'Copy as CSV' for the send list (name, place, status). Route manual numbers through the same consent check (a small 'dnc' lookup action or reuse 'add' with as:'temp') before opening wa.me.",
+  "benefit": "Agents understand the list, can hand it to a colleague, and the brokerage does not message numbers it promised not to.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsCampaign.tsx:92 on:!c.inCrm with no visible label",
+   "components/crm/dbsearch/DsCampaign.tsx:164-168 row shows name/place/number hidden only",
+   "components/crm/dbsearch/DsCampaign.tsx:98-107,:116-119 manual numbers skip DNC and open wa.me directly",
+   "components/crm/dbsearch/DsCampaign.tsx:57 component has no onOpenOwner prop",
+   "app/api/ds/[action]/route.ts:184-189,:293-294 DNC check exists only for ref-based reveal/add"
+  ],
+  "checked": false,
+  "id": 66
+ },
+ {
+  "kind": "fix",
+  "area": "Notifications",
+  "title": "Rejected-listing alert goes to the admin who rejected it",
+  "what": "components/crm/Notifications.tsx:30-33 pushes 'Listing rejected' only when isAdmin, but the admin is the one who sets approval='rejected' (adminFields in app/api/crm/data/[table]/route.ts:125). The agent whose listing was bounced never sees it in the bell, while the admin is told about his own rejections. The same list also has no onClick for overdue tasks (line 28) and rejected listings (line 32): tapping does nothing, only the lead-expiry item opens anything (line 25).",
+  "proposal": "Show 'Listing rejected' to the agent who owns the listing (listing.agent_id === meId) and drop it for the admin; give every item an onClick (open the task's lead/contact, open the listing). Also scope overdue tasks for the admin to tasks assigned to him instead of every agent's (line 27 `isAdmin ||`), which floods his bell with his team's backlog.",
+  "benefit": "The agent learns the listing needs fixing the same day instead of discovering it when it never goes live; the bell becomes a to-do list rather than a read-only banner.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Notifications.tsx:25",
+   "components/crm/Notifications.tsx:27-28",
+   "components/crm/Notifications.tsx:30-33",
+   "app/api/crm/data/[table]/route.ts:125"
+  ],
+  "checked": true,
+  "id": 67
+ },
+ {
+  "kind": "add",
+  "area": "Calendar / reminders",
+  "title": "No reminder for a viewing, and no client phone on it",
+  "what": "NotificationBell receives leads, tasks and listings but no events (Notifications.tsx:10-16), so a viewing in 30 minutes never appears in the bell. The Calendar's 'Coming up' card (Calendar.tsx:94-106) and the event panel (Calendar.tsx:159-196) show title, location and agent name but never the client's phone, so at the building the agent has to leave the calendar, find the lead, then call. There is also no 'confirm with client' action although leads carry a phone and MyDay already builds wa.me links (MyDay.tsx:131-132).",
+  "proposal": "Pass events to NotificationBell and add items 'Viewing in 1h: <client>' for the viewer's own scheduled events in the next 60-120 min. On each upcoming event and in the EventForm, resolve lead_id to the lead and show Call / WhatsApp buttons, with a prefilled 'Confirming our viewing tomorrow at HH:MM at <location>' template.",
+  "benefit": "Fewer no-shows (the client gets a confirmation the evening before) and no hunting for a number while standing in a lobby.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Notifications.tsx:10-16",
+   "components/crm/Notifications.tsx:21-38",
+   "components/crm/Calendar.tsx:94-106",
+   "components/crm/Calendar.tsx:159-196",
+   "components/crm/MyDay.tsx:131-132"
+  ],
+  "checked": true,
+  "id": 68
+ },
+ {
+  "kind": "improve",
+  "area": "Calendar / viewings",
+  "title": "'Mark done' on a viewing records nothing about the outcome",
+  "what": "EventForm's Mark done button (Calendar.tsx:194) only sets status='done'. Nothing is logged on the lead, the stage stays wherever it was, next_follow_up_at is untouched, and no feedback is captured. lib/crm.ts:276 (whatNext) literally tells the agent 'After the viewing, collect feedback and move to Offer', but the calendar gives no way to do it, so the agent has to open the lead separately and the feedback usually never gets written down.",
+  "proposal": "When an event with lead_id is marked done, open a one-step 'Viewing outcome' prompt: free-text feedback (posted as an activity kind 'meeting' on the lead via POST activities, which also refreshes the SLA at app/api/crm/[resource]/route.ts:302-304), and three buttons: 'Move to Offer', 'Set next follow-up (date)', 'Book another viewing' (pre-filled with the same lead/listing).",
+  "benefit": "Every viewing leaves a trace the owner can read, the lead's expires_at is refreshed automatically, and the next step is set while the conversation is fresh.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Calendar.tsx:194",
+   "components/crm/Calendar.tsx:155-156",
+   "lib/crm.ts:276",
+   "app/api/crm/[resource]/route.ts:299-305"
+  ],
+  "checked": true,
+  "id": 69
+ },
+ {
+  "kind": "improve",
+  "area": "Tasks",
+  "title": "A task never says who it is about",
+  "what": "CrmTask carries lead_id and contact_id (lib/crm.ts:131-132) and tasks are created from the lead and contact panels (LeadPanel.tsx:278, Contacts.tsx:300), but TaskRow (TaskList.tsx:26-40) renders only title, assignee, due date and a delete icon. In the Tasks tab (CrmApp.tsx:560-591) and in MyDay's 'Tasks due today' (MyDay.tsx:139-145) the agent sees 'Send floor plan' with no name, no phone, no way to open the lead. The 'Do next' list right above it has call/WhatsApp buttons per row (MyDay.tsx:130-133); the task list does not.",
+  "proposal": "Give TaskRow an optional resolved name (lead or contact) and phone; clicking the name opens the lead/contact panel, and show the same Call / WhatsApp icon buttons as MyDay rows. The Tasks view and MyDay already have leads in scope to resolve lead_id.",
+  "benefit": "The task list becomes something an agent can work straight down on the phone instead of a list of cryptic titles.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/TaskList.tsx:26-40",
+   "lib/crm.ts:124-133",
+   "components/crm/MyDay.tsx:130-133",
+   "components/crm/MyDay.tsx:139-145",
+   "components/crm/CrmApp.tsx:560-591"
+  ],
+  "checked": true,
+  "id": 70
+ },
+ {
+  "kind": "add",
+  "area": "Tasks",
+  "title": "Tasks cannot be rescheduled; only ticked or deleted",
+  "what": "TaskRow offers toggle (TaskList.tsx:17-20) and remove (TaskList.tsx:21-24). There is no way to change the due date, title or assignee, so when a client says 'call me next week' the agent deletes and re-creates the task, or leaves it rotting in 'Overdue' (CrmApp.tsx:575). The PATCH endpoint already accepts due_at and title (app/api/crm/[resource]/route.ts:456-462), so this is UI-only.",
+  "proposal": "Add 'Tomorrow' / 'Next week' snooze actions and an inline date edit on TaskRow that PATCH due_at; for admins, allow reassigning (needs assignee_id added to the PATCH patch set on the server, one line).",
+  "benefit": "Overdue stops meaning 'forgot to delete' and starts meaning 'actually late', which is what the owner reads in TeamMonitor's Overdue tasks column (TeamMonitor.tsx:88).",
+  "effort": "S",
+  "evidence": [
+   "components/crm/TaskList.tsx:17-24",
+   "app/api/crm/[resource]/route.ts:456-462",
+   "components/crm/CrmApp.tsx:574-580",
+   "components/crm/TeamMonitor.tsx:88"
+  ],
+  "checked": true,
+  "id": 71
+ },
+ {
+  "kind": "fix",
+  "area": "Tasks",
+  "title": "One-tap permanent delete, always visible on phones",
+  "what": "TaskRow's delete button (TaskList.tsx:36-38) calls DELETE immediately with no confirmation (TaskList.tsx:21-24). The icon is hidden-until-hover only from the sm breakpoint (`sm:opacity-0 sm:group-hover:opacity-100`), so on a phone it sits permanently 24px from the checkbox. The server hard-deletes (app/api/crm/[resource]/route.ts:518-522), so a fat-finger loses the follow-up with no trace.",
+  "proposal": "Either confirm (window.confirm is enough) or do an optimistic remove with a 5-second 'Undo' toast before calling DELETE; on phones prefer 'Done' as the primary action and move delete behind a long-press or into the row's menu.",
+  "benefit": "No silently lost follow-ups on the device agents actually use.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/TaskList.tsx:21-24",
+   "components/crm/TaskList.tsx:36-38",
+   "app/api/crm/[resource]/route.ts:518-522"
+  ],
+  "checked": true,
+  "id": 72
+ },
+ {
+  "kind": "fix",
+  "area": "Reports",
+  "title": "Funnel drops every lost lead; 'New' is smaller than 'Leads'",
+  "what": "Reports.tsx:89-92 removes 'lost' from the stage list and then counts a lead only if `arr.indexOf(l.stage) >= i`. A lost lead has indexOf -1, so it is counted in no bar at all, not even 'New'. The 'Leads' KPI (line 74) counts it, so the owner sees e.g. Leads 120 but funnel New 95 and cannot reconcile. The funnel also cannot show where lost leads dropped off, which is the whole point of a funnel. Separately, Win rate (lines 70-71) is computed on leads created in the range, so a lead from 4 months ago that closed last week is excluded from 'Last 90 days'.",
+  "proposal": "Store the highest stage reached (the stage-move audit already exists for the SLA at app/api/crm/[resource]/route.ts:299) or, cheaper, treat lost leads as having reached at least 'contacted' when they were ever owned/contacted, and in any case count them in 'New'. Label win rate as 'of leads received in period' or compute it on deals.closed_at and lost stage changes in the audit log.",
+  "benefit": "The two numbers the owner quotes to himself (lead count and conversion) stop contradicting each other.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Reports.tsx:66",
+   "components/crm/Reports.tsx:70-71",
+   "components/crm/Reports.tsx:74",
+   "components/crm/Reports.tsx:89-92",
+   "app/api/crm/[resource]/route.ts:299"
+  ],
+  "checked": true,
+  "id": 73
+ },
+ {
+  "kind": "add",
+  "area": "Reports",
+  "title": "No lost-reason breakdown and no viewing conversion",
+  "what": "Agents are forced to give a reason when marking a lead lost (LeadPanel.tsx:149-154, lead.lost_reason in lib/crm.ts:81), but ReportsView never reads lost_reason. The owner cannot see whether leads die on price, on slow reply or on no stock. Likewise events are not passed to ReportsView at all (Reports.tsx:57-63, CrmApp.tsx:404), so there is no 'viewings booked', 'viewing to offer %' or 'no-show rate' per agent or per source, even though every viewing is in crm_events with status done/cancelled.",
+  "proposal": "Add a 'Why we lost' panel (Bars of lost_reason counts for the range, with the commission-weighted budget beside it) and a Viewings column + 'viewings to offer %' in the agent leaderboard and the portal table, computed from events.kind='viewing' joined on lead_id.",
+  "benefit": "This is the report the owner actually uses to decide where to spend (portal vs referral) and whom to coach; today those answers are not on any screen.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Reports.tsx:57-63",
+   "components/crm/Reports.tsx:94-106",
+   "components/crm/Reports.tsx:168-186",
+   "components/crm/LeadPanel.tsx:149-154",
+   "lib/crm.ts:81",
+   "components/crm/CrmApp.tsx:404"
+  ],
+  "checked": false,
+  "id": 74
+ },
+ {
+  "kind": "remove",
+  "area": "Reports / Team monitor",
+  "title": "Two agent-performance tables; one is unusable on phones",
+  "what": "Reports' 'Agent leaderboard' (Reports.tsx:94-106, 135-161: Leads, Won, Overdue, Reply time, Deals, Earned) and TeamMonitor's 'Agents' table (TeamMonitor.tsx:65-95, 131: Open leads, Untouched, Overdue, Deals, Earned, Target plus activity) compute overlapping metrics in two tabs ('Overview' and 'Team', CrmApp.tsx:182) with different date windows (range selector vs 'this quarter'). The monitor table is 15 columns at min-w-[1100px] (TeamMonitor.tsx:128), so on the owner's phone it is a sideways scroll. 'Viewings (30d)' uses Math.abs (TeamMonitor.tsx:89) so it silently includes the next 30 days too. For non-admin agents the Reports leaderboard renders every colleague (Reports.tsx:94) but their deals and events are server-scoped to the viewer (app/api/crm/data/[table]/route.ts:299), so agents see colleagues listed with 0 deals and AED 0 earned, which is both misleading and still exposes the layout of everyone's pay.",
+  "proposal": "Keep one agent table in Reports (add Calls/WhatsApp/Untouched/Overdue tasks/Viewings columns there, respecting the range selector), hide it entirely for non-admins (show only 'my row'), and reduce TeamMonitor to presence (online/active/last sign-in/device) plus sign-in history. Fix Viewings (30d) to past-only.",
+  "benefit": "The owner opens one screen for 'how is each agent doing' and it works on his phone; agents stop seeing a fake zero leaderboard.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Reports.tsx:94-106",
+   "components/crm/Reports.tsx:135-161",
+   "components/crm/TeamMonitor.tsx:65-95",
+   "components/crm/TeamMonitor.tsx:89",
+   "components/crm/TeamMonitor.tsx:128-131",
+   "components/crm/CrmApp.tsx:182",
+   "components/crm/CrmApp.tsx:404",
+   "app/api/crm/data/[table]/route.ts:299"
+  ],
+  "checked": true,
+  "id": 75
+ },
+ {
+  "kind": "improve",
+  "area": "Targets",
+  "title": "Target meter shows % and days but never whether you are on pace",
+  "what": "TargetMeter (TargetMeter.tsx:18-23, 48-51) prints achieved/target and 'N days left'. slabOutcome (lib/crm.ts:328-334) is harsh: under 50% the bonus is forfeited and the slab downgrades, yet the meter only colours the bar by the raw % (TargetMeter.tsx:23), so an agent at 30% on day 10 of the quarter (fine) and one at 30% on day 80 (about to lose the bonus) see the same amber bar. TeamMonitor's Target column (TeamMonitor.tsx:167-173) has the same blindness for the owner. Nothing shows the AED needed per week to reach the 50% and 100% lines.",
+  "proposal": "Compute elapsed fraction of the quarter and show 'On pace' / 'Behind: need AED X per week to keep the bonus (50%)' and 'AED Y per week to hit target', tone by pace not raw %. Reuse the same helper in TeamMonitor's target column so the owner sees who is about to forfeit.",
+  "benefit": "Agents act in week 6, not week 12; the owner can intervene before a slab downgrade, which is exactly what the fäm-style rule is meant to drive.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/TargetMeter.tsx:18-23",
+   "components/crm/TargetMeter.tsx:48-53",
+   "lib/crm.ts:328-334",
+   "components/crm/TeamMonitor.tsx:167-173"
+  ],
+  "checked": true,
+  "id": 76
+ },
+ {
+  "kind": "add",
+  "area": "documents / deals",
+  "title": "Deal documents: Form F/MOU, NOC, SPA, deposit are checkboxes with no file",
+  "what": "A deal's paperwork exists only as dated checkboxes: DEAL_MILESTONES at lib/crm.ts:557-563 (form_b, form_f \"Form F / MOU signed\", noc_applied, noc_received) rendered as a checklist in components/crm/Deals.tsx:343-350. No deal field holds a file (CrmDeal at lib/crm.ts:180-205 has no documents/url field). The storage layer cannot even address one: PATH_RE at lib/crm-files.ts:24 only allows avatars/<userId>/ and docs/<userId>/, FileKind at lib/crm-files.ts:14 is only avatar | doc, and the only document table is per-agent (agent_documents, owner user_id, app/api/crm/data/[table]/route.ts:203-213). So the signed MOU, the deposit cheque photo and the developer NOC stay on the agent's phone/WhatsApp, and the owner cannot prove a deal closed from the CRM.",
+  "proposal": "Add a third FileKind \"deal\" with path deals/<dealId>/<random>.<ext> in lib/crm-files.ts and app/api/crm/upload/route.ts, and show a \"Documents\" list inside the deal side panel (Deals.tsx, next to the checklist) where ticking a milestone such as Form F or NOC received offers to attach the file; the same list drives an \"Open\" link per milestone.",
+  "benefit": "The agent closes the deal from one screen with the signed Form F, deposit proof and NOC attached; the owner can audit any deal without asking the agent for WhatsApp screenshots.",
+  "effort": "M",
+  "evidence": [
+   "lib/crm.ts:557-563",
+   "components/crm/Deals.tsx:343-350",
+   "lib/crm.ts:180-205",
+   "lib/crm-files.ts:14",
+   "lib/crm-files.ts:24",
+   "app/api/crm/data/[table]/route.ts:203-213"
+  ],
+  "checked": true,
+  "id": 77
+ },
+ {
+  "kind": "add",
+  "area": "documents / rentals",
+  "title": "Tenancy contract and Ejari certificate cannot be attached to a tenancy",
+  "what": "Rentals track Ejari as a number only: input at components/crm/Rentals.tsx:222, 'Missing' pill at Rentals.tsx:125, red warning at Rentals.tsx:229 (\"Register the contract on Ejari\"). CrmTenancy (lib/crm.ts:620-628) has ejari_no / ejari_expiry and a cheques array but no contract or certificate file. The upload stack (uploadFile at components/crm/shared.tsx:310, /api/crm/upload) is used only by AgentDocuments.tsx:23 and avatars. A renewal 11 months later means hunting for the signed contract outside the CRM.",
+  "proposal": "Reuse the \"deal\"-style path (or deals/<tenancyId>/) and add two attach slots to the tenancy form in Rentals.tsx: signed tenancy contract and Ejari certificate, with the Ejari 'Missing' pill turning green only when the certificate file is attached (not merely a typed number).",
+  "benefit": "Renewal and DEWA/RDC disputes are handled from the CRM; the owner stops accepting a typed Ejari number as proof.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Rentals.tsx:222",
+   "components/crm/Rentals.tsx:125",
+   "components/crm/Rentals.tsx:229",
+   "lib/crm.ts:620-628",
+   "components/crm/shared.tsx:310"
+  ],
+  "checked": true,
+  "id": 78
+ },
+ {
+  "kind": "fix",
+  "area": "documents / KYC",
+  "title": "KYC asks for a pasted link to the ID copy instead of an upload",
+  "what": "components/crm/Kyc.tsx:89-90 renders id_doc_url and passport_doc_url as free-text fields labelled \"Link to ID copy\" / \"Link to passport copy\", and \"Open ID copy\" at Kyc.tsx:135-136 just follows whatever URL was typed. kycMissing at lib/crm.ts:538 blocks the file as incomplete until one of those is set. An agent on a phone who has just photographed the client's Emirates ID has nowhere to put it: the only real upload UI is AgentDocuments.tsx:19-28, which files it under the agent's own IDs (kind \"id\") and would mislabel the client's passport as the agent's.",
+  "proposal": "Replace the two text inputs with the same dashed file picker used at AgentDocuments.tsx:42-46, calling uploadFile(file, ...) and writing the returned /api/crm/file URL into id_doc_url / passport_doc_url; keep the field accepting a pasted link as a fallback.",
+  "benefit": "KYC can actually be completed on-site from a phone; the owner's compliance view stops showing files 'complete' on the strength of an arbitrary Google Drive link.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/Kyc.tsx:89-90",
+   "components/crm/Kyc.tsx:135-136",
+   "lib/crm.ts:538",
+   "components/crm/AgentDocuments.tsx:19-28",
+   "components/crm/AgentDocuments.tsx:42-46"
+  ],
+  "checked": true,
+  "id": 79
+ },
+ {
+  "kind": "improve",
+  "area": "agent documents",
+  "title": "Uploading a visa or ID never records its expiry",
+  "what": "The upload form at components/crm/AgentDocuments.tsx:39-49 captures only kind and title; CrmAgentDocument (lib/crm.ts:435-442) has no expiry. The expiries that drive licenceAlerts (lib/crm.ts:455-466), MyDay (MyDay.tsx:51), Team.tsx:117-123 and Compliance.tsx:97 live in separate profile fields brn_expiry / visa_expiry / emirates_id_expiry (lib/crm.ts:48-50) that only the admin edits in Team.tsx:123. TeamDocuments (TeamMonitor.tsx:240) shows Document / Type / Team member / Added and no expiry, so the admin sees a visa was uploaded but not that it ran out last month.",
+  "proposal": "When kind is visa, id or license, show an 'Expires on' date in the upload form and, on save, PATCH the agent's own visa_expiry / emirates_id_expiry / brn_expiry (existing columns, via the users table the profile already updates); add an 'Expires' column to TeamDocuments read from those fields, coloured by licenceAlerts.",
+  "benefit": "Expiry alerts fill themselves in from the document the agent just uploaded; the owner no longer has to type dates off a scan.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/AgentDocuments.tsx:39-49",
+   "lib/crm.ts:435-442",
+   "lib/crm.ts:48-50",
+   "lib/crm.ts:455-466",
+   "components/crm/Team.tsx:123",
+   "components/crm/TeamMonitor.tsx:240"
+  ],
+  "checked": true,
+  "id": 80
+ },
+ {
+  "kind": "improve",
+  "area": "agent documents (admin)",
+  "title": "Admin can only view team documents, not add or remove them",
+  "what": "TeamDocuments (components/crm/TeamMonitor.tsx:215-270) is read-only: the only action is 'Open' (TeamMonitor.tsx:256-260) and the caption at TeamMonitor.tsx:233 says 'Agents add documents from My profile.' Yet the backend already supports admin filing: /api/crm/upload accepts user_id for admins (app/api/crm/upload/route.ts:31-33), uploadFile takes a userId (components/crm/shared.tsx:310,317) that no caller passes, agent_documents has adminFields user_id (app/api/crm/data/[table]/route.ts:212), and allowed() lets admins delete any row (route.ts:227-229). The owner who receives a new hire's passport on WhatsApp must forward it and ask them to upload it.",
+  "proposal": "Add an 'Upload for <agent>' button to TeamDocuments that reuses AgentDocuments' form with the selected team member as userId, plus a delete icon per row for the admin.",
+  "benefit": "Onboarding paperwork is filed by the owner in one step; wrong or duplicate uploads can be cleaned up without touching the database.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/TeamMonitor.tsx:215-270",
+   "components/crm/TeamMonitor.tsx:233",
+   "components/crm/TeamMonitor.tsx:256-260",
+   "app/api/crm/upload/route.ts:31-33",
+   "components/crm/shared.tsx:310-317",
+   "app/api/crm/data/[table]/route.ts:212",
+   "app/api/crm/data/[table]/route.ts:227-229"
+  ],
+  "checked": true,
+  "id": 81
+ },
+ {
+  "kind": "fix",
+  "area": "agent documents",
+  "title": "Agents can permanently delete their own compliance documents",
+  "what": "components/crm/AgentDocuments.tsx:63 shows a Trash button on every row for the signed-in agent, guarded only by window.confirm. The DELETE handler lets an owner delete their row (allowed(), app/api/crm/data/[table]/route.ts:229-232) and then removes the file from storage (route.ts:409-414). An agent who is leaving, or who uploaded a wrong document, can wipe the ID/visa/contract the owner relies on, with no copy and no audit entry specific to documents.",
+  "proposal": "Hide the delete control for non-admins in AgentDocuments (render it only when the caller is admin) and have the API refuse non-admin DELETE on agent_documents; agents who uploaded the wrong file simply upload the right one and the admin removes the old.",
+  "benefit": "The owner's record of who held which visa/licence cannot be erased by the agent it concerns.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/AgentDocuments.tsx:63",
+   "app/api/crm/data/[table]/route.ts:229-232",
+   "app/api/crm/data/[table]/route.ts:409-414"
+  ],
+  "checked": true,
+  "id": 82
+ },
+ {
+  "kind": "fix",
+  "area": "uploads",
+  "title": "iPhone HEIC uploads cannot be opened on the laptop",
+  "what": "image/heic is accepted (lib/crm-files.ts:20, accept list at components/crm/AgentDocuments.tsx:45) and served back unchanged with Content-Type image/heic and Content-Disposition inline (app/api/crm/file/route.ts:22-29). Chrome/Edge on Windows do not render HEIC, so the admin clicking 'Open' in TeamDocuments (TeamMonitor.tsx:257) gets a download or a blank tab for every photo an agent took with an iPhone. Because image/heic is listed in accept, iOS sends the original HEIC instead of auto-converting to JPEG as it does when only JPEG/PNG are accepted. shrinkImage (shared.tsx:330) is applied to avatars only (AgentProfile.tsx:37), never to documents.",
+  "proposal": "Drop image/heic from the accept attribute and FILE_TYPES so iOS converts to JPEG on pick, and run image documents through shrinkImage(file, 2000) before uploadFile in AgentDocuments.tsx:23 (keeps passports legible, cuts most photos under the 5 MB cap at lib/crm-files.ts:12).",
+  "benefit": "Every document opens in the browser on both phone and laptop, and the 'over 5 MB, compress it' error (shared.tsx:323) mostly disappears for phone photos.",
+  "effort": "S",
+  "evidence": [
+   "lib/crm-files.ts:20",
+   "components/crm/AgentDocuments.tsx:45",
+   "app/api/crm/file/route.ts:22-29",
+   "components/crm/TeamMonitor.tsx:257",
+   "components/crm/shared.tsx:330",
+   "components/crm/AgentProfile.tsx:37",
+   "lib/crm-files.ts:12",
+   "components/crm/shared.tsx:323"
+  ],
+  "checked": true,
+  "id": 83
+ },
+ {
+  "kind": "improve",
+  "area": "documents suite",
+  "title": "Documents suite is a sealed page: admin-only, nothing prefilled from the CRM",
+  "what": "/documents serves private/documents/suite.html, an encrypted self-contained HTML (lib/documents-suite.ts:17-52) whose own landing copy promises 'Tenancy, listing, handover and payment documents, filled once and ready to sign' (suite.html aside). It is reachable only by the admin (app/documents/route.ts:28, app/api/crm/login/route.ts:162-164 returns admin_only for agents), opens in a new tab from the sidebar (components/crm/CrmApp.tsx:323-327), and has no link to CRM data: the route returns static html with no deal, contact or listing injected (route.ts:34-35). So an agent cannot produce an offer, tenancy document or receipt at all, and the owner retypes the client name, unit and price that already sit in CrmDeal/CrmContact/CrmListing. Its session is also 4 h (lib/crm-auth.ts:118) against the CRM's 10 h (crm-auth.ts:17), so the owner re-enters the password mid-afternoon.",
+  "proposal": "Expose the generators inside the CRM: a 'Documents' action on a deal / tenancy / listing panel that opens the suite with the record's fields prefilled (pass a signed, short-lived token plus deal id in the hash, the route already carries #LP-… across sign-in per route.ts:23-24), and allow agents to generate but not edit templates. At minimum align DOCS_MS with SESSION_MS.",
+  "benefit": "Agents produce a tenancy contract or offer letter from the deal they are on, with no retyping; the owner stops being the bottleneck for every piece of paper.",
+  "effort": "L",
+  "evidence": [
+   "lib/documents-suite.ts:17-52",
+   "app/documents/route.ts:28",
+   "app/documents/route.ts:34-35",
+   "app/api/crm/login/route.ts:162-164",
+   "components/crm/CrmApp.tsx:323-327",
+   "lib/crm-auth.ts:118",
+   "lib/crm-auth.ts:17",
+   "app/documents/route.ts:23-24"
+  ],
+  "checked": true,
+  "id": 84
+ },
+ {
+  "kind": "add",
+  "area": "receipts",
+  "title": "No deposit or cheque receipt for the client, only an accountant's tax invoice",
+  "what": "The only printable money document is the tax invoice: 'Create tax invoice' at components/crm/Deals.tsx:420 and printInvoice at components/crm/Invoices.tsx:260-278, addressed to the paying party for the commission. Deposit collection is a milestone checkbox (lib/crm.ts:278 'collect the deposit', DEAL_MILESTONES at crm.ts:557-563) and rent cheques are rows with no, bank, date, amount, status at Rentals.tsx:190-253. Nothing produces the receipt a buyer or tenant is handed when they pay a 10% deposit or a cheque, so agents write one in Word or the admin uses the sealed suite.",
+  "proposal": "Add a 'Receipt' button on the deal deposit milestone and on each cheque row in Rentals that opens the same window.open print pattern as printInvoice, prefilled with the brokerage header already used by the invoice, the payer (contact), amount, method and unit, and stores the printed receipt number back on the milestone / cheque.",
+  "benefit": "The client gets a numbered receipt on the spot from the agent's phone, and every AED received is traceable to a deal or tenancy.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Deals.tsx:420",
+   "components/crm/Invoices.tsx:260-278",
+   "lib/crm.ts:278",
+   "lib/crm.ts:557-563",
+   "components/crm/Rentals.tsx:190-253"
+  ],
+  "checked": true,
+  "id": 85
+ },
+ {
+  "kind": "improve",
+  "area": "agent documents",
+  "title": "Document kinds miss what RERA and HR actually ask for",
+  "what": "DOC_KINDS at lib/crm.ts:430-433 is id, visa, license, contract, other. The profile and compliance code already distinguish BRN card, Emirates ID, passport, visa and RERA exam certificate (lib/crm.ts:48-51, Team.tsx:123 'RERA exam passed') yet uploads collapse Emirates ID and passport into one 'ID / passport' and have no slot for the RERA certificate, labour card or the signed commission agreement, so TeamDocuments' type filter (TeamMonitor.tsx:229-232) cannot answer 'who has not given me a passport copy' and most files end up as 'other'.",
+  "proposal": "Split DOC_KINDS into passport, emirates_id, visa, brn_card, rera_certificate, employment_contract, commission_agreement, other (labels in DOC_KIND_LABEL), and show a per-agent 'missing' strip in TeamDocuments listing which required kinds have no upload, in the same style as kycMissing.",
+  "benefit": "The owner sees at a glance which agent still owes which document before a RERA inspection, instead of opening files one by one.",
+  "effort": "S",
+  "evidence": [
+   "lib/crm.ts:430-433",
+   "lib/crm.ts:48-51",
+   "components/crm/Team.tsx:123",
+   "components/crm/TeamMonitor.tsx:229-232"
+  ],
+  "checked": true,
+  "id": 86
+ },
+ {
+  "kind": "fix",
+  "area": "reveal flow / quotas",
+  "title": "Reveal then Add-as-lead charges the agent two reveals",
+  "what": "On a result card the add-to-CRM buttons only exist inside the revealed-numbers block (DsCardView.tsx:141-163), so every lead/contact created from a card has already cost one reveal. The add action then draws on the reveals quota again (route.ts:289 `quota(user, db, as === \"temp\" ? \"lists\" : \"reveals\")`), and usageToday counts to_lead/to_contact as reveals (guard.ts:227). The burst lock counts the same pair (guard.ts:236: reveal+to_lead+to_contact, max 15 in 10 min), so 8 owners revealed and saved in 10 minutes locks the agent out until the admin unlocks (guard.ts:245). The lock is applied after the reveal is already written (route.ts:190-191) and the agent gets no warning before it; the header only shows searches used, never reveals (DbSearch.tsx:169).",
+  "proposal": "When the add follows a reveal of the same ref in this session (the card already holds the number), count it as a CRM action, not a second reveal; keep the double count only for the owner-panel path where add is the reveal. Show `reveals used/limit` next to searches in the header and a soft warning at 10 reveals in 10 minutes instead of a silent lock.",
+  "benefit": "Agents stop running out of reveals (default 40/day) halfway through a calling session and stop getting locked for normal work.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsCardView.tsx:141-163",
+   "app/api/ds/[action]/route.ts:289",
+   "lib/dbsearch/guard.ts:227",
+   "lib/dbsearch/guard.ts:236-246",
+   "app/api/ds/[action]/route.ts:190-191",
+   "components/crm/dbsearch/DbSearch.tsx:169"
+  ],
+  "checked": false,
+  "id": 87
+ },
+ {
+  "kind": "improve",
+  "area": "reveal flow / reasons",
+  "title": "Two different reveal dialogs; reason re-picked on every card",
+  "what": "Cards reveal with an inline chip picker that fetches every number at once (DsCardView.tsx:54-67, 171; route.ts:179-182 kind \"phones\"). The owner panel instead opens a modal with a <select>, a Choose-a-reason placeholder and a confirm button (DsOwnerPanel.tsx:160-212), and reveals one number per call (DsOwnerPanel.tsx:174 index, route.ts:182) so a 3-number owner costs three reveals and three dialogs. REASONS is declared three times (api.ts:103, DsOwnerPanel.tsx:9, route.ts:45). Nothing remembers the reason: an agent doing owner outreach picks \"Selling: owner outreach\" on all 50 cards of a tower.",
+  "proposal": "Use the card's ReasonPicker in the owner panel and reveal all numbers at once there too. Remember the last reason for the session and make the button one tap: \"Show 2 numbers · Selling: owner outreach (change)\"; the reason still goes to the audit row.",
+  "benefit": "One tap from card to number instead of three, same behaviour everywhere, same audit trail.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsCardView.tsx:54-67",
+   "components/crm/dbsearch/DsCardView.tsx:171",
+   "components/crm/dbsearch/DsOwnerPanel.tsx:160-212",
+   "components/crm/dbsearch/DsOwnerPanel.tsx:174",
+   "app/api/ds/[action]/route.ts:179-182",
+   "components/crm/dbsearch/api.ts:103",
+   "app/api/ds/[action]/route.ts:45"
+  ],
+  "checked": true,
+  "id": 88
+ },
+ {
+  "kind": "fix",
+  "area": "tabs / state",
+  "title": "Switching tab throws the results away and re-searching costs quota",
+  "what": "DbSearch renders `<main key={tab}>` and mounts one tab component at a time (DbSearch.tsx:210-216); every tab keeps its query and results in local state (DsSearch.tsx:45-47, DsPhone.tsx:26-28, DsBrokers.tsx:20-22). Search → Phone → back to Search shows the empty Top-areas screen; the Smart tab mounts its own DsSearch instance (DsSmart.tsx:180), so a Smart question and the Search tab never share results. Every re-run is audited and counted before the result is fetched (route.ts:131-133), including zero-result ones.",
+  "proposal": "Lift each tab's last query + result into DbSearch (or keep the four tab trees mounted and hidden) so coming back shows what was there; let Smart hand its result to the Search tab instead of mounting a second DsSearch.",
+  "benefit": "An agent can check a number on Phone and come back to the tower list without paying another search or re-scrolling 300 cards.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/dbsearch/DbSearch.tsx:210-216",
+   "components/crm/dbsearch/DsSearch.tsx:45-47",
+   "components/crm/dbsearch/DsPhone.tsx:26-28",
+   "components/crm/dbsearch/DsSmart.tsx:178-181",
+   "app/api/ds/[action]/route.ts:131-133"
+  ],
+  "checked": true,
+  "id": 89
+ },
+ {
+  "kind": "fix",
+  "area": "session",
+  "title": "Idle timeout wipes the results the agent was calling from",
+  "what": "When any call returns ds_signin_required, onExpired flips signedIn and DbSearch returns <DsSignIn> in place of the whole tree (DbSearch.tsx:96, 146, 149), unmounting DsSearch and its results. The idle limit is 20 minutes (guard.ts:25), shorter than one real owner call; re-entry needs password plus an emailed code (DsSignIn.tsx:93, 130). After sign-in the agent must re-run the search (another audited search, route.ts:133) even though the refs on the old cards are valid for two hours (guard.ts:26).",
+  "proposal": "Keep the DB Search tree mounted and show the sign-in as an overlay; once signed in, the previous results and revealed numbers are still on screen. Refresh the idle timer on scroll/click activity (a ping) so a 25-minute call does not end the session.",
+  "benefit": "No lost list, no second search, no re-typed code mid-session.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/dbsearch/DbSearch.tsx:96",
+   "components/crm/dbsearch/DbSearch.tsx:146-149",
+   "lib/dbsearch/guard.ts:25-26",
+   "components/crm/dbsearch/DsSignIn.tsx:93",
+   "components/crm/dbsearch/DsSignIn.tsx:130",
+   "app/api/ds/[action]/route.ts:133"
+  ],
+  "checked": true,
+  "id": 90
+ },
+ {
+  "kind": "add",
+  "area": "result cards / owner panel",
+  "title": "Search cards cannot open the owner panel",
+  "what": "CardActions has no onOpenOwner (DsCardView.tsx:15-19); the panel is reachable only from the Area table, Property checks and Unit history (DsArea.tsx:104, DsChecks.tsx:93, DsUnit.tsx:107). So from a Search or Phone result the agent never sees what the panel gives: current-owner status from unit_current_owner (search.ts:20-65), the owner's other properties linked by the same phone (search.ts:114-125) and the unit History button (DsOwnerPanel.tsx:132). The only sold signal on a card is the Damac Lagoons flag (DsResultsList.tsx:83). The `owner` action is not counted as a search (route.ts:151-158).",
+  "proposal": "Add an \"Owner\" link on every card (next to the badges) that calls onOpenOwner(card.ref); the card ref already carries the owner ids the `owner` action needs.",
+  "benefit": "Before dialling, the agent sees \"Sold since 2023\" or \"also owns 3 units in JVC\" instead of calling a previous owner.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsCardView.tsx:15-19",
+   "components/crm/dbsearch/DsArea.tsx:104",
+   "components/crm/dbsearch/DsChecks.tsx:93",
+   "components/crm/dbsearch/DsUnit.tsx:107",
+   "lib/dbsearch/search.ts:106-142",
+   "app/api/ds/[action]/route.ts:151-158",
+   "components/crm/dbsearch/DsResultsList.tsx:83"
+  ],
+  "checked": true,
+  "id": 91
+ },
+ {
+  "kind": "add",
+  "area": "result cards / call",
+  "title": "WhatsApp opens blank; no Copy for a revealed number",
+  "what": "Every WhatsApp link is a bare phone link with no text: DsCardView.tsx:151 (`api.whatsapp.com/send?phone=`), DsOwnerPanel.tsx:98, DsPhone.tsx:68, DsBrokers.tsx:71 (`wa.me/`). The agent types the same opener each time on a phone keyboard. The card knows the unit, building and community (DsCardView.tsx:132-134, m.badge) and the session knows the agent's name (route.ts:66). On a laptop `tel:` does nothing useful (DsCardView.tsx:150) and the only Copy button is for the email (DsCardView.tsx:233-235); the owner panel has no copy at all (DsOwnerPanel.tsx:92-99).",
+  "proposal": "Prefill the WhatsApp link with `&text=` (\"Hello, this is {agent} from Lababidi Properties about your {unit} in {building}…\", editable template in settings) and add a Copy button beside each revealed number in the card and the panel.",
+  "benefit": "Search → reveal → message in one tap; on desktop the number goes straight to the dialer app or CRM note.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsCardView.tsx:150-151",
+   "components/crm/dbsearch/DsOwnerPanel.tsx:97-98",
+   "components/crm/dbsearch/DsPhone.tsx:68",
+   "components/crm/dbsearch/DsBrokers.tsx:70-71",
+   "components/crm/dbsearch/DsCardView.tsx:233-235"
+  ],
+  "checked": false,
+  "id": 92
+ },
+ {
+  "kind": "fix",
+  "area": "Phone tab",
+  "title": "Phone tab asks the agent to reveal the number they just typed",
+  "what": "phoneList returns the matching owners as masked cards with a phoneCount (results.ts:378-399), DsPhone passes them to DsResultsList (DsPhone.tsx:88-90) and each card shows the same \"Show N numbers\" button that needs a reason and a reveal (DsCardView.tsx:169-174). To get Call/WhatsApp for a number the agent already has (a missed call, a WhatsApp enquiry) they spend a reveal and a reason on their own input. Only the broker summary shows a direct WhatsApp link (DsPhone.tsx:68).",
+  "proposal": "On the Phone tab, show Call / WhatsApp / Add-to-CRM for the searched number on every card without a reveal (the server can return `queried: true` for that index), and keep the reveal only for the record's other numbers.",
+  "benefit": "Answering \"who is this calling me\" takes one lookup, no reveal spent, and the lead can be saved immediately.",
+  "effort": "S",
+  "evidence": [
+   "lib/dbsearch/results.ts:378-399",
+   "components/crm/dbsearch/DsPhone.tsx:88-90",
+   "components/crm/dbsearch/DsCardView.tsx:169-174",
+   "components/crm/dbsearch/DsPhone.tsx:68"
+  ],
+  "checked": true,
+  "id": 93
+ },
+ {
+  "kind": "remove",
+  "area": "Search tab",
+  "title": "\"show them\" (records with no phone) re-runs the whole search",
+  "what": "The hiddenEmpty line's \"show them\" calls load({...mode, includeEmpty:true}) (DsSearch.tsx:167), which is a second POST /search that is audited and counted as a new search (route.ts:131-139) and re-runs smart_search, list_communities, search_damac_transactions and search_place_broad (results.ts:319-324). The server already had every row: `before - kept` is computed in the same pass (results.ts:335-337, 354).",
+  "proposal": "Return the empty rows as a third view (or flag them in `loose`) on the first response and let \"show them\" toggle client-side like \"show anyway\" does (DsResultsList.tsx:41, 49).",
+  "benefit": "One less search per lookup from the quota and a 1-3 s wait removed.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsSearch.tsx:166-168",
+   "app/api/ds/[action]/route.ts:131-139",
+   "lib/dbsearch/results.ts:319-324",
+   "lib/dbsearch/results.ts:335-337",
+   "lib/dbsearch/results.ts:354",
+   "components/crm/dbsearch/DsResultsList.tsx:41-49"
+  ],
+  "checked": true,
+  "id": 94
+ },
+ {
+  "kind": "fix",
+  "area": "Search / Smart tabs",
+  "title": "Top-area chips run a text search, not the community list",
+  "what": "The twelve Top-areas chips call run(undefined, full) (DsSearch.tsx:213), i.e. the free-text `search` path (results.ts:317) that goes through smart_search, whereas the \"what we found\" chips use the `community` path, which lists every record of the community (DsSearch.tsx:144, results.ts:360). Smart's \"Everything in {area}\" alternative does the same (DsSmart.tsx:80, 91: kind \"search\", q: area). The text path is the one known to drop records and to duplicate on community-label case (see smart_search memory notes); the community path returns the full set.",
+  "proposal": "Make the Top-areas chips and Smart's \"Everything in X\" call load({kind:\"community\", name}) so an area tap lists the area, and keep free text for names and codes.",
+  "benefit": "\"Damac Hills 2\" returns the whole community once, not a partial text match.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsSearch.tsx:213",
+   "components/crm/dbsearch/DsSearch.tsx:144",
+   "lib/dbsearch/results.ts:317-357",
+   "lib/dbsearch/results.ts:360-373",
+   "components/crm/dbsearch/DsSmart.tsx:80",
+   "components/crm/dbsearch/DsSmart.tsx:91"
+  ],
+  "checked": false,
+  "id": 95
+ },
+ {
+  "kind": "improve",
+  "area": "add-to-CRM",
+  "title": "Adding a lead from a card jumps the agent out of the list",
+  "what": "After a successful \"Lead\" on a card, DsCardView calls actions.onOpenLead(id) (DsCardView.tsx:102), which window.open()s the CRM tab on the pipeline (DbSearchApp.tsx:57) and pulls focus away from the DB Search list the agent is working down. The owner panel does the opposite: it prints \"Lead created and assigned to you.\" with no way to open it (DsOwnerPanel.tsx:45). \"Contact\" and \"Temp lead\" never open anything. The card's inline confirmation already exists for the other two kinds (DsCardView.tsx:101, 153).",
+  "proposal": "Never auto-navigate: show \"Added as a lead · Open\" inline (card and panel alike), and open the CRM tab only when the agent taps Open.",
+  "benefit": "An agent working a tower list of 60 owners stays on the list; the lead is one tap away when wanted.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsCardView.tsx:101-102",
+   "components/crm/dbsearch/DbSearchApp.tsx:57",
+   "components/crm/dbsearch/DsOwnerPanel.tsx:45",
+   "components/crm/dbsearch/DsCardView.tsx:153"
+  ],
+  "checked": false,
+  "id": 96
+ },
+ {
+  "kind": "fix",
+  "area": "mobile-ux",
+  "title": "DB Search bottom tab opens a new browser tab on phones",
+  "what": "CrmApp.tsx:477 — the DB Search bottom-tab button calls window.open(dbSearchHref, \"lababidi-db-search\"). On a phone this spawns a second browser tab every time; the agent then has two tabs (CRM and DB Search) and the CRM's own bottom nav is gone in the DB Search tab. DbSearch.tsx:108-117 'Back to CRM' then has to hunt for the named window via window.open(\"\", \"lababidi-crm\"), which mobile Safari/Chrome do not reliably honour, so it falls back to a full navigation (line 110). The same pattern repeats at CrmApp.tsx:296 (sidebar, target=\"lababidi-db-search\") and CrmApp.tsx:397 ('Open DB Search' card). The 'opens in its own tab' rationale (CrmApp.tsx:395-396: separate sign-in code) is a desktop reason; on a phone an agent just wants to look up an owner and come back.",
+  "proposal": "On viewports under md, navigate in place (window.location.href = dbSearchHref) instead of window.open, and make DbSearch's 'Back to CRM' a plain history.back()/location change on phones. Keep the named-window behaviour for md and up.",
+  "benefit": "Agents on a phone stop collecting stray tabs and losing the CRM bottom nav when they jump into DB Search; one tap in, one tap back.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/CrmApp.tsx:477",
+   "components/crm/CrmApp.tsx:296",
+   "components/crm/CrmApp.tsx:397",
+   "components/crm/dbsearch/DbSearch.tsx:108-117"
+  ],
+  "checked": true,
+  "id": 97
+ },
+ {
+  "kind": "improve",
+  "area": "mobile-ux",
+  "title": "Bottom tabs: swap DB Search slot for People or Tasks",
+  "what": "CrmApp.tsx:473 hard-codes the bottom tabs as home, leads, calendar, dbsearch + More. Contacts (People), Deals, Listings, Tasks and Tools/WhatsApp are all behind More → Everything sheet (CrmApp.tsx:490-513): two taps and a scroll. Meanwhile the dbsearch slot leaves the app entirely (see point 1). The badge logic at CrmApp.tsx:480 also only shows red badges; the calendar section's badgeTone 'plain' (line 180) is ignored on mobile, so a due-task count looks like an alarm.",
+  "proposal": "Make the four fixed slots Home, Leads, People, Calendar and keep DB Search as the first row inside the Everything sheet (or as a header icon). Honour badgeTone in the mobile badge so task counts render in the accent colour, not red.",
+  "benefit": "The screens an agent opens between viewings (who is this contact, what's due) are one tap, and red badges mean something.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/CrmApp.tsx:473",
+   "components/crm/CrmApp.tsx:480",
+   "components/crm/CrmApp.tsx:180",
+   "components/crm/CrmApp.tsx:490-513"
+  ],
+  "checked": true,
+  "id": 98
+ },
+ {
+  "kind": "fix",
+  "area": "mobile-ux",
+  "title": "Contacts, Deals, Rentals tables scroll sideways on phones",
+  "what": "globals.css:969-972 forces white-space:nowrap on every table cell under 768px, and the tables are wrapped in Card overflow-x-auto (Contacts.tsx:81-102 with 8 columns, Deals.tsx:110-142 with 9 columns, Rentals.tsx:106, TempLeads.tsx:49, OwnerRequests.tsx:60, Invoices.tsx:142, AgentRequests.tsx:76, Audit.tsx:17). On a 390px screen the agent sees Name and Type, then must drag horizontally to reach Phone (Contacts col 5) or Status (Deals col 9). Rows are tap-to-open (Contacts.tsx:90, Deals.tsx:121) but there is no phone or WhatsApp action in the row itself. Pipeline already solved this with a stacked card list for sm:hidden (Pipeline.tsx:110-157); the other tables did not follow.",
+  "proposal": "For Contacts, Deals, Rentals, TempLeads and OwnerRequests, render a stacked row list under sm (name + one line of key facts + Call/WhatsApp icon buttons as MyDay does at MyDay.tsx:131-132) and keep the table from sm up, mirroring the Pipeline split.",
+  "benefit": "The three screens agents use between calls become readable on a phone without sideways dragging, and a number is tappable from the list.",
+  "effort": "M",
+  "evidence": [
+   "app/globals.css:969-972",
+   "components/crm/Contacts.tsx:81-102",
+   "components/crm/Deals.tsx:110-142",
+   "components/crm/Rentals.tsx:106",
+   "components/crm/TempLeads.tsx:49",
+   "components/crm/Pipeline.tsx:110-157",
+   "components/crm/MyDay.tsx:131-132"
+  ],
+  "checked": false,
+  "id": 99
+ },
+ {
+  "kind": "fix",
+  "area": "mobile-ux",
+  "title": "DB Search tab bar hides Unit history, Area, Market behind a Tools menu",
+  "what": "DbSearch.tsx:197-208 shows 4 tabs (Smart, Search, Phone, Agents); Market, Checks, Vastu, Portfolio sit in a hover-style dropdown behind a 'Tools' button (DbSearch.tsx:171-186) that closes on mousedown outside (line 75) — fine on desktop. On a phone the brand bar at DbSearch.tsx:121-131 has to fit logo + session timer (hidden under sm, line 166) + Tools + a green 'WhatsApp campaign' button + theme + Back to CRM + Exit, wrapped with flex-wrap (line 130) into two or three rows of 32px buttons above the tab bar. ds_unit and ds_area are not in any menu at all (DS_VIEWS line 26 vs TABS line 37 and MORE line 29); they are reachable only via a link from a result.",
+  "proposal": "Under md, collapse the brand-bar actions into one overflow menu (theme, Back to CRM, Exit, Tools entries, WhatsApp campaign) so the bar is logo + timer + one menu button, and keep the 4-tab row as the only navigation. Add 'Unit history' to the Tools list so it is reachable without first running a search.",
+  "benefit": "The DB Search bar fits one row on a phone and the search box is above the fold; the agent sees the query field first, not a wall of buttons.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DbSearch.tsx:121-131",
+   "components/crm/dbsearch/DbSearch.tsx:163-194",
+   "components/crm/dbsearch/DbSearch.tsx:197-208",
+   "components/crm/dbsearch/DbSearch.tsx:26-42"
+  ],
+  "checked": false,
+  "id": 100
+ },
+ {
+  "kind": "remove",
+  "area": "mobile-ux",
+  "title": "Unused mobile target bar in TargetMeter",
+  "what": "TargetMeter.tsx:25-37 implements a variant=\"bar\" rendering ('md:hidden' strip for phones) but CrmApp.tsx:329 only ever mounts variant=\"sidebar\", which is inside the md:flex aside. Agents on a phone never see their quarterly target; the 'bar' code is dead.",
+  "proposal": "Either mount <TargetMeter variant=\"bar\" /> under the mobile header in CrmApp (or at the top of MyDay for agents), or delete the bar variant.",
+  "benefit": "The agent sees their quarter number on the device they actually carry, or the codebase loses 13 lines nobody runs.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/TargetMeter.tsx:25-37",
+   "components/crm/CrmApp.tsx:329"
+  ],
+  "checked": false,
+  "id": 101
+ },
+ {
+  "kind": "fix",
+  "area": "mobile-ux",
+  "title": "Lead/contact side panel is a full-screen sheet with no Back gesture",
+  "what": "shared.tsx:265-281 SidePanel is fixed inset-0 with w-full max-w-[560px]; on a phone it covers the whole screen, the only exits are an 8x8 X at shared.tsx:276 or Escape (shared.tsx:254-262). The Android hardware/gesture Back fires popstate, which CrmApp.tsx:213-218 handles by re-reading the hash — the panel stays open and the view may jump. The panel header's action row (LeadPanel.tsx:169-189: WhatsApp link, template <select>, tel link, mailto) wraps into three rows above the fold on 390px, pushing the Stage select (LeadPanel.tsx:198-210) below.",
+  "proposal": "Push a history entry when a panel opens and close it on popstate (the hash listener at CrmApp.tsx:228 is already there). On phones, render the panel header actions as a single row of icon buttons (BTN_ICON) with WhatsApp and Call first and the template picker inside the WhatsApp action.",
+  "benefit": "The Back gesture closes the lead instead of losing the agent's place, and Call/WhatsApp are the first thing on screen when a lead opens.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/shared.tsx:265-281",
+   "components/crm/shared.tsx:254-262",
+   "components/crm/CrmApp.tsx:213-233",
+   "components/crm/LeadPanel.tsx:169-189"
+  ],
+  "checked": false,
+  "id": 102
+ },
+ {
+  "kind": "improve",
+  "area": "mobile-ux",
+  "title": "'Lead / Contact / Temp lead' add links are 12px text taps",
+  "what": "DsCardView.tsx:155-162 renders the three 'add to CRM' actions as inline text buttons at text-[12px] separated by '·', with Call and WhatsApp as h-7 (28px) chips at lines 150-151. These are the actions that turn a DB Search result into a lead — the core reason an agent searches — and on a phone they are the smallest targets on the card. DsOwnerPanel.tsx:97-98 uses 32px buttons for the same actions, so the two views disagree.",
+  "proposal": "Use the same h-8 BTN sizing as DsOwnerPanel for Call/WhatsApp and turn the add trio into one 'Add to CRM' button that opens a three-option choice, under sm.",
+  "benefit": "Saving a found owner as a lead from a phone becomes a sure tap instead of a fiddly one, and fewer wrong-option taps.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/dbsearch/DsCardView.tsx:146-166",
+   "components/crm/dbsearch/DsOwnerPanel.tsx:97-98"
+  ],
+  "checked": false,
+  "id": 103
+ },
+ {
+  "kind": "improve",
+  "area": "mobile-ux",
+  "title": "Everything sheet is a flat grid of 30 chips without search",
+  "what": "CrmApp.tsx:499-509 lists every section and every view as 36px chips, including the 7-item admin group and 4 DB Search chips that each open a new tab (via setView → DS_VIEWS card at CrmApp.tsx:393-399, which is itself just another 'Open DB Search' button). Sign out is at the bottom (CrmApp.tsx:510) while the profile is only reachable via the avatar at CrmApp.tsx:361. The sheet has no 'current' highlight at section level and no recently-used ordering.",
+  "proposal": "Order the sheet by use: top row Leads/People/Deals/Listings/Tasks, then Tools, then Admin collapsed by default for admin, with DB Search as one row that opens the search directly rather than the intermediate card. Add 'My profile' next to Sign out.",
+  "benefit": "Two-tap destinations become predictable; agents stop scrolling the admin block they cannot use.",
+  "effort": "S",
+  "evidence": [
+   "components/crm/CrmApp.tsx:499-510",
+   "components/crm/CrmApp.tsx:393-399",
+   "components/crm/CrmApp.tsx:361"
+  ],
+  "checked": false,
+  "id": 104
+ },
+ {
+  "kind": "fix",
+  "area": "mobile-ux",
+  "title": "Pipeline filter bar and stats are desktop-first on phones",
+  "what": "Pipeline.tsx:70-106 renders a search input (min-w-[220px]), two <select>s with !w-auto, Export, Auto-assign and Add leads in one flex-wrap row; on 390px this becomes 3-4 rows of controls before the first lead. The stats <dl> at Pipeline.tsx:61 is hidden under sm, so the agent loses the overdue count on the phone while keeping every control. The phone list's stage <select> (Pipeline.tsx:136-148) is correct, but each card has no Call/WhatsApp, unlike MyDay rows (MyDay.tsx:131-132).",
+  "proposal": "Under sm, show only the search box and the Add button, with owner/source filters behind one 'Filter' toggle; show a one-line StatusLine with the overdue/new counts; add the Call and WhatsApp icon buttons to each phone card as MyDay already does.",
+  "benefit": "The lead list starts above the fold on a phone, and an agent can ring a lead from the list without opening it.",
+  "effort": "M",
+  "evidence": [
+   "components/crm/Pipeline.tsx:61-106",
+   "components/crm/Pipeline.tsx:110-157",
+   "components/crm/MyDay.tsx:131-132"
+  ],
+  "checked": false,
+  "id": 105
+ }
+]

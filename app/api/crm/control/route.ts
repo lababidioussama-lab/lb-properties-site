@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { liveUser, sameOrigin, sessionFromRequest } from "@/lib/crm-auth";
+import { cutSessions, liveUser, sameOrigin, sessionFromRequest } from "@/lib/crm-auth";
 import { LOOKUPS, dubaiMidnight, getSettings, putSettings, usageToday, type DsSettings } from "@/lib/dbsearch/guard";
 
 export const runtime = "nodejs";
@@ -110,6 +110,14 @@ export async function PATCH(request: NextRequest) {
   if (!userId) return fail("missing_user");
   const { data: target } = await db.from("crm_users").select("id").eq("id", userId).maybeSingle();
   if (!target) return fail("not_found", 404);
+
+  /* Sign out everywhere: ends this person's CRM, DB Search and Documents
+     sessions on every device. They can sign in again with a new code. */
+  if (b.signout_all === true) {
+    await cutSessions(userId, me.id, "signed out everywhere by admin");
+    await putSettings(db, me.id, userId, { kickedAt: new Date().toISOString() });
+    return ok({ ds: await getSettings(db, userId), today: await usageToday(db, userId) });
+  }
 
   const patch: Partial<DsSettings> = {};
   const bound = (v: unknown, max: number) => (Number.isInteger(v) && (v as number) >= 0 && (v as number) <= max ? (v as number) : undefined);
