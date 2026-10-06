@@ -8,13 +8,17 @@ import { useEffect, useRef } from "react";
  * again, breathing slowly, with a few drifting sparks. In the blue of the
  * Lababidi logo.
  *
- * Kept cheap: one canvas capped at about 1.6 megapixels, drawn at 30 frames a
- * second, stopped while the tab is hidden. People who ask for reduced motion
+ * Kept cheap, because it sits behind every screen: one canvas capped at about
+ * 0.7 megapixels and stretched to fit, the strands drawn as ten paths rather
+ * than one each, 24 frames a second, paused while the page is being scrolled
+ * and stopped while the tab is hidden. People who ask for reduced motion
  * get one still frame. On paper (light theme) it draws faint and dark instead
  * of bright.
  */
 const STRANDS = 110;
-const STEPS = 54;
+const STEPS = 40;
+const BANDS = 5;      // by distance from the heart of the bundle
+const PHASES = 2;     // two groups breathing out of step
 const SPARKS = 60;
 
 export function Ribbons() {
@@ -25,12 +29,12 @@ export function Ribbons() {
     const ctx = cv?.getContext("2d");
     if (!cv || !ctx) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let W = 0, H = 0, raf = 0, last = 0, t = 0;
+    let W = 0, H = 0, raf = 0, last = 0, t = 0, quietUntil = 0;
     const seeds = Array.from({ length: STRANDS }, (_, i) => ({ k: i / (STRANDS - 1) - 0.5, ph: (i * 2.399) % 6.283, w: 0.7 + ((i * 7) % 5) / 4 }));
     const sparks = Array.from({ length: SPARKS }, (_, i) => ({ u: (i * 0.618) % 1, k: ((i * 0.37) % 1) - 0.5, r: 0.6 + ((i * 3) % 4) / 3, sp: 0.012 + ((i * 5) % 7) / 500 }));
 
     const size = () => {
-      const scale = Math.min(window.devicePixelRatio || 1, Math.sqrt(1_600_000 / (window.innerWidth * window.innerHeight)));
+      const scale = Math.min(window.devicePixelRatio || 1, Math.sqrt(700_000 / (window.innerWidth * window.innerHeight)));
       W = window.innerWidth; H = window.innerHeight;
       cv.width = Math.round(W * scale); cv.height = Math.round(H * scale);
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
@@ -56,36 +60,44 @@ export function Ribbons() {
 
     const draw = () => {
       const dark = document.documentElement.dataset.theme !== "light";
-      const shift = -window.scrollY * 0.12;
       ctx.clearRect(0, 0, W, H);
       ctx.save();
-      ctx.translate(0, shift % (H * 0.6));
+
       ctx.globalCompositeOperation = dark ? "lighter" : "source-over";
       ctx.lineCap = "round";
       if (dark) {
         ctx.lineWidth = 34;
-        for (let n = 0; n < seeds.length; n += 11) {
-          const s = seeds[n];
-          ctx.strokeStyle = "rgba(47,111,214,0.03)";
-          ctx.beginPath();
-          for (let i = 0; i <= STEPS; i++) { const [x, y] = at(i / STEPS, s.k, t, s.ph); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
-          ctx.stroke();
-        }
-      }
-      for (const s of seeds) {
-        const edge = 1 - Math.abs(s.k) * 1.5;
-        const alpha = (dark ? 0.24 : 0.09) * (0.3 + edge) * (0.72 + 0.28 * Math.sin(t * 0.4 + s.ph));
-        // blue at the heart of the bundle, a cooler cyan at its edges, as light scatters
-        ctx.strokeStyle = dark
-          ? `rgba(${Math.round(70 + 60 * Math.abs(s.k))},${Math.round(140 + 70 * Math.abs(s.k))},255,${alpha})`
-          : `rgba(11,42,74,${alpha})`;
-        ctx.lineWidth = s.w;
+        ctx.strokeStyle = "rgba(47,111,214,0.05)";
         ctx.beginPath();
-        for (let i = 0; i <= STEPS; i++) {
-          const [x, y] = at(i / STEPS, s.k, t, s.ph);
-          if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+        for (let n = 0; n < seeds.length; n += 18) {
+          const s = seeds[n];
+          for (let i = 0; i <= STEPS; i += 2) { const [x, y] = at(i / STEPS, s.k, t, s.ph); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
         }
         ctx.stroke();
+      }
+      // Strands that share a colour and a breath go down as one path: ten
+      // strokes a frame instead of a hundred and ten.
+      for (let band = 0; band < BANDS; band++) {
+        for (let g = 0; g < PHASES; g++) {
+          const mid = (band + 0.5) / BANDS / 2;                 // typical |k| of the band
+          const edge = 1 - mid * 1.5;
+          const alpha = (dark ? 0.24 : 0.09) * (0.3 + edge) * (0.72 + 0.28 * Math.sin(t * 0.4 + g * 3.1 + band));
+          // blue at the heart of the bundle, a cooler cyan at its edges, as light scatters
+          ctx.strokeStyle = dark
+            ? `rgba(${Math.round(70 + 60 * mid)},${Math.round(140 + 70 * mid)},255,${alpha})`
+            : `rgba(11,42,74,${alpha})`;
+          ctx.lineWidth = 0.9 + 0.35 * g;
+          ctx.beginPath();
+          for (let n = 0; n < seeds.length; n++) {
+            const s = seeds[n];
+            if (n % PHASES !== g || Math.min(BANDS - 1, Math.floor(Math.abs(s.k) * 2 * BANDS)) !== band) continue;
+            for (let i = 0; i <= STEPS; i++) {
+              const [x, y] = at(i / STEPS, s.k, t, s.ph);
+              if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+            }
+          }
+          ctx.stroke();
+        }
       }
       // the bright point where the strands meet
       const [px, py] = at(0.47, 0, t, 0);
@@ -108,15 +120,15 @@ export function Ribbons() {
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
-      if (now - last < 33) return;      // about 30 frames a second
-      last = now; t += 0.033;
+      if (now - last < 41 || now < quietUntil) return;      // about 24 frames a second, and still while scrolling
+      t += Math.min(0.1, (now - last) / 1000); last = now;
       draw();
     };
     const start = () => { if (!raf && !reduce && !document.hidden) raf = requestAnimationFrame(frame); };
     const stop = () => { cancelAnimationFrame(raf); raf = 0; };
     const onVis = () => (document.hidden ? stop() : start());
     const onResize = () => { size(); draw(); };
-    const onScroll = () => { if (reduce) draw(); };
+    const onScroll = () => { quietUntil = performance.now() + 160; if (reduce) draw(); };
 
     size(); draw(); start();
     window.addEventListener("resize", onResize);

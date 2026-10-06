@@ -41,7 +41,7 @@ export function DbSearchApp({ me, demo = false }: { me: SessionUser; demo?: bool
     window.scrollTo({ top: 0 });
   }, []);
   const flip = () => { const next = theme === "dark" ? "light" : "dark"; setCrmTheme(next); setTheme(next); };
-  const crm = demo ? "/admin?demo" : "/admin";
+  const crm = demo ? (me.role === "agent" ? "/admin?demo=agent" : "/admin?demo") : "/admin";
 
   return (
     <div className="relative min-h-[100dvh] text-[var(--text-primary)]">

@@ -25,13 +25,15 @@ import { DsVastu } from "./DsVastu";
 export type DsView = "ds_home" | "ds_smart" | "ds_search" | "ds_phone" | "ds_unit" | "ds_portfolio" | "ds_area" | "ds_market" | "ds_checks" | "ds_vastu" | "ds_brokers" | "ds_access" | "ds_campaign";
 export const DS_VIEWS: DsView[] = ["ds_home", "ds_smart", "ds_search", "ds_phone", "ds_unit", "ds_area", "ds_brokers", "ds_campaign", "ds_market", "ds_checks", "ds_vastu", "ds_portfolio"];
 
-/* The extra tools, behind one Tools menu in the bar. Portfolio is for the admin. */
-const MORE: { id: DsView; label: string; icon: typeof Search; admin?: boolean }[] = [
+/* The extra tools, behind one Tools menu in the bar. All of them, and the
+   WhatsApp campaign, are for the admin: an agent gets the four tabs only. */
+const MORE: { id: DsView; label: string; icon: typeof Search }[] = [
   { id: "ds_market", label: "Market & valuation", icon: LineChart },
   { id: "ds_checks", label: "Property checks", icon: FileSearch },
   { id: "ds_vastu", label: "Vastu & sun", icon: Compass },
-  { id: "ds_portfolio", label: "Portfolio", icon: BarChart3, admin: true },
+  { id: "ds_portfolio", label: "Portfolio", icon: BarChart3 },
 ];
+const ADMIN_ONLY: DsView[] = [...MORE.map((m) => m.id), "ds_campaign"];
 
 /* DB Search's own tabs, in its order: Smart, Search, Phone, Agents. */
 const TABS: { id: DsView; label: string; icon: typeof Search }[] = [
@@ -104,17 +106,19 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
     void load();
   }
 
-  /* Back to the CRM's own tab when it is open (it names itself), without
-     reloading it; otherwise open the CRM here. */
+  /* Back to the CRM. Browsers ignore a page asking to bring another tab to
+     the front, so when the CRM opened this tab we close it, which lands on
+     the CRM tab behind it; opened any other way, the CRM loads right here. */
   function backToCrm() {
-    const w = window.open("", "lababidi-crm");
-    if (!w) { window.location.href = crmHref; return; }
-    try {
-      if (!w.location.href || w.location.href === "about:blank") w.location.href = crmHref;
-    } catch {
-      w.location.href = crmHref;
+    let fromCrm = false;
+    try { fromCrm = !!window.opener && !window.opener.closed && window.opener.name === "lababidi-crm"; } catch { /* another site opened us */ }
+    if (fromCrm) {
+      window.close();
+      // A tab the browser refuses to close falls through to a plain visit.
+      window.setTimeout(() => { window.location.href = crmHref; }, 250);
+      return;
     }
-    w.focus();
+    window.location.href = crmHref;
   }
 
   const topBtn = "inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-transparent px-2.5 text-[12px] font-semibold text-[var(--text-muted)] transition-colors hover:border-[var(--hairline)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]";
@@ -154,10 +158,11 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
   const shared = { onExpired, onUsage, onOpenOwner: setOwnerRef };
   let tab: DsView = view === "ds_home" ? "ds_search" : view;
   if (!(DS_VIEWS as string[]).includes(tab)) tab = "ds_search";
-  if (tab === "ds_portfolio" && info.user.role !== "admin") tab = "ds_search";
+  const isAdmin = info.user.role === "admin";
+  if (!isAdmin && ADMIN_ONLY.includes(tab)) tab = "ds_search";
   /* The area filter and unit history open from a search, so Search stays lit. */
   const lit = tab === "ds_area" || tab === "ds_unit" ? "ds_search" : tab;
-  const more = MORE.filter((m) => !m.admin || info.user.role === "admin");
+  const more = isAdmin ? MORE : [];
   const inMore = more.some((m) => m.id === tab);
 
   return (
@@ -170,7 +175,7 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
             <span className="figure text-[var(--text-primary)]">{hm || "-"}</span>
             {info.usage && info.limits && <span className="hidden md:inline"><span className="figure">{info.usage.searches}/{info.limits.searches}</span> searches</span>}
           </span>
-          <div ref={menuRef} className="relative">
+          {isAdmin && <div ref={menuRef} className="relative">
             <button onClick={() => setMenu((m) => !m)} aria-haspopup="menu" aria-expanded={menu}
               className={`${topBtn} ${inMore ? "!border-[var(--hairline)] !text-[var(--text-primary)]" : ""}`}>
               <Wrench size={14} /> Tools <ChevronDown size={12} />
@@ -185,11 +190,11 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
                 ))}
               </div>
             )}
-          </div>
-          <button onClick={() => onView("ds_campaign")} aria-current={tab === "ds_campaign" ? "page" : undefined}
+          </div>}
+          {isAdmin && <button onClick={() => onView("ds_campaign")} aria-current={tab === "ds_campaign" ? "page" : undefined}
             className="inline-flex h-8 items-center gap-1.5 rounded-[8px] bg-[#1f9d57] px-3 text-[12px] font-semibold text-white transition hover:brightness-110">
             <Send size={13} /> WhatsApp campaign
-          </button>
+          </button>}
           {commonRight}
           <button onClick={leave} className={topBtn}><LogOut size={14} /> Exit</button>
         </>,

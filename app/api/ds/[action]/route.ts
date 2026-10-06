@@ -228,7 +228,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     case "pnumber":
     case "listed":
     case "brokers": {
-      if (action === "portfolio" && user.role !== "admin") return fail("forbidden", 403);
+      // The four tabs are for everyone; the Tools menu (portfolio, market,
+      // rentals, valuation and the property checks) is the admin's.
+      if (action !== "area" && action !== "brokers" && user.role !== "admin") return fail("forbidden", 403);
       const limited = await quota(user, db, "searches");
       if (limited) return limited;
       const kind = action === "portfolio" ? "portfolio" : action === "area" ? "area" : action === "brokers" ? "brokers"
