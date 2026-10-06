@@ -98,7 +98,7 @@ export function DealsView({ t, isAdmin, users, listings, contacts, kyc, userName
       </div>
 
       {notice && <Card className="border-emerald-200 bg-emerald-50/60 px-4 py-3 text-[13px] text-emerald-800">{notice}</Card>}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         {totals.map((s) => (
           <Card key={s.label} className="px-5 py-4">
             <div className="text-[12px] font-medium text-[var(--text-secondary)]">{s.label}</div>
@@ -412,7 +412,7 @@ function DealForm({ deal, isAdmin, users, listings, contacts, kyc, error, onClos
                     <input type="number" value={p.pct || ""} onChange={(e) => upd({ pct: Number(e.target.value) })} placeholder="%" className={`${INPUT} figure`} />
                     <input type="date" value={p.due ?? ""} onChange={(e) => upd({ due: e.target.value || null })} className={INPUT} />
                     <label className="flex items-center gap-1 text-[11px]"><input type="checkbox" checked={!!p.paid_at} onChange={() => upd({ paid_at: p.paid_at ? null : today() })} className="accent-[var(--accent)]" /> Paid</label>
-                    <button onClick={() => setPlan(plan.filter((_, j) => j !== i))} aria-label="Remove" className="text-[var(--text-muted)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>
+                    <button onClick={() => setPlan(plan.filter((_, j) => j !== i))} aria-label="Remove" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>
                   </li>
                 );
               })}

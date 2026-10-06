@@ -245,7 +245,7 @@ function TenancyForm({ tenancy, prefill, isAdmin, users, contacts, listings, err
                 <select value={c.status} onChange={(e) => upd({ status: e.target.value as Cheque["status"] })} className={`${INPUT} ${CHEQUE_TONE[c.status]}`}>
                   <option value="pending">Pending</option><option value="deposited">Deposited</option><option value="cleared">Cleared</option><option value="bounced">Bounced</option>
                 </select>
-                <button onClick={() => setCheques(cheques.filter((_, j) => j !== i))} aria-label="Remove" className="text-[var(--text-muted)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>
+                <button onClick={() => setCheques(cheques.filter((_, j) => j !== i))} aria-label="Remove" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>
               </li>
             );
           })}

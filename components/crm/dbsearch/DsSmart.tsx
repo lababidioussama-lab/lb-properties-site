@@ -156,7 +156,7 @@ export function DsSmart({ onExpired, onUsage, onOpenLead, onAreaFilter }: CardAc
             <>
               Ask the way you would ask a colleague: a name, a building, a unit or villa code, an area (JVC, JLT, DH2…) or a number.
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {EXAMPLES.map((x) => <button key={x} type="button" onClick={() => ask(undefined, x)} className={`${DS_CHIP} !h-7 !text-[12px]`}>{x}</button>)}
+                {EXAMPLES.map((x) => <button key={x} type="button" onClick={() => ask(undefined, x)} className={DS_CHIP}>{x}</button>)}
               </div>
             </>
           )}

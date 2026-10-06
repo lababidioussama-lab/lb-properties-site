@@ -75,7 +75,7 @@ export function TempLeadsView({ isAdmin, users, userName, onPromote }: {
                   <select
                     value={row.status}
                     onChange={(e) => t.update(row.id, { status: e.target.value })}
-                    className={`rounded-full border-0 px-2 py-0.5 text-[10.5px] font-medium ${TONE[row.status]}`}
+                    className={`h-8 cursor-pointer rounded-full border-0 px-2.5 text-[11.5px] font-semibold ${TONE[row.status]}`}
                   >
                     {TEMP_LEAD_STATUSES.map((s) => <option key={s} value={s}>{TEMP_LEAD_LABEL[s]}</option>)}
                   </select>

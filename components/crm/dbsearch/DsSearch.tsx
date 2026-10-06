@@ -218,7 +218,7 @@ export function DsSearch({ onExpired, onUsage, onOpenLead, onPhone, onAreaFilter
       {!result && !busy && !hideForm && (
         <>
           <DsBox label="Top areas" icon={<MapPin size={13} />}
-            action={onAreaFilter && <button onClick={onAreaFilter} className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[var(--accent)] hover:underline"><Filter size={13} /> Filter by area or community</button>}>
+            action={onAreaFilter && <button onClick={onAreaFilter} className="inline-flex h-8 items-center gap-1.5 text-[12px] font-bold text-[var(--accent)] hover:underline"><Filter size={13} /> Filter by area or community</button>}>
             <div className="flex flex-wrap gap-1.5">
               {AREAS.map(([label, full]) => <button key={label} onClick={() => void area(full)} className={chipCls}>{label}</button>)}
             </div>

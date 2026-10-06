@@ -1239,3 +1239,21 @@ html.crm-shell main table tbody tr:hover { background: var(--surface-hover); }
 @keyframes marquee-rtl { from { transform: translateX(0); } to { transform: translateX(50%); } }
 [dir="rtl"] .marquee { animation-name: marquee-rtl; }
 .marquee:hover { animation-play-state: paused; }
+
+/* Status colours written as Tailwind pastels (bg-emerald-50, text-amber-700…)
+   were made for paper and glare as white chips on the dark canvas. Inside the
+   CRM they follow the theme's own status tokens instead, in both themes. */
+html.crm-shell [class*="bg-emerald-50"], html.crm-shell [class*="bg-emerald-100"] { background-color: var(--ok-bg); }
+html.crm-shell [class*="text-emerald-6"], html.crm-shell [class*="text-emerald-7"], html.crm-shell [class*="text-emerald-8"] { color: var(--ok); }
+html.crm-shell [class*="border-emerald-"] { border-color: var(--ok-bd); }
+html.crm-shell [class*="bg-amber-50"] { background-color: var(--warn-bg); }
+html.crm-shell [class*="text-amber-"] { color: var(--warn); }
+html.crm-shell [class*="border-amber-"] { border-color: var(--warn-bd); }
+html.crm-shell [class*="bg-red-50"] { background-color: var(--bad-bg); }
+html.crm-shell [class*="text-red-"] { color: var(--bad); }
+html.crm-shell [class*="border-red-"] { border-color: var(--bad-bd); }
+html.crm-shell [class*="bg-sky-50"], html.crm-shell [class*="bg-indigo-50"] { background-color: var(--info-bg); }
+html.crm-shell [class*="text-sky-"], html.crm-shell [class*="text-indigo-"] { color: var(--info); }
+html.crm-shell [class*="border-sky-"], html.crm-shell [class*="border-indigo-"] { border-color: var(--info-bd); }
+html.crm-shell [class*="bg-zinc-100"] { background-color: var(--surface-hover); }
+html.crm-shell [class*="text-zinc-"] { color: var(--text-muted); }

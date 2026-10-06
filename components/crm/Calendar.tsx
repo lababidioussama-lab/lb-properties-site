@@ -74,7 +74,7 @@ export function CalendarView({ isAdmin, users, leads, listings, userName }: {
                 <div className={`mb-1 grid h-6 w-6 place-items-center rounded-full text-[11.5px] ${sameDay(d, new Date()) ? "bg-[var(--accent-solid)] text-white" : "text-[var(--text-secondary)]"}`}>{d.getDate()}</div>
                 <div className="space-y-1">
                   {dayEvents.slice(0, 3).map((e) => (
-                    <button key={e.id} onClick={() => setEditing(e)} className={`block w-full truncate rounded border px-1.5 py-0.5 text-start text-[10.5px] ${KIND_STYLE[e.kind]} ${e.status === "done" ? "line-through opacity-60" : ""}`}>
+                    <button key={e.id} onClick={() => setEditing(e)} className={`block w-full truncate rounded-md border px-1.5 py-1 text-start text-[11px] font-medium ${KIND_STYLE[e.kind]} ${e.status === "done" ? "line-through opacity-60" : ""}`}>
                       {time(e.starts_at)} {e.title}
                     </button>
                   ))}

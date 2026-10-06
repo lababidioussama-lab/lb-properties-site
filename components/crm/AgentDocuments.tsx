@@ -60,7 +60,7 @@ export function AgentDocuments({ t, onlyUserId, canDelete = false }: { t: Table<
               <a href={d.url} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 truncate text-[12.5px] text-[var(--accent)] hover:underline">{d.title}</a>
               <span className="shrink-0 text-[10.5px] capitalize text-[var(--text-muted)]">{DOC_KIND_LABEL[d.kind]}</span>
               <span className="shrink-0 text-[10.5px] text-[var(--text-muted)]">{shortDate(d.created_at)}</span>
-              {canDelete && <button onClick={() => window.confirm(`Delete "${d.title}"?`) && t.remove(d.id)} aria-label="Delete" className="shrink-0 text-[var(--text-muted)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>}
+              {canDelete && <button onClick={() => window.confirm(`Delete "${d.title}"?`) && t.remove(d.id)} aria-label="Delete" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>}
             </li>
           ))}
         </ul>

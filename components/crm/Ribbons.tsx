@@ -66,7 +66,7 @@ export function Ribbons() {
         ctx.lineWidth = 34;
         for (let n = 0; n < seeds.length; n += 11) {
           const s = seeds[n];
-          ctx.strokeStyle = "rgba(47,111,214,0.075)";
+          ctx.strokeStyle = "rgba(47,111,214,0.03)";
           ctx.beginPath();
           for (let i = 0; i <= STEPS; i++) { const [x, y] = at(i / STEPS, s.k, t, s.ph); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
           ctx.stroke();
@@ -74,7 +74,7 @@ export function Ribbons() {
       }
       for (const s of seeds) {
         const edge = 1 - Math.abs(s.k) * 1.5;
-        const alpha = (dark ? 0.46 : 0.09) * (0.3 + edge) * (0.72 + 0.28 * Math.sin(t * 0.4 + s.ph));
+        const alpha = (dark ? 0.24 : 0.09) * (0.3 + edge) * (0.72 + 0.28 * Math.sin(t * 0.4 + s.ph));
         // blue at the heart of the bundle, a cooler cyan at its edges, as light scatters
         ctx.strokeStyle = dark
           ? `rgba(${Math.round(70 + 60 * Math.abs(s.k))},${Math.round(140 + 70 * Math.abs(s.k))},255,${alpha})`
@@ -90,9 +90,9 @@ export function Ribbons() {
       // the bright point where the strands meet
       const [px, py] = at(0.47, 0, t, 0);
       const glow = ctx.createRadialGradient(px, py, 0, px, py, Math.min(W, H) * 0.34);
-      glow.addColorStop(0, dark ? "rgba(190,220,255,0.7)" : "rgba(47,111,214,0.14)");
-      glow.addColorStop(0.12, dark ? "rgba(90,150,255,0.32)" : "rgba(47,111,214,0.07)");
-      glow.addColorStop(0.45, dark ? "rgba(40,95,210,0.10)" : "rgba(47,111,214,0.03)");
+      glow.addColorStop(0, dark ? "rgba(200,222,255,0.38)" : "rgba(47,111,214,0.14)");
+      glow.addColorStop(0.12, dark ? "rgba(90,150,255,0.14)" : "rgba(47,111,214,0.07)");
+      glow.addColorStop(0.45, dark ? "rgba(40,95,210,0.04)" : "rgba(47,111,214,0.03)");
       glow.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = glow;
       ctx.fillRect(0, -H, W, H * 3);

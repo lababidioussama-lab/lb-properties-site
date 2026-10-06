@@ -88,7 +88,7 @@ export function RequestsQueue({ t, userName }: { t: Table<CrmAgentRequest>; user
               <td className="px-4 py-3 text-[var(--text-secondary)]">{r.title}</td>
               <td className="px-4 py-3 text-[var(--text-muted)]">{r.details ?? "—"}</td>
               <td className="px-4 py-3">
-                <select value={r.status} onChange={(e) => t.update(r.id, { status: e.target.value })} className={`rounded-full border-0 px-2 py-0.5 text-[10.5px] font-medium ${REQUEST_STATUS_TONE[r.status]}`}>
+                <select value={r.status} onChange={(e) => t.update(r.id, { status: e.target.value })} className={`h-8 cursor-pointer rounded-full border-0 px-2.5 text-[11.5px] font-semibold ${REQUEST_STATUS_TONE[r.status]}`}>
                   {REQUEST_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </td>
