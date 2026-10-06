@@ -192,6 +192,39 @@ export async function demoApi(method: string, resource: string, body?: Row, quer
     return { ok: true, rows: added, skipped: 0 };
   }
   if (resource === "audit") return { ok: true, entries: tables.audit };
+  if (resource === "visitors") {
+    const days = Number(new URLSearchParams(query ?? "").get("days") ?? 7) || 7;
+    const crm = new URLSearchParams(query ?? "").get("where") === "crm";
+    const k = crm ? 0.08 : 1;
+    const n = (v: number) => Math.max(1, Math.round(v * k * (days / 7)));
+    const line = (name: string, v: number) => ({ name, visitors: n(v), views: n(v * 2.6) });
+    const shape = [0.7, 0.85, 1, 0.9, 1.15, 1.4, 1.05];
+    const series = Array.from({ length: days }, (_, i) => {
+      const v = Math.round(46 * k * shape[i % 7]);
+      return { day: new Date(Date.now() - (days - 1 - i) * 86_400_000 + 4 * 3_600_000).toISOString().slice(0, 10), visitors: v, views: Math.round(v * 2.6) };
+    });
+    const visitors = series.reduce((t, s) => t + s.visitors, 0);
+    const at = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+    return {
+      ok: true, days, where: crm ? "crm" : "site", truncated: false,
+      totals: { visitors, views: series.reduce((t, s) => t + s.views, 0), todayVisitors: series[days - 1].visitors, todayViews: series[days - 1].views },
+      series,
+      sources: crm ? [line("Direct (typed, bookmark or app)", 300)] : [line("Instagram", 118), line("Google search", 96), line("Direct (typed, bookmark or app)", 61), line("WhatsApp", 34), line("Facebook", 19), line("Bayut", 11), line("ChatGPT", 6)],
+      referrers: crm ? [] : [line("bayut.com", 11), line("linktr.ee", 7), line("chatgpt.com", 6)],
+      countries: [line("United Arab Emirates", 171), line("United Kingdom", 44), line("India", 38), line("Russia", 27), line("Saudi Arabia", 21), line("Germany", 14), line("China", 12)],
+      cities: [line("Dubai, United Arab Emirates", 139), line("Abu Dhabi, United Arab Emirates", 22), line("London, United Kingdom", 24), line("Mumbai, India", 17), line("Moscow, Russia", 15)],
+      pages: crm ? [line("/admin", 300), line("/admin/db-search", 120)] : [line("/en", 190), line("/en/projects", 88), line("/en/mortgage", 52), line("/ar", 41), line("/en/contact", 33), line("/ru", 19)],
+      devices: [line("Phone · iPhone / iPad", 158), line("Phone · Android", 92), line("Computer · Windows", 61), line("Computer · Mac", 28), line("Tablet · iPhone / iPad", 6)],
+      browsers: [line("Safari", 150), line("Chrome", 164), line("Samsung Internet", 18), line("Edge", 9)],
+      campaigns: crm ? [] : [line("october-offplan", 37), line("lagoons-reel", 22)],
+      recent: [
+        { at: at(3), path: crm ? "/admin" : "/en/projects", source: crm ? "Direct (typed, bookmark or app)" : "Instagram", ref: null, country: "United Arab Emirates", city: "Dubai", device: "Phone · iPhone / iPad", browser: "Safari", team: crm },
+        { at: at(11), path: crm ? "/admin/db-search" : "/en", source: crm ? "Direct (typed, bookmark or app)" : "Google search", ref: crm ? null : "google.com", country: "United Kingdom", city: "London", device: "Computer · Windows", browser: "Chrome", team: crm },
+        { at: at(26), path: crm ? "/admin" : "/en/mortgage", source: crm ? "Direct (typed, bookmark or app)" : "WhatsApp", ref: null, country: "India", city: "Mumbai", device: "Phone · Android", browser: "Chrome", team: false },
+        { at: at(48), path: crm ? "/admin" : "/ru", source: "Direct (typed, bookmark or app)", ref: null, country: "Russia", city: "Moscow", device: "Computer · Mac", browser: "Safari", team: false },
+      ],
+    };
+  }
   if (resource === "integrations") {
     const at = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
     return {

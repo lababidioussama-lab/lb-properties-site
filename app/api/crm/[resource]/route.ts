@@ -150,7 +150,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     }
     case "audit": {
       if (user.role !== "admin") return fail("forbidden", 403);
-      const { data, error } = await db.from("crm_audit").select("*").order("created_at", { ascending: false }).limit(500);
+      const { data, error } = await db.from("crm_audit").select("*").neq("entity", "visit").order("created_at", { ascending: false }).limit(500);
       return error ? dbFail(error) : ok({ entries: data });
     }
     case "team_activity": {

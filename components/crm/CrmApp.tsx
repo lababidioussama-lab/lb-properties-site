@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion } from "motion/react";
 import { DS_TOOLS, DS_VIEWS, type DsView } from "./dbsearch/DbSearch";
 import { DS_CRM_VIEWS, DsInCrm, type DsCrmView } from "./dbsearch/DsInCrm";
+import { VisitorsView } from "./Visitors";
 import { Activity, Database, Home, Lock, Moon, Search, History, ShieldCheck, Receipt, KeyRound, Calculator, Menu, X, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList, SlidersHorizontal } from "lucide-react";
 
 import type { CrmContact, CrmDeal, CrmInvoice, CrmKyc, CrmSourceSpend, CrmTenancy, CrmLead, CrmListing, CrmTask, CrmTemplate, CrmUser } from "@/lib/crm";
@@ -43,7 +44,7 @@ import { Ribbons } from "./Ribbons";
 import { setCrmTheme, type CrmTheme } from "@/lib/crm-theme";
 import type { CrmAgentRequest } from "@/lib/crm";
 
-type View = DsView | "control" | "compliance" | "invoices" | "rentals" | "integrations" | "today" | "tools" | "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
+type View = DsView | "visitors" | "control" | "compliance" | "invoices" | "rentals" | "integrations" | "today" | "tools" | "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
 
 function upsert<T extends { id: string }>(list: T[], item: T, prepend = false): T[] {
   if (list.some((x) => x.id === item.id)) return list.map((x) => (x.id === item.id ? item : x));
@@ -158,6 +159,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
       { id: "compliance" as View, label: "Compliance", icon: ShieldCheck, group: "Admin", desc: "KYC, goAML, licences, permits and rentals: everything that could lead to a fine." },
       { id: "invoices" as View, label: "Invoices", icon: Receipt, group: "Admin", desc: "VAT tax invoices for commission, and who still owes us." },
       { id: "monitor" as View, label: "Agent performance", icon: Activity, group: "Admin", desc: "Who is using the CRM, and how each agent is performing." },
+      { id: "visitors" as View, label: "Visitors", icon: Activity, group: "Admin", desc: "Who visits the website and the CRM, from which country, and whether they came from Instagram, Google or elsewhere." },
       { id: "team" as View, label: "Team", icon: UserCog, group: "Admin", desc: "Agents, roles, commission slabs and targets." },
       { id: "integrations" as View, label: "Lead sources", icon: PlugZap, group: "Admin", desc: "Bayut, Dubizzle and Property Finder leads, straight to your agents." },
       { id: "team_docs" as View, label: "Team documents", icon: FolderLock, group: "Admin", desc: "Every agent's IDs, visas, licences and contracts." },
@@ -177,7 +179,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     { id: "deals", label: "Deals", icon: HandCoins, views: [{ id: "deals", label: "Sales & off-plan" }, { id: "rentals", label: "Rentals" }, ...(isAdmin ? [{ id: "invoices" as View, label: "Invoices" }] : [])] },
     { id: "calendar", label: "Calendar", icon: CalendarDays, views: [{ id: "calendar", label: "Calendar" }, { id: "tasks", label: "Tasks" }], badge: dueCount, badgeTone: "plain" },
     { id: "dbsearch", label: "DB Search", icon: Database, views: DS_TOOLS.map((t) => ({ id: t.id as View, label: t.label })) },
-    { id: "reports", label: "Reports", icon: BarChart3, views: [{ id: "reports", label: "Overview" }, ...(isAdmin ? [{ id: "monitor" as View, label: "Agent performance" }] : [])] },
+    { id: "reports", label: "Reports", icon: BarChart3, views: [{ id: "reports", label: "Overview" }, ...(isAdmin ? [{ id: "monitor" as View, label: "Agent performance" }, { id: "visitors" as View, label: "Visitors" }] : [])] },
     { id: "tools", label: "Tools", icon: Calculator, views: [{ id: "tools", label: "Calculators" }, { id: "templates", label: "WhatsApp templates" }, { id: "quick_wa", label: "Quick WhatsApp" }], group: "workspace" },
     ...(isAdmin ? [{ id: "admin", label: "Team & rules", icon: SlidersHorizontal, group: "workspace" as const, views: [
       { id: "team" as View, label: "Team" }, { id: "control" as View, label: "Access & activity" }, { id: "integrations" as View, label: "Lead sources" }, { id: "compliance" as View, label: "Compliance" },
@@ -453,6 +455,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           {view === "team" && isAdmin && <TeamView users={users} meId={me.id} onUser={onUser} />}
           {view === "control" && isAdmin && <AccessControl meId={me.id} />}
           {view === "audit" && isAdmin && <AuditView userName={userName} />}
+          {view === "visitors" && isAdmin && <VisitorsView />}
           {view === "monitor" && isAdmin && <TeamMonitor users={users} leads={leads} tasks={tasks} deals={deals.rows} />}
           {view === "team_docs" && isAdmin && <TeamDocuments users={users} />}
           {view === "rentals" && (

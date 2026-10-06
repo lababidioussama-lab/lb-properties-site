@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { fontVariables } from "../fonts";
 import "../globals.css";
 import { THEME_BOOT } from "@/lib/crm-theme";
+import { VisitBeacon } from "@/components/VisitBeacon";
 
 /**
  * A second root layout, sibling to app/[locale]/layout.tsx.
@@ -22,7 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <html lang="en" dir="ltr" data-theme="dark" suppressHydrationWarning className={`${fontVariables} crm-shell`}>
       <head><script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} /></head>
-      <body className="bg-[var(--surface)]">{children}</body>
+      <body className="bg-[var(--surface)]">{children}<VisitBeacon /></body>
     </html>
   );
 }
