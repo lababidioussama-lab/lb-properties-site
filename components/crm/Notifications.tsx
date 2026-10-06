@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bell, CalendarClock, Timer, AlertTriangle, ShieldX, Hand } from "lucide-react";
 import type { CrmEvent, CrmLead, CrmListing, CrmTask } from "@/lib/crm";
 import { shortDate } from "./shared";
@@ -19,6 +19,16 @@ export function NotificationBell({ leads, tasks, listings, isAdmin, meId, onOpen
   const [open, setOpen] = useState(false);
   const mine = (l: CrmLead) => isAdmin || l.owner_id === meId;
   const events = useTable<CrmEvent>("events");
+  /* Appointments are re-read every minute and whenever the bell is opened, so
+     a viewing booked during the day still gets its reminder, and "in 30 min"
+     counts down. */
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = window.setInterval(() => { void events.reload(); setTick((n) => n + 1); }, 60_000);
+    return () => window.clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => { if (open) void events.reload(); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const items = useMemo<Item[]>(() => {
     const out: Item[] = [];
@@ -45,7 +55,7 @@ export function NotificationBell({ leads, tasks, listings, isAdmin, meId, onOpen
     const poolCount = leads.filter((l) => !l.owner_id && l.stage !== "won" && l.stage !== "lost").length;
     if (poolCount > 0) out.push({ icon: Hand, text: `${poolCount} lead${poolCount === 1 ? "" : "s"} in the open pool`, sub: "Unclaimed and waiting", tone: "text-sky-700" });
     return out.slice(0, 12);
-  }, [leads, tasks, listings, isAdmin, meId, events.rows]);
+  }, [leads, tasks, listings, isAdmin, meId, events.rows, tick]);
 
   return (
     <div className="relative">

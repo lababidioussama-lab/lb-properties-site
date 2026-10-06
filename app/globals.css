@@ -933,7 +933,7 @@ html.crm-shell .page-head { position: relative; border-bottom: 1px solid var(--r
 html.crm-shell .page-head::after { content: ""; position: absolute; left: 0; bottom: -1px; width: 64px; height: 1px; background: var(--accent); }
 
 /* Motion: DB Search's two speeds. */
-@keyframes crm-rise { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
+@keyframes crm-rise { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: none; } }
 @keyframes crm-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes crm-slide-in { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes crm-pop { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
@@ -960,7 +960,7 @@ html.crm-shell button:not(:disabled):active, html.crm-shell a.btn:active { trans
 /* ---- Motion, second layer: cards, scrolling, live signals -------------------
    Entrances move with `translate` and `scale` (their own properties), so a
    card can still lift on hover with `transform` while its entrance holds. */
-@keyframes crm-in { from { opacity: 0; translate: 0 22px; scale: 0.985; } to { opacity: 1; translate: 0 0; scale: 1; } }
+@keyframes crm-in { from { opacity: 0; translate: 0 22px; scale: 0.985; } to { opacity: 1; translate: none; scale: none; } }
 @keyframes crm-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes crm-bar-in { from { border-bottom-color: transparent; box-shadow: none; } to { border-bottom-color: var(--rule); box-shadow: 0 10px 30px -18px rgb(2 6 23 / 0.6); } }
 @keyframes crm-ping { 0% { box-shadow: 0 0 0 0 currentColor; } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
@@ -1029,10 +1029,10 @@ html.crm-shell .crm-topbar { border-bottom: 1px solid transparent; }
 /* ---- Motion, third layer: every part of the app ---------------------------
    Rows, lists, the sidebar, side panels, the page head and the background all
    move, each a little, so the whole workspace feels alive without shouting. */
-@keyframes crm-row { from { opacity: 0; translate: -10px 0; } to { opacity: 1; translate: 0 0; } }
+@keyframes crm-row { from { opacity: 0; translate: -10px 0; } to { opacity: 1; translate: none; } }
 @keyframes crm-draw { from { width: 0; } to { width: 64px; } }
-@keyframes crm-side { from { opacity: 0; translate: -8px 0; } to { opacity: 1; translate: 0 0; } }
-@keyframes crm-pop-in { from { opacity: 0; scale: 0.9; } to { opacity: 1; scale: 1; } }
+@keyframes crm-side { from { opacity: 0; translate: -8px 0; } to { opacity: 1; translate: none; } }
+@keyframes crm-pop-in { from { opacity: 0; scale: 0.9; } to { opacity: 1; scale: none; } }
 
 /* The page head: the accent segment draws itself under the title. */
 html.crm-shell .page-head::after { animation: crm-draw 0.7s cubic-bezier(0.3, 0.7, 0.2, 1) 0.15s both; }

@@ -62,29 +62,25 @@ export function DsCampaign({ onExpired, onUsage, meName = "" }: { onExpired: () 
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [list, setList] = useState<Recipient[]>([]);
+  const [kept] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem(KEEP) ?? "null") as { list?: Recipient[]; msg?: string; queue?: Recipient[] | null; state?: Record<string, Sent> } | null; } catch { return null; }
+  });
+  const [list, setList] = useState<Recipient[]>(kept?.list ?? []);
   const [manual, setManual] = useState("");
   const [templates, setTemplates] = useState<CrmTemplate[]>([]);
-  const [msg, setMsg] = useState("{Hi|Hello|Good day} {name}, this is Lababidi Properties. We have buyers asking about {building}. Would you consider an offer on unit {unit}?");
-  const [queue, setQueue] = useState<Recipient[] | null>(null);
-  const [state, setState] = useState<Record<string, Sent>>({});
+  const [msg, setMsg] = useState(kept?.msg || "{Hi|Hello|Good day} {name}, this is Lababidi Properties. We have buyers asking about {building}. Would you consider an offer on unit {unit}?");
+  const [queue, setQueue] = useState<Recipient[] | null>(kept?.queue ?? null);
+  const [state, setState] = useState<Record<string, Sent>>(kept?.state ?? {});
   const [working, setWorking] = useState<string | null>(null);
   const sends = useRef<number[]>([]);
   const [, tick] = useState(0);
 
   /* The campaign survives leaving the page: the list, the message and who
      was already messaged are kept for this browser tab, so going back to
-     Search, opening a record or a session timeout does not wipe the work. */
-  const restored = useRef(false);
+     Search, opening a record or a session timeout does not wipe the work.
+     It is read when the screen opens (see `kept` below) and written on every
+     change. */
   useEffect(() => {
-    try {
-      const saved = JSON.parse(sessionStorage.getItem(KEEP) ?? "null") as { list: Recipient[]; msg: string; queue: Recipient[] | null; state: Record<string, Sent> } | null;
-      if (saved) { setList(saved.list ?? []); if (saved.msg) setMsg(saved.msg); setQueue(saved.queue ?? null); setState(saved.state ?? {}); }
-    } catch {}
-    restored.current = true;
-  }, []);
-  useEffect(() => {
-    if (!restored.current) return;
     try { sessionStorage.setItem(KEEP, JSON.stringify({ list, msg, queue, state })); } catch {}
   }, [list, msg, queue, state]);
 

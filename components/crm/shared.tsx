@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import { X } from "lucide-react";
 import { CountText } from "./Motion";
@@ -292,7 +293,9 @@ export function SidePanel({ title, subtitle, onClose, children, actions, wide = 
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  return (
+  /* Drawn straight onto the page, outside whatever screen opened it, so no
+     animated or scrolling parent can move, clip or fade the panel. */
+  return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end">
       <button aria-label="Close" onClick={close} className="crm-backdrop absolute inset-0 bg-[rgb(7_9_12/0.42)]" />
       <aside className={`crm-panel relative flex h-full w-full flex-col border-s border-[var(--hairline)] bg-[var(--surface-solid)] shadow-[var(--shadow-lift)] ${wide ? "max-w-[1080px]" : "max-w-[560px]"}`} style={{ backgroundImage: "var(--page-glow)" }}>
@@ -310,7 +313,8 @@ export function SidePanel({ title, subtitle, onClose, children, actions, wide = 
         </header>
         <div className={wide ? "flex min-h-0 flex-1 flex-col lg:flex-row" : "flex-1 space-y-6 overflow-y-auto px-5 py-5"}>{children}</div>
       </aside>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
