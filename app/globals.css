@@ -840,13 +840,13 @@ html.crm-shell {
   --font-sans: var(--font-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-body: var(--font-sans);
   --font-numeric: var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --radius-panel: 16px;
+  --radius-panel: 20px;
   --radius-control: 10px;
   --radius-sm: 5px;
   --radius-md: 9px;
   --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 18px;
+  --radius-xl: 20px;
+  --radius-2xl: 22px;
   --glass-edge: none;
   --page-glow: radial-gradient(900px 520px at 85% -12%, rgb(79 143 240 / 0.22), transparent 62%), radial-gradient(800px 600px at -8% 108%, rgb(11 42 74 / 0.14), transparent 60%);
   --stars-opacity: 0.6;
@@ -855,8 +855,8 @@ html.crm-shell {
 }
 html.crm-shell[data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #05080d;
-  --sheet: rgb(17 23 33 / 0.62);
+  --canvas: #000103;
+  --sheet: rgb(14 17 23 / 0.66);
   --ink: #eef2f8;
   --graphite: #8a97aa;
   --rule: rgb(255 255 255 / 0.085);
@@ -910,11 +910,8 @@ html.crm-shell[data-theme="dark"] {
   --neutral-bg: rgb(255 255 255 / 0.065); --neutral-bd: rgb(255 255 255 / 0.12);
   --wa: #3ddc84;
   --glass-edge: inset 0 1px 0 rgb(255 255 255 / 0.05);
-  /* the logo's blue as light sweeping in from the top right, a second glow low on the left, and a faint streak between */
-  --page-glow:
-    radial-gradient(1100px 560px at 92% -14%, rgb(47 111 214 / 0.3), transparent 60%),
-    radial-gradient(900px 620px at -12% 112%, rgb(11 42 74 / 0.55), transparent 62%),
-    linear-gradient(118deg, transparent 38%, rgb(91 155 255 / 0.05) 50%, transparent 62%);
+  /* the ribbons carry the light; only a faint breath of blue stays in the corners */
+  --page-glow: radial-gradient(900px 480px at 100% -10%, rgb(47 111 214 / 0.10), transparent 62%), radial-gradient(800px 520px at -10% 110%, rgb(11 42 74 / 0.35), transparent 62%);
   --stars-opacity: 0.9;
 }
 html.crm-shell body {
@@ -934,7 +931,7 @@ html.crm-shell .display { font-family: var(--font-display); font-weight: 500; le
 html.crm-shell .display em, html.crm-shell .serif-em { font-family: var(--serif); font-style: italic; font-weight: 500; letter-spacing: -0.01em; font-size: 1.08em; }
 html.crm-shell .mono, html.crm-shell .figure { font-family: var(--font-numeric); font-variant-numeric: tabular-nums; letter-spacing: -0.015em; }
 html.crm-shell .figure { font-weight: 500; }
-html.crm-shell .ds-label { font-family: var(--font-numeric); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+html.crm-shell .ds-label { font-family: var(--font-numeric); font-size: 12px; font-weight: 400; letter-spacing: -0.01em; text-transform: lowercase; color: var(--text-muted); }
 
 /* Glass: one recipe for everything that floats over the ground. */
 html.crm-shell .panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius-panel); box-shadow: var(--shadow-card); }
@@ -961,9 +958,14 @@ html.crm-shell:not([data-theme="dark"]) .btn-go { box-shadow: 0 8px 20px -10px r
 
 /* Page head, as DB Search's section header: left aligned, a rule with a
    short accent segment. */
-html.crm-shell .page-title { font-size: clamp(1.9rem, 3.6vw, 2.6rem); }
+html.crm-shell .page-title { font-size: clamp(2.3rem, 5vw, 4rem); }
 html.crm-shell .page-head { position: relative; border-bottom: 1px solid var(--rule); }
 html.crm-shell .page-head::after { content: ""; position: absolute; left: 0; bottom: -1px; width: 64px; height: 1px; background: var(--accent); }
+/* The light behind everything. */
+html.crm-shell .crm-ribbons { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+/* The small labelled pill: a dot and a line of lowercase mono. */
+html.crm-shell .crm-status { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 13px; border: 1px solid var(--hairline-strong); border-radius: 999px; background: color-mix(in srgb, var(--canvas) 55%, transparent); font-family: var(--font-numeric); font-size: 12px; letter-spacing: -0.01em; text-transform: lowercase; color: var(--text-secondary); white-space: nowrap; }
+html.crm-shell .crm-status i { width: 6px; height: 6px; border-radius: 999px; flex: none; }
 
 /* Motion: DB Search's two speeds. */
 @keyframes crm-rise { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: none; } }
@@ -1124,7 +1126,7 @@ html.crm-shell select { cursor: pointer; }
 
 /* Tables: DB Search's mono column heads. */
 html.crm-shell main table thead tr { background: transparent; }
-html.crm-shell main table thead th { color: var(--text-muted); font-family: var(--font-numeric); font-weight: 600; font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase; }
+html.crm-shell main table thead th { color: var(--text-muted); font-family: var(--font-numeric); font-weight: 400; font-size: 12px; letter-spacing: -0.01em; text-transform: lowercase; }
 html.crm-shell main table tbody tr { transition: background-color var(--snap); }
 html.crm-shell main table tbody tr:hover { background: var(--surface-hover); }
 /* On a phone a table is a stack of cards: the first cell is the title, the
@@ -1140,7 +1142,7 @@ html.crm-shell main table tbody tr:hover { background: var(--surface-hover); }
   html.crm-shell main table tbody td:empty { display: none; }
   html.crm-shell main table tbody td[data-label]:not(:first-child)::before {
     content: attr(data-label); display: block; margin-bottom: 2px;
-    font-family: var(--font-numeric); font-size: 9.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+    font-family: var(--font-numeric); font-size: 11px; font-weight: 400; text-transform: lowercase; color: var(--text-muted);
   }
 }
 

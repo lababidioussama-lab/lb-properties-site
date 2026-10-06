@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Image from "next/image";
 import { ArrowLeft, Lock, ShieldCheck } from "lucide-react";
 import { WELCOME_FLAG } from "./Greeting";
-import { Stars } from "./Stars";
+import { Ribbons } from "./Ribbons";
 
 const MESSAGES: Record<string, string> = {
   rate_limited: "Too many attempts. Wait fifteen minutes.",
@@ -105,7 +105,7 @@ export function CrmLogin({ configured, purpose = "crm", crmSignedIn = false }: {
 
   return (
     <main className="relative flex min-h-[100dvh] flex-col px-4">
-      <Stars />
+      <Ribbons />
       {purpose === "documents" && (
         <div className="relative z-10 mx-auto flex w-full max-w-[1100px] justify-end pt-3">
           <a href="/admin" className="inline-flex h-8 items-center gap-1.5 rounded-[8px] px-2.5 text-[12px] font-semibold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">

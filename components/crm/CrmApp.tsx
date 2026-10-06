@@ -39,7 +39,7 @@ import { RentalsView } from "./Rentals";
 import { ComplianceView } from "./Compliance";
 import { TargetMeter } from "./TargetMeter";
 import { WELCOME_FLAG } from "./Greeting";
-import { Stars } from "./Stars";
+import { Ribbons } from "./Ribbons";
 import { setCrmTheme, type CrmTheme } from "@/lib/crm-theme";
 import type { CrmAgentRequest } from "@/lib/crm";
 
@@ -286,103 +286,71 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
 
   return (
     <div className="relative flex min-h-screen text-[var(--text-primary)]">
-      <Stars />
+      <Ribbons />
       <div className="crm-progress" aria-hidden="true" />
-      <aside className="sticky top-0 z-10 hidden h-screen w-[240px] shrink-0 flex-col gap-5 border-e border-[var(--side-border)] bg-[var(--side-bg)] px-4 pb-4 pt-7 text-[var(--side-fg)] md:flex">
-        <button onClick={() => setView("today")} aria-label="Lababidi Properties, home" className="block w-fit px-2">
-          <Image src={theme === "dark" ? "/logo-full-white.png" : "/logo-full.png"} alt="Lababidi Properties" width={72} height={82} priority />
-        </button>
-        <div className="[&_button]:!h-8 [&_button]:!rounded-md [&_button]:!border-[var(--side-border)] [&_button]:!bg-[var(--side-field)] [&_button]:!text-[var(--side-muted)] hover:[&_button]:!text-[var(--side-fg)]">
-          <CommandSearch
-            leads={leads}
-            contacts={contacts}
-            listings={listings.rows}
-            screens={nav.map(({ id, label, group, icon }) => ({ id, label, group, icon }))}
-            onPick={(hit) => {
-              if (hit.kind === "lead") setLeadId(hit.id);
-              else if (hit.kind === "contact") setContactId(hit.id);
-              else if (hit.kind === "screen") setView(hit.id as View);
-              else setView("listings");
-            }}
-          />
-        </div>
-        <nav aria-label="Main" className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
-          {sections.filter((sec) => !sec.group).map((sec) => {
-            const on = section.id === sec.id;
-            if (sec.id === "dbsearch") {
-              return (
-                <a key={sec.id} href={dbSearchHref} target="lababidi-db-search" rel="opener" className={sideItem(false)} title="Opens DB Search in its own tab">
-                  <sec.icon size={16} strokeWidth={1.5} />
-                  <span className="flex-1 text-start">DB Search</span>
-                  <ExternalLink size={12} className="opacity-60" />
-                </a>
-              );
-            }
-            return (
-              <div key={sec.id}>
-                <button onClick={() => setView(on ? view : sec.views[0].id)} aria-current={on ? "page" : undefined} className={sideItem(on)}>
-                  {on && marker}
-                  <sec.icon size={16} strokeWidth={1.5} />
-                  <span className="flex-1 text-start">{sec.label}</span>
-                  {sec.id === "dbsearch" && <Lock size={12} className="opacity-60" />}
-                  {!!sec.badge && badge(sec.badge, sec.badgeTone)}
-                </button>
-              </div>
-            );
-          })}
-          <div className="mx-3 my-4 h-px bg-[var(--side-border)]" />
-          {sections.filter((sec) => sec.group === "workspace").map((sec) => (
-            <button key={sec.id} onClick={() => setView(section.id === sec.id ? view : sec.views[0].id)} aria-current={section.id === sec.id ? "page" : undefined} className={sideItem(section.id === sec.id)}>
-              {section.id === sec.id && marker}
-              <sec.icon size={16} strokeWidth={1.5} />
-              <span className="flex-1 text-start">{sec.label}</span>
-            </button>
-          ))}
-          {isAdmin && <a href="/documents" target="_blank" rel="noopener noreferrer" className={sideItem(false)}>
-            <FileText size={16} strokeWidth={1.5} />
-            <span className="flex-1 text-start">Company documents</span>
-            <ExternalLink size={12} className="opacity-50" />
-          </a>}
-        </nav>
-        <TargetMeter me={me_} deals={deals.rows} variant="sidebar" />
-        <div className="flex items-center gap-2.5 px-2">
-          <button onClick={() => setView("profile")} className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md py-1 text-start" title="My profile">
-            {me_?.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={me_.avatar_url} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
-            ) : (
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--accent-solid)] text-[11px] font-semibold text-white">{initials}</span>
-            )}
-            <span className="min-w-0 leading-tight">
-              <span className="block truncate text-[13px] font-medium">{me_?.full_name ?? "Signed in"}</span>
-              <span className="block text-[11px] capitalize text-[var(--side-faint)]">{me.role}</span>
-            </span>
-          </button>
-          <button onClick={signOut} aria-label="Sign out" title="Sign out" className="grid h-8 w-8 place-items-center rounded-md text-[var(--side-faint)] transition hover:bg-[var(--side-hover)] hover:text-[var(--side-fg)]">
-            <LogOut size={15} />
-          </button>
-        </div>
-      </aside>
 
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        {/* One thin utility bar: theme, alerts and you. The place itself is
-            set large in the page head below. */}
-        <header className="crm-topbar sticky top-0 z-30 bg-[color-mix(in_srgb,var(--canvas)_80%,transparent)] backdrop-blur-md">
-          <div className="flex h-14 items-center gap-2 px-5 md:px-12">
-            <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="Lababidi Properties" width={28} height={28} className="md:hidden" />
-            <div className="flex-1" />
-            <button onClick={flipTheme} aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} title={theme === "dark" ? "Light mode" : "Dark mode"}
-              className="grid h-9 w-9 place-items-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
-              {theme === "dark" ? <Sun size={16} strokeWidth={1.5} /> : <Moon size={16} strokeWidth={1.5} />}
+        {/* The top bar, as one line: the logo, every place in the middle, then
+            what is waiting, search, theme, alerts and you. */}
+        <header className="crm-topbar sticky top-0 z-30 bg-[color-mix(in_srgb,var(--canvas)_72%,transparent)] backdrop-blur-xl">
+          <div className="mx-auto flex h-[68px] w-full max-w-[1408px] items-center gap-3 px-5 md:px-8 xl:px-12">
+            <button onClick={() => setView("today")} aria-label="Lababidi Properties, home" className="flex shrink-0 items-center gap-2.5">
+              <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="" width={30} height={30} priority />
+              <span className="hidden text-[17px] font-semibold tracking-[-0.02em] text-[var(--text-primary)] sm:inline">Lababidi</span>
             </button>
-            <NotificationBell leads={leads} tasks={tasks} listings={listings.rows} isAdmin={isAdmin} meId={me.id} onOpenLead={setLeadId} />
-            <button onClick={() => setView("profile")} aria-label="My profile" title="My profile"
-              className="ms-1 grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-[var(--text-primary)] text-[11px] font-semibold text-[var(--canvas)]">
-              {me_?.avatar_url
-                // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={me_.avatar_url} alt="" className="h-full w-full object-cover" />
-                : initials}
-            </button>
+            <nav aria-label="Main" className="mx-auto hidden min-w-0 items-center overflow-x-auto [scrollbar-width:none] md:flex">
+              {sections.map((sec) => {
+                const on = section.id === sec.id;
+                const cls = `relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[13px] transition-colors ${on ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`;
+                if (sec.id === "dbsearch") {
+                  return <a key={sec.id} href={dbSearchHref} target="lababidi-db-search" rel="opener" className={cls} title="Opens DB Search in its own tab">DB Search <ExternalLink size={11} className="opacity-60" /></a>;
+                }
+                return (
+                  <button key={sec.id} onClick={() => setView(on ? view : sec.views[0].id)} aria-current={on ? "page" : undefined} className={cls}>
+                    {on && <motion.span layoutId="top-marker" transition={{ type: "spring", stiffness: 520, damping: 44 }} className="absolute inset-0 rounded-full border border-[var(--hairline-strong)] bg-[var(--surface-hover)]" />}
+                    <span className="relative">{sec.id === "admin" ? "Team" : sec.label}</span>
+                    {!!sec.badge && <span className={`relative grid h-[17px] min-w-[17px] place-items-center rounded-full px-1 text-[10.5px] font-semibold ${sec.badgeTone === "bad" ? "bg-[var(--bad)] text-white" : "bg-[var(--accent-solid)] text-white"}`}>{sec.badge}</span>}
+                  </button>
+                );
+              })}
+            </nav>
+            <div className="flex shrink-0 items-center gap-0.5 max-md:ms-auto">
+              <span className="hidden min-[1500px]:block"><span className="crm-status">
+                <i className={todayCount ? "crm-pulse" : ""} style={{ background: todayCount ? "var(--bad)" : "var(--ok)", color: todayCount ? "var(--bad)" : "var(--ok)" }} />
+                {todayCount ? `${todayCount} waiting for a reply` : "all caught up"}
+              </span></span>
+              <div className="hidden md:block">
+                <CommandSearch
+                  leads={leads}
+                  contacts={contacts}
+                  listings={listings.rows}
+                  screens={nav.map(({ id, label, group, icon }) => ({ id, label, group, icon }))}
+                  onPick={(hit) => {
+                    if (hit.kind === "lead") setLeadId(hit.id);
+                    else if (hit.kind === "contact") setContactId(hit.id);
+                    else if (hit.kind === "screen") setView(hit.id as View);
+                    else setView("listings");
+                  }}
+                />
+              </div>
+              <button onClick={flipTheme} aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} title={theme === "dark" ? "Light mode" : "Dark mode"}
+                className="grid h-9 w-9 place-items-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+                {theme === "dark" ? <Sun size={16} strokeWidth={1.5} /> : <Moon size={16} strokeWidth={1.5} />}
+              </button>
+              <NotificationBell leads={leads} tasks={tasks} listings={listings.rows} isAdmin={isAdmin} meId={me.id} onOpenLead={setLeadId} />
+              {isAdmin && (
+                <a href="/documents" target="_blank" rel="noopener noreferrer" aria-label="Company documents" title="Company documents"
+                  className="hidden h-9 w-9 place-items-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] md:grid"><FileText size={16} strokeWidth={1.5} /></a>
+              )}
+              <button onClick={() => setView("profile")} aria-label="My profile" title={me_?.full_name ?? "My profile"}
+                className="ms-1 grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-[var(--text-primary)] text-[11px] font-semibold text-[var(--canvas)]">
+                {me_?.avatar_url
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={me_.avatar_url} alt="" className="h-full w-full object-cover" />
+                  : initials}
+              </button>
+              <button onClick={signOut} aria-label="Sign out" title="Sign out" className="hidden h-9 w-9 place-items-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] md:grid"><LogOut size={15} /></button>
+            </div>
           </div>
         </header>
 
@@ -408,6 +376,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             <MyDay loaded={loaded} me={me_} isAdmin={isAdmin} leads={leads} tasks={tasks} tenancies={tenancies.rows} onOpenRentals={() => setView("rentals")} userName={userName}
               onOpenLead={setLeadId} onTask={onTask} onRemoveTask={onRemoveTask} />
           )}
+          {view === "today" && <div className="mt-5 max-w-md"><TargetMeter me={me_} deals={deals.rows} variant="sidebar" /></div>}
           {(DS_VIEWS as string[]).includes(view) && (
             <Card className="flex flex-col items-start gap-3 p-6">
               <h2 className="text-[16px] font-semibold">DB Search opens in its own tab</h2>

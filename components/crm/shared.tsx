@@ -181,10 +181,17 @@ export function ViewTabs<T extends string>({ value, options, onChange, className
   );
 }
 
+/** The last word of a heading goes into the italic serif, and it ends on a full stop. */
+export function Headline({ text }: { text: string }) {
+  const words = text.trim().split(/\s+/);
+  const last = words.pop() ?? "";
+  return <>{words.length ? `${words.join(" ")} ` : ""}<em>{last}</em>.</>;
+}
+
 /**
- * The page head, as DB Search heads a section: the title in its serif, one
- * muted line under it, a rule with a short accent segment, and the place's
- * key figure and main action on the right.
+ * The page head: a small labelled pill, a very large heading whose last word
+ * is italic, and the one-line description set off to the right, over a fine
+ * rule. The pill carries the place's key figure.
  */
 export function PageHead({ title, lede, figure, figureLabel, action, children }: {
   title: ReactNode;
@@ -196,25 +203,23 @@ export function PageHead({ title, lede, figure, figureLabel, action, children }:
   children?: ReactNode;
 }) {
   return (
-    <header className="mb-6 mt-2 md:mt-4">
-      <div className="page-head flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pb-4">
-        <div className="min-w-0">
-          <h1 className="display page-title crm-title text-[var(--text-primary)]">{title}</h1>
-          {lede && <p className="crm-title-after mt-2 max-w-[60ch] text-[13.5px] text-[var(--text-muted)]">{lede}</p>}
-        </div>
-        {(figure != null || action) && (
-          <div className="crm-title-after flex items-end gap-5">
-            {figure != null && (
-              <div className="text-end">
-                <div className="figure text-[22px] leading-none text-[var(--accent)]">{typeof figure === "number" ? <CountText text={String(figure)} /> : figure}</div>
-                {figureLabel && <div className="ds-label mt-1.5 !text-[10px]">{figureLabel}</div>}
-              </div>
-            )}
+    <header className="mb-8 mt-8 md:mt-14">
+      {figure != null && (
+        <span className="crm-status crm-title-after mb-5">
+          <i style={{ background: "var(--accent)" }} />
+          {typeof figure === "number" ? <CountText text={String(figure)} /> : figure} {figureLabel}
+        </span>
+      )}
+      <div className="page-head grid grid-cols-12 items-end gap-x-8 gap-y-4 pb-7">
+        <h1 className="display page-title crm-title col-span-12 text-[var(--text-primary)] lg:col-span-7">{typeof title === "string" ? <Headline text={title} /> : title}</h1>
+        {(lede || action) && (
+          <div className="crm-title-after col-span-12 flex flex-wrap items-end justify-between gap-4 lg:col-span-5">
+            {lede && <p className="max-w-[46ch] text-[14.5px] leading-relaxed text-[var(--text-muted)]">{lede}</p>}
             {action}
           </div>
         )}
       </div>
-      {children && <div className="mt-2">{children}</div>}
+      {children && <div className="mt-3">{children}</div>}
     </header>
   );
 }

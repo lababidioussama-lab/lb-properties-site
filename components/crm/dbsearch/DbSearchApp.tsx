@@ -6,7 +6,7 @@ import type { SessionUser } from "@/lib/crm-auth";
 import type { CrmUser } from "@/lib/crm";
 import { setCrmTheme, type CrmTheme } from "@/lib/crm-theme";
 import { api } from "../shared";
-import { Stars } from "../Stars";
+import { Ribbons } from "../Ribbons";
 import { DbSearch, DS_VIEWS, type DsView } from "./DbSearch";
 
 /**
@@ -45,7 +45,7 @@ export function DbSearchApp({ me, demo = false }: { me: SessionUser; demo?: bool
 
   return (
     <div className="relative min-h-[100dvh] text-[var(--text-primary)]">
-      <Stars />
+      <Ribbons />
       <div className="crm-progress" aria-hidden="true" />
       <DbSearch
         view={view}
