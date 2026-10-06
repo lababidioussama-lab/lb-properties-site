@@ -261,16 +261,16 @@ function printInvoice(i: CrmInvoice) {
   const w = window.open("", "_blank", "width=820,height=1000");
   if (!w) return;
   w.document.write(`<!doctype html><html><head><title>${esc(i.number)}</title><style>
-    body{font-family:Helvetica,Arial,sans-serif;color:var(--accent-solid);margin:48px;font-size:13px}
-    .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid var(--accent-solid);padding-bottom:18px}
-    h1{font-size:26px;letter-spacing:.08em;margin:0;color:var(--accent-solid)} .brand{font-size:18px;letter-spacing:.18em;color:var(--accent-solid)}
-    .muted{color:var(--text-muted)} table{width:100%;border-collapse:collapse;margin-top:28px} th,td{padding:10px;border-bottom:1px solid var(--hairline);text-align:left}
-    th{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted)} td.n,th.n{text-align:right}
-    .tot td{border:none;padding:6px 10px} .grand td{font-size:16px;font-weight:700;border-top:2px solid var(--accent-solid)}
+    body{font-family:Helvetica,Arial,sans-serif;color:#0b2a4a;margin:48px;font-size:13px}
+    .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0b2a4a;padding-bottom:18px}
+    h1{font-size:26px;letter-spacing:.08em;margin:0;color:#0b2a4a} .brand{font-size:18px;letter-spacing:.18em;color:#0b2a4a}
+    .muted{color:#6b7280} table{width:100%;border-collapse:collapse;margin-top:28px} th,td{padding:10px;border-bottom:1px solid #d9dde3;text-align:left}
+    th{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#6b7280} td.n,th.n{text-align:right}
+    .tot td{border:none;padding:6px 10px} .grand td{font-size:16px;font-weight:700;border-top:2px solid #0b2a4a}
     .cols{display:flex;gap:40px;margin-top:24px} .cols div{flex:1}
     @media print{body{margin:24px}}
   </style></head><body>
-    <div class="top"><div><div class="brand">LABABIDI <small style="color:var(--accent);font-size:10px;letter-spacing:.3em">PROPERTIES</small></div>
+    <div class="top"><div><div class="brand">LABABIDI <small style="color:#4f6b9a;font-size:10px;letter-spacing:.3em">PROPERTIES</small></div>
       <div class="muted" style="margin-top:8px">${esc(COMPANY.address)}${COMPANY.orn ? `<br>ORN ${esc(COMPANY.orn)}` : ""}<br>TRN ${esc(COMPANY.trn || "—")}</div></div>
       <div style="text-align:right"><h1>TAX INVOICE</h1><div style="margin-top:8px">No. <b>${esc(i.number)}</b><br>Date ${esc(i.issue_date)}${i.due_date ? `<br>Due ${esc(i.due_date)}` : ""}</div></div></div>
     <div class="cols"><div><div class="muted" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase">Bill to</div>

@@ -54,7 +54,9 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-export function ReportsView({ leads, deals, users, userName, spend }: {
+export function ReportsView({ leads, deals, users, userName, spend, meId }: {
+  /** An agent sees only their own row. */
+  meId: string;
   leads: CrmLead[];
   spend: Table<CrmSourceSpend> | null;
   deals: CrmDeal[];
@@ -132,7 +134,7 @@ export function ReportsView({ leads, deals, users, userName, spend }: {
         <Panel title="Leads by source"><Bars rows={bySource} /></Panel>
         <Panel title="Pipeline funnel: leads that reached each stage"><Bars rows={funnel} /></Panel>
         <Panel title="Commission by month"><Bars rows={monthly} format={money} /></Panel>
-        <Panel title="Agent leaderboard">
+        <Panel title={spend ? "Agent leaderboard" : "My numbers"}>
           <table className="w-full text-[12.5px]">
             <thead>
               <tr className="text-[12px] font-medium text-[var(--text-muted)]">
@@ -140,7 +142,7 @@ export function ReportsView({ leads, deals, users, userName, spend }: {
               </tr>
             </thead>
             <tbody>
-              {agents.map((a) => (
+              {agents.filter((a) => spend || a.id === meId).map((a) => (
                 <tr key={a.id} className="border-t border-[var(--hairline)]">
                   <td className="py-2 text-[var(--text-primary)]">
                     <span className="flex items-center gap-2">

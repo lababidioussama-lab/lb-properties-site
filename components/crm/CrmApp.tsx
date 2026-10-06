@@ -401,7 +401,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           {(DS_CRM_VIEWS as string[]).includes(view) && isAdmin && (
             <DsInCrm view={view as DsCrmView} dbSearchHref={dbSearchHref} onOpenLead={setLeadId} />
           )}
-          {view === "reports" && <ReportsView leads={leads} deals={deals.rows} users={users} userName={userName} spend={isAdmin ? spend : null} />}
+          {view === "reports" && <ReportsView leads={leads} deals={deals.rows} users={users} userName={userName} spend={isAdmin ? spend : null} meId={me.id} />}
           {view === "listings" && (
             <ListingsView t={listings} isAdmin={isAdmin} users={users} contacts={contacts} userName={userName}
               prefill={listingPrefill} onPrefillUsed={() => setListingPrefill(null)} />

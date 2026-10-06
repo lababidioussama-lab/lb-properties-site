@@ -266,6 +266,19 @@ function kycDerived(merged: Row, userId: string, existing: Row | null, requested
   return out;
 }
 
+/* "Paid" is one fact kept in two places. When an invoice is marked paid, its
+   deal is marked paid on the same date; when a deal is marked paid, its open
+   invoices are too. Un-marking is left to a person, on purpose. */
+async function syncPaid(db: Db, name: string, row: Row) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (name === "invoices" && row.status === "paid" && row.deal_id) {
+    await db.from("crm_deals").update({ paid_at: (row.paid_at as string) ?? today }).eq("id", row.deal_id as string).is("paid_at", null);
+  }
+  if (name === "deals" && row.paid_at) {
+    await db.from("crm_invoices").update({ status: "paid", paid_at: row.paid_at }).eq("deal_id", row.id as string).in("status", ["draft", "sent"]);
+  }
+}
+
 /** A deal cannot be recorded until the client's KYC file is complete. An admin may override, with a reason. */
 async function kycGate(db: Db, row: Row, isAdmin: boolean): Promise<string | null> {
   if (isAdmin && row.kyc_override_reason) return null;
@@ -388,6 +401,11 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   }
   if (name === "invoices") Object.assign(row, await invoiceNumbers(c.db, row));
   if (spec.required.some((k) => !row[k])) return fail(`${spec.required.join(", ")} required`);
+  if (name === "listings" && row.status === "available") {
+    const { data: agent } = row.agent_id ? await c.db.from("crm_users").select("brn_no, brn_expiry").eq("id", row.agent_id as string).maybeSingle() : { data: null };
+    const issues = complianceIssues(row as never, agent);
+    if (issues.length) return fail(`Cannot publish: ${issues.join(", ")}. Save it as a draft first.`, 422);
+  }
   if (spec.owner && (c.user.role !== "admin" || !row[spec.owner])) row[spec.owner] = c.user.id;
   /* A deal's split is the agent's own slab unless the admin typed another:
      an agent cannot set it, and it used to fall back to a flat 50%. */
@@ -430,7 +448,10 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   }
 
   // A listing cannot go live (status=available, exclusive marketing) without Form A, permit and photos.
-  if (name === "listings" && (patch.status === "available" || patch.approval === "approved")) {
+  const { data: liveNow } = name === "listings" && (patch.status === "available" || patch.approval === "approved")
+    ? await c.db.from("crm_listings").select("status, approval").eq("id", rowId).single() : { data: null };
+  const goingLive = !!liveNow && ((patch.status === "available" && liveNow.status !== "available") || (patch.approval === "approved" && liveNow.approval !== "approved"));
+  if (name === "listings" && goingLive) {
     const { data: existing } = await c.db.from("crm_listings").select("*").eq("id", rowId).single();
     const merged = { ...existing, ...patch };
     const { data: agent } = merged.agent_id
@@ -442,6 +463,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
   if (!Object.keys(patch).length) return fail("empty_patch");
   const { data, error } = await c.db.from(spec.table).update(patch).eq("id", rowId).select().single();
+  if (!error && data) await syncPaid(c.db, name, data as Row);
   if (!error && name === "listings" && "approval" in patch) {
     await c.db.from("crm_audit").insert({ user_id: c.user.id, entity: "listing", entity_id: rowId, action: "approval", detail: { approval: patch.approval, note: patch.approval_note ?? null } });
   }

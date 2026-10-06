@@ -179,28 +179,7 @@ export function TeamMonitor({ users, leads, tasks, deals }: { users: CrmUser[]; 
         {rows.length === 0 && <Empty>No active team members.</Empty>}
       </Card>
 
-      <Card>
-        <div className="flex items-center gap-2 border-b border-[var(--hairline)] px-5 py-4">
-          <ShieldAlert size={16} className="text-[var(--gold)]" />
-          <h3 className="text-[14px] font-semibold">Sign-in history</h3>
-          <span className="ms-auto text-[12px] text-[var(--text-muted)]">Last 30 days</span>
-        </div>
-        {!data || data.sessions.length === 0 ? <Empty>No sign-ins recorded yet. Every sign-in from now on appears here.</Empty> : (
-          <ul className="divide-y divide-[var(--hairline)]">
-            {data.sessions.slice(0, 25).map((s, i) => (
-              <li key={i} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-2.5 text-[12.5px]">
-                <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${s.action === "login" ? "bg-emerald-50 text-emerald-700" : s.action === "logout" ? "bg-zinc-100 text-zinc-600" : "bg-red-50 text-red-700"}`}>
-                  {s.action === "login" ? "Signed in" : s.action === "logout" ? "Signed out" : s.action === "otp_failed" ? "Wrong code" : "Wrong password"}
-                </span>
-                <span className="font-medium">{s.user_id ? name(s.user_id) : s.detail.email ?? "Unknown email"}</span>
-                <span className="text-[var(--text-muted)]">{device(s.detail.agent)}</span>
-                {s.detail.ip && <span className="figure text-[var(--text-muted)]">{s.detail.ip}</span>}
-                <span className="ms-auto text-[var(--text-muted)]">{stamp(s.created_at)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      <p className="text-[12.5px] text-[var(--text-muted)]">Sign-in history, with filters and export, is under Team & rules, Access & activity.</p>
     </div>
   );
 }

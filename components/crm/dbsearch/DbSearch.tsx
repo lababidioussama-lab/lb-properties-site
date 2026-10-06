@@ -79,6 +79,7 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
   }, [menu]);
   const [phoneQuery, setPhoneQuery] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const wasIn = useRef(false);
 
   const load = useCallback(async () => {
     const r = await ds<DsSessionInfo>("GET", "session");
@@ -143,10 +144,11 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
     return <div className="relative z-10 px-4">{bar(commonRight)}<p role="alert" className="panel mx-auto max-w-[560px] p-5 text-[14px] text-[var(--text-secondary)]">{dsError(problem)}</p></div>;
   }
   if (!info) return <div className="relative z-10 px-4">{bar(commonRight)}<div className="panel mx-auto h-72 max-w-[430px] animate-pulse" /></div>;
-  if (!info.signedIn) return <DsSignIn email={meEmail} onDone={load} theme={theme} topBar={bar(commonRight)} />;
-
   const left = info.session ? Math.max(0, info.session.endsAt - now) : null;
-  if (left === 0) return <DsSignIn email={meEmail} onDone={load} expired theme={theme} topBar={bar(commonRight)} />;
+  const out = !info.signedIn || left === 0;
+  if (!out) wasIn.current = true;
+  // First visit: just the sign-in. After a timeout the page stays underneath (below), so nothing is lost.
+  if (out && !wasIn.current) return <DsSignIn email={meEmail} onDone={load} theme={theme} topBar={bar(commonRight)} />;
   const hm = left == null ? "" : `${Math.floor(left / 3_600_000)}:${String(Math.floor((left % 3_600_000) / 60_000)).padStart(2, "0")}`;
 
   const shared = { onExpired, onUsage, onOpenOwner: setOwnerRef };
@@ -207,14 +209,16 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
           })}
         </nav>
 
-        <main key={tab} className="crm-stagger">
+        <main>
           {(tab === "ds_area" || tab === "ds_unit" || tab === "ds_campaign" || inMore) && (
             <button onClick={() => onView("ds_search")} className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline"><ArrowLeft size={14} /> Back to Search</button>
           )}
-          {tab === "ds_smart" && <DsSmart onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} onAreaFilter={() => onView("ds_area")} />}
-          {tab === "ds_search" && <DsSearch onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={searchQuery} onPhone={(q) => { setPhoneQuery(q); onView("ds_phone"); }} onAreaFilter={() => onView("ds_area")} />}
-          {tab === "ds_phone" && <DsPhone onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={phoneQuery} />}
-          {tab === "ds_brokers" && <DsBrokers onExpired={onExpired} />}
+          {/* The four tabs stay loaded and are only hidden, so a search is still
+              there when you come back to its tab and costs nothing to see again. */}
+          <div hidden={tab !== "ds_smart"}><DsSmart onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} onAreaFilter={() => onView("ds_area")} /></div>
+          <div hidden={tab !== "ds_search"}><DsSearch onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={searchQuery} onPhone={(q) => { setPhoneQuery(q); onView("ds_phone"); }} onAreaFilter={() => onView("ds_area")} /></div>
+          <div hidden={tab !== "ds_phone"}><DsPhone onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={phoneQuery} /></div>
+          <div hidden={tab !== "ds_brokers"}><DsBrokers onExpired={onExpired} /></div>
           {tab === "ds_campaign" && <DsCampaign onExpired={onExpired} onUsage={onUsage} meName={info.user.name} />}
           {tab === "ds_unit" && <DsUnit {...shared} initial={unitQuery} />}
           {tab === "ds_area" && <DsArea {...shared} />}
@@ -224,6 +228,12 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
           {tab === "ds_portfolio" && <DsPortfolio {...shared} onSearchName={(name) => { setSearchQuery(name); onView("ds_search"); }} />}
         </main>
       </div>
+
+      {out && (
+        <div className="fixed inset-0 z-[70] overflow-y-auto bg-[var(--canvas)]" style={{ backgroundImage: "var(--page-glow)" }}>
+          <DsSignIn email={meEmail} onDone={load} expired theme={theme} topBar={bar(commonRight)} />
+        </div>
+      )}
 
       {ownerRef && (
         <DsOwnerPanel
