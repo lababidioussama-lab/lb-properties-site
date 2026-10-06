@@ -39,12 +39,13 @@ const day: Clean = (v) => {
   return iso ? (iso as string).slice(0, 10) : null;
 };
 const id = text(60);
-const url: Clean = (v) => (typeof v === "string" && /^https?:\/\//.test(v.trim()) ? v.trim().slice(0, 1000) : null);
+const ownFile = (v: string) => !!pathFromUrl(v);
+const url: Clean = (v) => (typeof v === "string" && (/^https?:\/\//.test(v.trim()) || ownFile(v.trim())) ? v.trim().slice(0, 1000) : null);
 const bool: Clean = (v) => (v === true || v === false ? v : null);
 const obj: Clean = (v) => (v && typeof v === "object" && !Array.isArray(v) && JSON.stringify(v).length < 8000 ? v : null);
 const list: Clean = (v) => (Array.isArray(v) && JSON.stringify(v).length < 20000 ? v.slice(0, 60) : null);
 const photos: Clean = (v) =>
-  Array.isArray(v) ? v.filter((u) => typeof u === "string" && /^https?:\/\//.test(u)).slice(0, 30) : [];
+  Array.isArray(v) ? v.filter((u) => typeof u === "string" && (/^https?:\/\//.test(u) || ownFile(u))).slice(0, 30) : [];
 
 interface Spec {
   table: string;

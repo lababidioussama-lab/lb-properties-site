@@ -207,6 +207,24 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   };
   const head = HEAD[view];
   useEffect(() => { window.name = "lababidi-crm"; }, []);
+  /* Phones show each table row as a card, so every cell carries its column's
+     name (read once from the header) for the card to print above the value. */
+  useEffect(() => {
+    let queued = 0;
+    const label = () => {
+      queued = 0;
+      document.querySelectorAll("main table").forEach((t) => {
+        const heads = [...t.querySelectorAll("thead th")].map((h) => h.textContent?.trim() ?? "");
+        t.querySelectorAll("tbody tr").forEach((tr) => [...tr.children].forEach((td, i) => {
+          if (heads[i] && td.getAttribute("data-label") !== heads[i]) td.setAttribute("data-label", heads[i]);
+        }));
+      });
+    };
+    const mo = new MutationObserver(() => { if (!queued) queued = requestAnimationFrame(label); });
+    mo.observe(document.body, { childList: true, subtree: true });
+    label();
+    return () => { mo.disconnect(); if (queued) cancelAnimationFrame(queued); };
+  }, []);
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     const fromHash = () => {
@@ -404,6 +422,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           {view === "reports" && <ReportsView leads={leads} deals={deals.rows} users={users} userName={userName} spend={isAdmin ? spend : null} meId={me.id} />}
           {view === "listings" && (
             <ListingsView t={listings} isAdmin={isAdmin} users={users} contacts={contacts} userName={userName}
+              leads={leads} meId={me.id} onOpenLead={setLeadId}
               prefill={listingPrefill} onPrefillUsed={() => setListingPrefill(null)} />
           )}
           {view === "temp_leads" && (

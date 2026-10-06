@@ -5,6 +5,7 @@ import { ShieldCheck, ShieldAlert, ExternalLink } from "lucide-react";
 import { kycMissing, kycStatusOf, PAYMENT_METHODS, PAYMENT_METHOD_LABEL, type CrmContact, type CrmKyc } from "@/lib/crm";
 import { INPUT, BTN, BTN_GHOST, Label, stamp } from "./shared";
 import type { Table } from "./useTable";
+import { FileField } from "./FileField";
 
 export const KYC_TONE: Record<ReturnType<typeof kycStatusOf>, string> = {
   missing: "bg-zinc-100 text-zinc-600",
@@ -86,8 +87,8 @@ export function KycSection({ contact, t, isAdmin, userName }: { contact: CrmCont
                 {date("passport_expiry", "Passport expiry")}
               </>
             )}
-            {text("id_doc_url", "Link to ID copy", true)}
-            {text("passport_doc_url", "Link to passport copy", true)}
+            <div><Label>ID copy</Label><FileField value={f.id_doc_url as string | null} onChange={(u) => setF((c) => ({ ...c, id_doc_url: u }))} label="Photograph or attach the ID" /></div>
+            <div><Label>Passport copy</Label><FileField value={f.passport_doc_url as string | null} onChange={(u) => setF((c) => ({ ...c, passport_doc_url: u }))} label="Photograph or attach the passport" /></div>
           </div>
 
           <div className="grid gap-3 rounded-lg bg-[var(--surface-sunken)] p-3 sm:grid-cols-2">

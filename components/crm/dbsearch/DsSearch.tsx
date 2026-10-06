@@ -62,14 +62,24 @@ export function DsSearch({ onExpired, onUsage, onOpenLead, onPhone, onAreaFilter
     const r = next.kind === "search"
       ? await ds<DsSearchResult & { usage: DsUsage }>("POST", "search", { q: next.q, includeEmpty: next.includeEmpty })
       : await ds<DsCommunityResult & { usage: DsUsage }>("POST", "community", { name: next.name, includeEmpty: next.includeEmpty });
-    if (my !== token.current) return; // a newer search started — drop this stale answer
+    if (my !== token.current) return -1; // a newer search started: drop this stale answer
     setBusy(false);
     if (!r.ok) {
-      if (r.error === "ds_signin_required") return onExpired();
-      return setError(r.error === "daily_limit" ? `You have used all ${r.limit} searches for today. They reset at midnight.` : dsError(r.error));
+      if (r.error === "ds_signin_required") { onExpired(); return -1; }
+      setError(r.error === "daily_limit" ? `You have used all ${r.limit} searches for today. They reset at midnight.` : dsError(r.error));
+      return -1;
     }
     onUsage(r.usage, r.session);
     setResult(next.kind === "search" ? { kind: "search", data: r as unknown as DsSearchResult } : { kind: "community", data: r as unknown as DsCommunityResult });
+    return (r as unknown as DsCommunityResult).cards?.length ?? 0;
+  }
+
+  /* An area button opens the whole community, as DB Search's own does. If the
+     records carry the area under another spelling, it falls back to a search. */
+  async function area(full: string) {
+    setQ(full);
+    const n = await load({ kind: "community", name: full, includeEmpty: false, from: null });
+    if (n === 0) run(undefined, full);
   }
 
   function run(e?: FormEvent, forced?: string) {
@@ -210,7 +220,7 @@ export function DsSearch({ onExpired, onUsage, onOpenLead, onPhone, onAreaFilter
           <DsBox label="Top areas" icon={<MapPin size={13} />}
             action={onAreaFilter && <button onClick={onAreaFilter} className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[var(--accent)] hover:underline"><Filter size={13} /> Filter by area or community</button>}>
             <div className="flex flex-wrap gap-1.5">
-              {AREAS.map(([label, full]) => <button key={label} onClick={() => run(undefined, full)} className={chipCls}>{label}</button>)}
+              {AREAS.map(([label, full]) => <button key={label} onClick={() => void area(full)} className={chipCls}>{label}</button>)}
             </div>
             <p className="mt-2.5 text-[12px] text-[var(--text-muted)]">Numbers stay hidden until you choose why you need them. Every search and reveal is recorded.</p>
           </DsBox>

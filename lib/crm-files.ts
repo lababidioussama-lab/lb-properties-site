@@ -5,27 +5,28 @@
  * which checks the CRM session on every request. Paths encode who a file
  * belongs to, so permissions follow from the path alone:
  *   avatars/<userId>/<random>.jpg   any signed-in team member may view
+ *   photos/<userId>/<random>.jpg    listing photos: any signed-in team member may view
  *   docs/<userId>/<random>.<ext>    only that user, or an admin
  */
 
 export const FILE_BUCKET = "crm-files";
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // Netlify functions accept ~6 MB bodies.
 
-export type FileKind = "avatar" | "doc";
+export type FileKind = "avatar" | "doc" | "photo";
 
 export const FILE_TYPES: Record<string, { ext: string; kinds: FileKind[] }> = {
-  "image/jpeg": { ext: "jpg", kinds: ["avatar", "doc"] },
-  "image/png": { ext: "png", kinds: ["avatar", "doc"] },
-  "image/webp": { ext: "webp", kinds: ["avatar", "doc"] },
+  "image/jpeg": { ext: "jpg", kinds: ["avatar", "doc", "photo"] },
+  "image/png": { ext: "png", kinds: ["avatar", "doc", "photo"] },
+  "image/webp": { ext: "webp", kinds: ["avatar", "doc", "photo"] },
   "image/heic": { ext: "heic", kinds: ["doc"] },
   "application/pdf": { ext: "pdf", kinds: ["doc"] },
 };
 
-const PATH_RE = /^(avatars|docs)\/([0-9a-f-]{36})\/([0-9a-f]{32})\.(jpg|png|webp|heic|pdf)$/;
+const PATH_RE = /^(avatars|docs|photos)\/([0-9a-f-]{36})\/([0-9a-f]{32})\.(jpg|png|webp|heic|pdf)$/;
 
 export function parseFilePath(p: string | null | undefined) {
   const m = (p ?? "").match(PATH_RE);
-  return m ? { folder: m[1] as "avatars" | "docs", ownerId: m[2], path: m[0] } : null;
+  return m ? { folder: m[1] as "avatars" | "docs" | "photos", ownerId: m[2], path: m[0] } : null;
 }
 
 export const fileUrl = (path: string) => `/api/crm/file?p=${encodeURIComponent(path)}`;

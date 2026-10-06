@@ -338,7 +338,7 @@ export function downloadCsv<T>(name: string, rows: T[], columns: [string, (r: T)
 }
 
 /** Upload a real file to CRM storage. Returns the private URL to save on the record. */
-export async function uploadFile(file: File, kind: "avatar" | "doc", userId?: string): Promise<{ url?: string; error?: string }> {
+export async function uploadFile(file: File, kind: "avatar" | "doc" | "photo", userId?: string): Promise<{ url?: string; error?: string }> {
   if (typeof window !== "undefined" && (window as { __CRM_DEMO__?: boolean }).__CRM_DEMO__) {
     return { url: URL.createObjectURL(file) };
   }

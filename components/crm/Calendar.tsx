@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, MapPin } from "lucide-react";
 import type { CrmEvent, CrmLead, CrmListing, CrmUser } from "@/lib/crm";
-import { toInputDate, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
+import { toInputDate, whatsapp, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
 import { useTable } from "./useTable";
 
 const KIND_STYLE: Record<CrmEvent["kind"], string> = {
@@ -104,6 +104,19 @@ export function CalendarView({ isAdmin, users, leads, listings, userName }: {
                   {e.location && <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--text-muted)]"><MapPin size={11} /> {e.location}</div>}
                   <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">{userName(e.agent_id)}</div>
                 </button>
+                {(() => {
+                  const l = e.lead_id ? leads.find((x) => x.id === e.lead_id) : null;
+                  if (!l?.phone || !l.owner_id) return null;
+                  const when = `${new Date(e.starts_at).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })} at ${time(e.starts_at)}`;
+                  return (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[12px]">
+                      <span className="font-semibold">{l.full_name}</span>
+                      <a href={`tel:${l.phone.replace(/\s/g, "")}`} className="rounded-md border border-[var(--hairline)] px-2 py-0.5 font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Call</a>
+                      <a href={whatsapp(l.phone, `Hi ${l.full_name.split(" ")[0]}, confirming our ${e.kind} on ${when}${e.location ? ` at ${e.location}` : ""}. See you then.`)} target="_blank" rel="noopener noreferrer"
+                        className="rounded-md border border-[var(--ok-bd)] bg-[var(--ok-bg)] px-2 py-0.5 font-semibold text-[var(--ok)]">Confirm on WhatsApp</a>
+                    </div>
+                  );
+                })()}
               </li>
             ))}
           </ul>

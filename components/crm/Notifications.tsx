@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Bell, Timer, AlertTriangle, ShieldX, Hand } from "lucide-react";
-import type { CrmLead, CrmListing, CrmTask } from "@/lib/crm";
+import { Bell, CalendarClock, Timer, AlertTriangle, ShieldX, Hand } from "lucide-react";
+import type { CrmEvent, CrmLead, CrmListing, CrmTask } from "@/lib/crm";
 import { shortDate } from "./shared";
+import { useTable } from "./useTable";
 
 type Item = { icon: typeof Bell; text: string; sub: string; tone: string; onClick?: () => void };
 
@@ -17,9 +18,18 @@ export function NotificationBell({ leads, tasks, listings, isAdmin, meId, onOpen
 }) {
   const [open, setOpen] = useState(false);
   const mine = (l: CrmLead) => isAdmin || l.owner_id === meId;
+  const events = useTable<CrmEvent>("events");
 
   const items = useMemo<Item[]>(() => {
     const out: Item[] = [];
+    // A viewing or meeting in the next hour comes first, with who it is with.
+    for (const e of events.rows.filter((e) => (isAdmin || e.agent_id === meId) && e.status !== "cancelled")) {
+      const mins = (new Date(e.starts_at).getTime() - Date.now()) / 60_000;
+      if (mins > -10 && mins <= 60) {
+        const l = e.lead_id ? leads.find((x) => x.id === e.lead_id) : null;
+        out.push({ icon: CalendarClock, text: `${mins <= 0 ? "Now" : `In ${Math.round(mins)} min`}: ${e.title}`, sub: [l?.full_name, l?.phone, e.location].filter(Boolean).join(" · ") || "No client linked", tone: "text-emerald-700", onClick: l ? () => onOpenLead(l.id) : undefined });
+      }
+    }
     for (const l of leads.filter((l) => mine(l) && l.expires_at)) {
       const hrs = (new Date(l.expires_at as string).getTime() - Date.now()) / 3_600_000;
       if (hrs > 0 && hrs < 6) out.push({ icon: Timer, text: `Lead expiring soon: ${l.full_name}`, sub: `${Math.round(hrs)}h left to update`, tone: "text-red-700", onClick: () => onOpenLead(l.id) });
@@ -27,15 +37,15 @@ export function NotificationBell({ leads, tasks, listings, isAdmin, meId, onOpen
     for (const t of tasks.filter((t) => !t.done_at && t.due_at && (isAdmin || t.assignee_id === meId))) {
       if (new Date(t.due_at as string).getTime() < Date.now()) out.push({ icon: AlertTriangle, text: `Overdue task: ${t.title}`, sub: shortDate(t.due_at), tone: "text-amber-700" });
     }
-    if (isAdmin) {
-      for (const l of listings.filter((l) => l.approval === "rejected")) {
+    {
+      for (const l of listings.filter((l) => l.approval === "rejected" && l.agent_id === meId)) {
         out.push({ icon: ShieldX, text: `Listing rejected: ${l.title}`, sub: l.approval_note ?? "No reason given", tone: "text-red-700" });
       }
     }
     const poolCount = leads.filter((l) => !l.owner_id && l.stage !== "won" && l.stage !== "lost").length;
     if (poolCount > 0) out.push({ icon: Hand, text: `${poolCount} lead${poolCount === 1 ? "" : "s"} in the open pool`, sub: "Unclaimed and waiting", tone: "text-sky-700" });
     return out.slice(0, 12);
-  }, [leads, tasks, listings, isAdmin, meId]);
+  }, [leads, tasks, listings, isAdmin, meId, events.rows]);
 
   return (
     <div className="relative">

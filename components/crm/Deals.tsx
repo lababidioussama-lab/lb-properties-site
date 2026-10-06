@@ -8,6 +8,7 @@ import { api, money, shortDate, toInputDate, downloadCsv, INPUT, BTN, BTN_GHOST,
 import { Avatar } from "./Avatar";
 import type { Table } from "./useTable";
 import { CountText } from "./Motion";
+import { FileField } from "./FileField";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const BLANK = {
@@ -351,11 +352,15 @@ function DealForm({ deal, isAdmin, users, listings, contacts, kyc, error, onClos
             const done = milestones[s.key];
             return (
               <li key={s.key}>
-                <label className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-[12.5px] ${done ? "border-emerald-200 bg-emerald-50/60" : "border-[var(--hairline)]"}`}>
-                  <input type="checkbox" checked={!!done} onChange={() => setMilestones({ ...milestones, [s.key]: done ? null : today() })} className="h-4 w-4 accent-[var(--accent)]" />
-                  <span className="flex-1">{s.label}</span>
-                  {done && <span className="text-[11px] text-emerald-700">{shortDate(done)}</span>}
-                </label>
+                <div className={`flex flex-wrap items-center gap-3 rounded-lg border px-3 py-2 text-[12.5px] ${done ? "border-[var(--ok-bd)] bg-[var(--ok-bg)]" : "border-[var(--hairline)]"}`}>
+                  <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                    <input type="checkbox" checked={!!done} onChange={() => setMilestones({ ...milestones, [s.key]: done ? null : today() })} className="h-4 w-4 accent-[var(--accent)]" />
+                    <span className="flex-1">{s.label}</span>
+                    {done && <span className="text-[11px] text-[var(--ok)]">{shortDate(done)}</span>}
+                  </label>
+                  {/* The signed paper itself, kept next to the tick (stored with the checklist). */}
+                  <FileField value={milestones[`${s.key}__file`]} label="Attach" onChange={(u) => setMilestones({ ...milestones, [`${s.key}__file`]: u })} />
+                </div>
               </li>
             );
           })}

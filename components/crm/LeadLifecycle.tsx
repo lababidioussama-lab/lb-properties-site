@@ -84,6 +84,19 @@ export function matchListings(lead: CrmLead, listings: CrmListing[]) {
   );
 }
 
+/** The other way round: the open leads who asked for something like this listing. */
+export function matchLeads(listing: Pick<CrmListing, "purpose" | "community" | "building" | "bedrooms" | "price_aed">, leads: CrmLead[]) {
+  const place = `${listing.community ?? ""} ${listing.building ?? ""}`.toLowerCase();
+  return leads.filter((l) =>
+    l.stage !== "won" && l.stage !== "lost" &&
+    (l.deal_kind || l.location || l.beds || l.budget_aed) &&
+    (!l.deal_kind || l.deal_kind === listing.purpose) &&
+    (!l.location || (place.trim() && place.includes(l.location.trim().toLowerCase()))) &&
+    (!l.beds || (listing.bedrooms ?? "").toLowerCase() === l.beds.toLowerCase()) &&
+    (!l.budget_aed || !listing.price_aed || Number(listing.price_aed) <= Number(l.budget_aed) * 1.15),
+  );
+}
+
 export function Matches({ lead, listings }: { lead: CrmLead; listings: CrmListing[] }) {
   const found = matchListings(lead, listings).slice(0, 6);
   const canSend = !!lead.phone && !lead.phone.includes("•");
