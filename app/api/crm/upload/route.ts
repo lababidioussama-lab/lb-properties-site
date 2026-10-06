@@ -8,6 +8,11 @@ export const runtime = "nodejs";
 
 const fail = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status });
 
+/* A database error never reaches the browser: its text names tables and
+   columns. It is logged on the server and the caller gets a plain code. */
+const dbFail = (error: { message: string }) => { console.error("[crm] database:", error.message); return fail("server_error", 502); };
+
+
 /** Upload one file (multipart: file, kind = avatar | doc, optional user_id for admins). */
 export async function POST(request: NextRequest) {
   if (!sameOrigin(request)) return fail("bad_origin", 403);
@@ -34,6 +39,6 @@ export async function POST(request: NextRequest) {
 
   const path = `${kind === "avatar" ? "avatars" : kind === "photo" ? "photos" : "docs"}/${ownerId}/${randomBytes(16).toString("hex")}.${type.ext}`;
   const { error } = await db.storage.from(FILE_BUCKET).upload(path, bytes, { contentType: file.type, upsert: false });
-  if (error) return fail(error.message, 502);
+  if (error) return dbFail(error);
   return NextResponse.json({ ok: true, url: fileUrl(path), name: file.name.slice(0, 200) });
 }

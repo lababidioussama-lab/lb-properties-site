@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { CRM_COOKIE, DOCS_COOKIE, DOCS_COOKIE_OPTIONS, SESSION_COOKIE_OPTIONS, createDocsSession, authenticate, createSession, isCrmConfigured, sessionFromRequest, liveUser } from "@/lib/crm-auth";
+import { CRM_COOKIE, DOCS_COOKIE, DOCS_COOKIE_OPTIONS, SESSION_COOKIE_OPTIONS, createDocsSession, authenticate, createSession, isCrmConfigured, sameOrigin, sessionFromRequest, liveUser } from "@/lib/crm-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { OTP_COOKIE, OTP_TTL_MS, canResend, checkCode, deviceOf, issueTicket, maskEmail, otpConfigured, otpDisabled, readTicket, sendCode, type OtpPurpose } from "@/lib/crm-otp";
 import { DS_COOKIE, DS_COOKIE_OPTIONS, audit as dsAudit, createDsSession, getSettings as dsSettings } from "@/lib/dbsearch/guard";
@@ -55,6 +55,7 @@ function throttled(key: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  if (!sameOrigin(request)) return NextResponse.json({ ok: false, error: "bad_origin" }, { status: 403 });
   if (!isCrmConfigured()) {
     return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
   }

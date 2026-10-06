@@ -22,6 +22,11 @@ export const dynamic = "force-dynamic";
  */
 
 const fail = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status, headers: { "Cache-Control": "no-store" } });
+
+/* A database error never reaches the browser: its text names tables and
+   columns. It is logged on the server and the caller gets a plain code. */
+const dbFail = (error: { message: string }) => { console.error("[crm] database:", error.message); return fail("server_error", 502); };
+
 const ok = (body: Record<string, unknown>) => NextResponse.json({ ok: true, ...body }, { headers: { "Cache-Control": "no-store" } });
 
 async function admin(request: NextRequest) {
@@ -59,7 +64,7 @@ export async function GET(request: NextRequest) {
     if (kind?.actions) q = q.in("action", kind.actions);
     if (user && /^[\w-]{1,60}$/.test(user)) q = q.eq("entity_id", user);
     const { data, error } = await q;
-    if (error) return fail(error.message, 502);
+    if (error) return dbFail(error);
     return ok({
       rows: (data ?? []).map((r) => {
         const d = (r.detail ?? {}) as Record<string, unknown>;
@@ -74,7 +79,7 @@ export async function GET(request: NextRequest) {
 
   const since7 = new Date(Date.now() - 7 * 86_400_000).toISOString();
   const { data: users, error } = await db.from("crm_users").select("id, full_name, email, role, active").order("full_name");
-  if (error) return fail(error.message, 502);
+  if (error) return dbFail(error);
   const people = await Promise.all((users ?? []).map(async (u) => {
     const id = u.id as string;
     const [settings, today, week, last, lastLogin] = await Promise.all([

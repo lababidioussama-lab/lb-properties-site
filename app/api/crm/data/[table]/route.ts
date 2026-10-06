@@ -14,6 +14,11 @@ type Clean = (v: unknown) => unknown;
 
 const fail = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status });
 
+/* A database error never reaches the browser: its text names tables and
+   columns. It is logged on the server and the caller gets a plain code. */
+const dbFail = (error: { message: string }) => { console.error("[crm] database:", error.message); return fail("server_error", 502); };
+
+
 const text = (max: number): Clean => (v) => {
   if (typeof v !== "string") return null;
   const t = v.trim();
@@ -318,7 +323,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
   let query = c.db.from(spec.table).select("*").order(spec.order[0], { ascending: spec.order[1] }).limit(3000);
   if (spec.owner && c.user.role !== "admin") query = query.eq(spec.owner, c.user.id);
   const { data, error } = await query;
-  return error ? fail(error.message, 502) : NextResponse.json({ ok: true, rows: data });
+  return error ? dbFail(error) : NextResponse.json({ ok: true, rows: data });
 }
 
 export async function POST(request: NextRequest, { params }: Ctx) {
@@ -380,7 +385,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
       return { ...r, owner_id: ok ? r.owner_id : null, expires_at: ok ? deadline : null };
     });
     const { data, error } = await c.db.from(LEADS_TABLE).insert(toInsert).select();
-    return error ? fail(error.message, 502) : NextResponse.json({ ok: true, rows: data, skipped: input.length - rows.length, duplicates, unlicensed });
+    return error ? dbFail(error) : NextResponse.json({ ok: true, rows: data, skipped: input.length - rows.length, duplicates, unlicensed });
   }
 
   const spec = SPECS[name];
@@ -421,7 +426,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   }
   if (name === "listings") row.ref_code = `${row.purpose === "rent" ? (row.property_type === "villa" ? "VR" : "AR") : (row.property_type === "villa" ? "VS" : "AS")}-${String(Date.now()).slice(-6)}`;
   const { data, error } = await c.db.from(spec.table).insert(row).select().single();
-  return error ? fail(error.message, 502) : NextResponse.json({ ok: true, row: data });
+  return error ? dbFail(error) : NextResponse.json({ ok: true, row: data });
 }
 
 export async function PATCH(request: NextRequest, { params }: Ctx) {
@@ -468,7 +473,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   if (!error && name === "listings" && "approval" in patch) {
     await c.db.from("crm_audit").insert({ user_id: c.user.id, entity: "listing", entity_id: rowId, action: "approval", detail: { approval: patch.approval, note: patch.approval_note ?? null } });
   }
-  return error ? fail(error.message, 502) : NextResponse.json({ ok: true, row: data });
+  return error ? dbFail(error) : NextResponse.json({ ok: true, row: data });
 }
 
 export async function DELETE(request: NextRequest, { params }: Ctx) {
@@ -486,5 +491,5 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   const { error } = await c.db.from(spec.table).delete().eq("id", rowId);
   const stored = pathFromUrl((gone as { url?: string } | null)?.url);
   if (!error && stored) await c.db.storage.from(FILE_BUCKET).remove([stored]);
-  return error ? fail(error.message, 502) : NextResponse.json({ ok: true });
+  return error ? dbFail(error) : NextResponse.json({ ok: true });
 }

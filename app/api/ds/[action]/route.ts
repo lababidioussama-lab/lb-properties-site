@@ -321,19 +321,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           owner_id: user.id, expires_at: new Date(Date.now() + LEAD_SLA_HOURS * 3_600_000).toISOString(),
           notes: note, payload: { db_search: { owner_ids: ids } }, user_agent: "db_search",
         }).select("id").single();
-        if (error) return fail(error.message, 502);
+        if (error) { console.error("[ds] database:", error.message); return fail("server_error", 502); }
         created = data as { id: string };
       } else if (as === "contact") {
         const { data, error } = await db.from("crm_contacts").insert({
           full_name, phone: number, nationality, kind: "seller", owner_id: user.id, notes: note,
         }).select("id").single();
-        if (error) return fail(error.message, 502);
+        if (error) { console.error("[ds] database:", error.message); return fail("server_error", 502); }
         created = data as { id: string };
       } else {
         const { data, error } = await db.from("crm_temp_leads").insert({
           full_name, phone: number, source: "DB Search", status: "to_call", owner_id: user.id, notes: note,
         }).select("id").single();
-        if (error) return fail(error.message, 502);
+        if (error) { console.error("[ds] database:", error.message); return fail("server_error", 502); }
         created = data as { id: string };
       }
       await audit(db, user, as === "lead" ? "to_lead" : as === "contact" ? "to_contact" : "to_temp", { target: ids.join(","), detail: { id: created?.id }, request });

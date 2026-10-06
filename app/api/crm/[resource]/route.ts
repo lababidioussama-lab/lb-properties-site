@@ -14,6 +14,11 @@ type Ctx = { params: Promise<{ resource: string }> };
 type Body = Record<string, unknown>;
 
 const fail = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status });
+
+/* A database error never reaches the browser: its text names tables and
+   columns. It is logged on the server and the caller gets a plain code. */
+const dbFail = (error: { message: string }) => { console.error("[crm] database:", error.message); return fail("server_error", 502); };
+
 const ok = (data: Record<string, unknown>) => NextResponse.json({ ok: true, ...data });
 
 const str = (v: unknown, max = 500): string | null => {
@@ -132,7 +137,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
         query = query.or(`owner_id.eq.${user.id},and(owner_id.is.null,stage.in.(${OPEN_STAGES.join(",")}))`);
       }
       const { data, error } = await query;
-      if (error) return fail(error.message, 502);
+      if (error) return dbFail(error);
       const rows = (data ?? []) as Body[];
       return ok({ leads: user.role === "admin" ? rows : rows.map((l) => (l.owner_id ? l : mask(l))) });
     }
@@ -141,12 +146,12 @@ export async function GET(request: NextRequest, { params }: Ctx) {
         db.from("crm_contacts").select("*").order("created_at", { ascending: false }).limit(2000),
         "owner_id",
       );
-      return error ? fail(error.message, 502) : ok({ contacts: data });
+      return error ? dbFail(error) : ok({ contacts: data });
     }
     case "audit": {
       if (user.role !== "admin") return fail("forbidden", 403);
       const { data, error } = await db.from("crm_audit").select("*").order("created_at", { ascending: false }).limit(500);
-      return error ? fail(error.message, 502) : ok({ entries: data });
+      return error ? dbFail(error) : ok({ entries: data });
     }
     case "team_activity": {
       if (user.role !== "admin") return fail("forbidden", 403);
@@ -157,7 +162,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
         db.from("crm_activities").select("user_id, kind, created_at").gte("created_at", since).order("created_at", { ascending: false }).limit(10000),
       ]);
       const err = sessions.error ?? actions.error ?? work.error;
-      if (err) return fail(err.message, 502);
+      if (err) return dbFail(err);
       return ok({ sessions: sessions.data ?? [], actions: actions.data ?? [], activities: work.data ?? [] });
     }
     case "integrations": {
@@ -204,7 +209,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
         db.from("crm_tasks").select("*").order("due_at", { ascending: true, nullsFirst: false }).limit(2000),
         "assignee_id",
       );
-      return error ? fail(error.message, 502) : ok({ tasks: data });
+      return error ? dbFail(error) : ok({ tasks: data });
     }
     case "users": {
       const cols: string = "id, full_name, role, active, phone, languages, specialties, bio, avatar_url, brn_no, brn_expiry, visa_expiry, emirates_id_expiry, rera_cert_date";
@@ -263,7 +268,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
         if (exact) return NextResponse.json({ ok: false, error: "duplicate_contact", existing: { id: exact.id, full_name: exact.full_name, mine: exact.owner_id === user.id } }, { status: 409 });
       }
       const { data, error } = await db.from("crm_contacts").insert(row).select().single();
-      if (error) return fail(error.message, 502);
+      if (error) return dbFail(error);
 
       // Link the lead this contact was created from, if any.
       const leadId = str(b.lead_id, 60);
@@ -287,7 +292,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
         notes: str(b.notes, 2000),
       };
       const { data, error } = await db.from("crm_properties").insert(row).select().single();
-      return error ? fail(error.message, 502) : ok({ property: data });
+      return error ? dbFail(error) : ok({ property: data });
     }
     case "activities": {
       const body = str(b.body, 4000);
@@ -310,7 +315,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
         await db.from(LEADS_TABLE).update({ expires_at: slaDeadline() }).eq("id", leadId)
           .not("owner_id", "is", null).in("stage", OPEN_STAGES);
       }
-      return error ? fail(error.message, 502) : ok({ activity: data });
+      return error ? dbFail(error) : ok({ activity: data });
     }
     case "tasks": {
       const title = str(b.title, 300);
@@ -324,7 +329,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
         contact_id: str(b.contact_id, 60),
       };
       const { data, error } = await db.from("crm_tasks").insert(row).select().single();
-      return error ? fail(error.message, 502) : ok({ task: data });
+      return error ? dbFail(error) : ok({ task: data });
     }
     case "users": {
       if (user.role !== "admin") return fail("forbidden", 403);
@@ -337,7 +342,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
         .insert({ email, full_name, role: pick(b.role, ["admin", "agent"] as const) ?? "agent", password_hash: hashPassword(password) })
         .select("id, email, full_name, role, active")
         .single();
-      return error ? fail(error.message.includes("duplicate") ? "email_exists" : error.message, 502) : ok({ user: data });
+      return error ? (error.message.includes("duplicate") ? fail("email_exists", 409) : dbFail(error)) : ok({ user: data });
     }
   }
   return fail("not_found", 404);
@@ -369,7 +374,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
           .in("stage", OPEN_STAGES)
           .select()
           .maybeSingle();
-        if (error) return fail(error.message, 502);
+        if (error) return dbFail(error);
         if (!data) return fail("already_claimed", 409);
         await logActivity(db, { lead_id: id, user_id: user.id, kind: "system", body: "Claimed from the open pool (contact details revealed)" });
         return ok({ lead: data });
@@ -383,7 +388,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
         const reason = str(b.reason, 120);
         if (!reason || !note) return fail("reason_and_note_required");
         const { data, error } = await db.from(LEADS_TABLE).update({ owner_id: null, expires_at: null }).eq("id", id).select().single();
-        if (error) return fail(error.message, 502);
+        if (error) return dbFail(error);
         await logActivity(db, { lead_id: id, user_id: user.id, kind: "system", body: `Released to the pool: ${reason}. ${note}` });
         return ok({ lead: data });
       }
@@ -445,7 +450,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       else if (realStep || !current.expires_at) patch.expires_at = slaDeadline();
 
       const { data, error } = await db.from(LEADS_TABLE).update(patch).eq("id", id).select().single();
-      if (error) return fail(error.message, 502);
+      if (error) return dbFail(error);
       if (patch.stage) {
         const reason = patch.stage === "lost" ? ` (${patch.lost_reason}). ${note}` : "";
         await logActivity(db, { lead_id: id, user_id: user.id, kind: "stage", body: `Moved to ${STAGE_LABEL[patch.stage as Stage]}${reason}` });
@@ -464,7 +469,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       if (patch.full_name === null) return fail("name_required");
       const { data, error } = await db.from("crm_contacts").update(patch).eq("id", id).select().single();
       if (!error && ("status" in patch)) await audit(db, user, "contact", id, "status_change", { status: patch.status });
-      return error ? fail(error.message, 502) : ok({ contact: data });
+      return error ? dbFail(error) : ok({ contact: data });
     }
     case "tasks": {
       if (!(await canAccess(db, user, "crm_tasks", id, "assignee_id"))) return fail("forbidden", 403);
@@ -472,7 +477,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       if ("due_at" in b) patch.due_at = date(b.due_at);
       if ("title" in b) patch.title = str(b.title, 300);
       const { data, error } = await db.from("crm_tasks").update(patch).eq("id", id).select().single();
-      return error ? fail(error.message, 502) : ok({ task: data });
+      return error ? dbFail(error) : ok({ task: data });
     }
     case "users": {
       const self = id === user.id;
@@ -517,7 +522,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       if (!Object.keys(patch).length) return fail("empty_patch");
       const { data, error } = await db.from("crm_users").update(patch).eq("id", id)
         .select("id, email, full_name, role, active, slab_pct, quarterly_target_aed, phone, languages, specialties, bio, avatar_url, brn_no, brn_expiry, visa_expiry, emirates_id_expiry, rera_cert_date").single();
-      if (error) return fail(error.message, 502);
+      if (error) return dbFail(error);
       if (passwordChanged) {
         await cutSessions(id, user.id, self ? "password changed" : "password reset by admin");
         // The person changing their own password stays signed in, on a fresh session.

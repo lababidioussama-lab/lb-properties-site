@@ -34,7 +34,7 @@ function rateLimited(ip: string): boolean {
 }
 
 function clientIp(request: NextRequest): string {
-  const fwd = request.headers.get("x-forwarded-for");
+  const fwd = request.headers.get("x-nf-client-connection-ip") ?? request.headers.get("x-forwarded-for");
   if (fwd) return fwd.split(",")[0].trim();
   return request.headers.get("x-real-ip") ?? "unknown";
 }
