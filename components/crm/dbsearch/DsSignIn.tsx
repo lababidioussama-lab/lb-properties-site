@@ -88,7 +88,7 @@ export function DsSignIn({ email: meEmail, onDone, expired = false, theme, topBa
       <div className="flex flex-1 items-center justify-center pb-16 pt-4">
         <div className="panel crm-title w-full max-w-[430px] px-7 py-8 !shadow-[var(--shadow-lift)] sm:px-8">
           <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="Lababidi Properties" width={52} height={52} priority />
-          <h1 className="display mt-4 text-[27px]"><span className="text-[var(--accent)]">DB</span> Search</h1>
+          <h1 className="display mt-4 text-[30px]">DB <em className="text-[var(--accent)]">Search</em></h1>
           <p className="mt-1 text-[12.5px] text-[var(--text-muted)]">
             {step === "password" ? "Sign in with your CRM email and password." : <>We sent a 6-digit code to <span className="font-semibold text-[var(--text-primary)]">{hint}</span>. It expires in 10 minutes.</>}
           </p>

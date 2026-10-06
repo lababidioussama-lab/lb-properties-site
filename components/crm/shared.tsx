@@ -117,20 +117,20 @@ export const INPUT =
 /** The main button, as DB Search draws its Search and Sign in buttons:
  *  the emerald-to-blue gradient. */
 export const BTN_GO =
-  "btn-go inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[9px] border border-transparent px-4 text-[13px] font-semibold disabled:pointer-events-none disabled:opacity-60";
+  "btn-go inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-transparent px-4 text-[13px] font-semibold disabled:pointer-events-none disabled:opacity-60";
 export const BTN = BTN_GO;
 
 /** DB Search's .btn tint: for a second action that still wants colour. */
 export const BTN_TINT =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[9px] border border-[var(--accent-dim)] bg-[var(--accent-wash)] px-4 text-[13px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent-solid)] hover:text-white disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--accent-dim)] bg-[var(--accent-wash)] px-4 text-[13px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent-solid)] hover:text-white disabled:pointer-events-none disabled:opacity-50";
 
 /** DB Search's .btn-secondary: outline, muted until hovered. */
 export const BTN_GHOST =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[9px] border border-[var(--hairline)] bg-transparent px-4 text-[13px] font-semibold text-[var(--text-muted)] transition-colors hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--hairline)] bg-transparent px-4 text-[13px] font-semibold text-[var(--text-muted)] transition-colors hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] disabled:pointer-events-none disabled:opacity-50";
 
 /** Text only: the quiet third button. */
 export const BTN_QUIET =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[9px] px-2.5 text-[13px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent-wash)] disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[13px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent-wash)] disabled:pointer-events-none disabled:opacity-50";
 
 /** Square icon button; always give it an aria-label. */
 export const BTN_ICON =
@@ -146,13 +146,13 @@ export function StatusLine({ children }: { children: ReactNode }) {
 export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
   const group = useId();
   return (
-    <div role="tablist" className="inline-flex shrink-0 gap-0.5 rounded-[12px] border border-[var(--hairline)] bg-[var(--input-bg)] p-1">
+    <div role="tablist" className="inline-flex shrink-0 gap-0.5 rounded-full border border-[var(--hairline)] bg-[var(--input-bg)] p-1">
       {options.map((o) => {
         const on = value === o.id;
         return (
           <button key={o.id} role="tab" aria-selected={on} onClick={() => onChange(o.id)}
-            className={`relative h-8 rounded-[9px] px-3 text-[12.5px] font-bold transition-colors ${on ? "text-white" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
-            {on && <motion.span layoutId={`seg-${group}`} transition={{ type: "spring", stiffness: 520, damping: 42 }} className="absolute inset-0 rounded-[9px] bg-[image:var(--grad)]" />}
+            className={`relative h-8 rounded-full px-3.5 text-[12.5px] font-bold transition-colors ${on ? "text-[var(--on-accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+            {on && <motion.span layoutId={`seg-${group}`} transition={{ type: "spring", stiffness: 520, damping: 42 }} className="absolute inset-0 rounded-full bg-[image:var(--grad)]" />}
             <span className="relative">{o.label}</span>
           </button>
         );

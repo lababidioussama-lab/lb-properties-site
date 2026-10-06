@@ -123,7 +123,7 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
       <div className="flex min-w-0 items-center gap-2.5">
         <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="Lababidi Properties" width={32} height={32} priority />
         <div className="min-w-0 leading-tight">
-          <div className="display text-[17px]"><span className="text-[var(--accent)]">DB</span> Search</div>
+          <div className="display text-[18px]">DB <em className="text-[var(--accent)]">Search</em></div>
           <div className="ds-label mt-0.5 !text-[9.5px] !tracking-[0.12em]">Lababidi Properties</div>
         </div>
       </div>

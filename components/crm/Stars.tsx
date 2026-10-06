@@ -78,7 +78,7 @@ export function Stars({ id }: { id?: string } = {}) {
     const frame = () => {
       t += 1 / 60;
       const lite = document.documentElement.dataset.theme !== "dark";
-      const C = lite ? "59,110,220" : "221,226,235";
+      const C = lite ? "47,111,214" : "214,228,250";
       buildSprite(C, lite);
       tx += (mx - tx) * 0.045; ty += (my - ty) * 0.045;
       ctx.clearRect(0, 0, W, H);

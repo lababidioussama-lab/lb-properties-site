@@ -93,7 +93,7 @@ export function MyDay({ me, isAdmin, leads, tasks, tenancies = [], userName, onO
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-x-4 gap-y-1">
-        <h2 className="text-[20px] font-semibold tracking-[-0.01em]">{greeting}{first ? `, ${first}` : ""}</h2>
+        <h2 className="display crm-title text-[clamp(30px,4.4vw,52px)]">{greeting}{first ? <>, <em>{first}</em></> : ""}.</h2>
         <span className="text-[13px] text-[var(--text-muted)]">
           {clockNow.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}{clock && <> · <span className="figure">{clockTime(clock)}</span></>}
         </span>
@@ -102,6 +102,18 @@ export function MyDay({ me, isAdmin, leads, tasks, tenancies = [], userName, onO
         {waiting.length > 0 ? <b className="bad">{waiting.length} waiting for a first reply</b> : <>No one waiting for a reply</>}
         {" · "}{lateCount} follow-up{lateCount === 1 ? "" : "s"} overdue · {today.length} on the calendar today · {myTasks.length} task{myTasks.length === 1 ? "" : "s"} due
       </StatusLine>
+
+      {/* The one thing to do first, as the loud block on an otherwise quiet page. */}
+      {rows[0] && rows[0].tone === "bad" && (
+        <button onClick={rows[0].onOpen} className="crm-card flex w-full flex-wrap items-center gap-x-5 gap-y-2 rounded-[18px] bg-[image:var(--grad)] px-6 py-5 text-start text-[var(--on-accent)]">
+          <span className="min-w-0 flex-1">
+            <span className="ds-label !text-[rgb(255_255_255/0.7)]">Start here</span>
+            <span className="display mt-1 block text-[clamp(20px,2.4vw,28px)]">{rows[0].name} is <em>waiting</em>.</span>
+            <span className="mt-1 block text-[13px] text-[rgb(255_255_255/0.82)]">{rows[0].due}{rows[0].why ? `. ${rows[0].why}` : ""}</span>
+          </span>
+          <span className="inline-flex h-10 items-center rounded-full px-5 text-[13px] font-semibold" style={{ background: "#ffffff", color: "#0b2a4a" }}>{rows[0].claim ? "Claim this lead" : "Open"}</span>
+        </button>
+      )}
 
       {myAlerts.length > 0 && (
         <Card className={`flex items-start gap-3 px-4 py-3 ${myAlerts.some((a) => a.level !== "soon") ? "border-[var(--bad-bd)] bg-[var(--bad-bg)]" : "border-[var(--warn-bd)] bg-[var(--warn-bg)]"}`}>
