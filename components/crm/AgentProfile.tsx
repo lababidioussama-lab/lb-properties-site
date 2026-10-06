@@ -102,8 +102,42 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
         {!isAdmin && <p className="mt-2 text-center text-[11px] text-[var(--text-muted)]">Slab % and quarterly target are set by an admin, under Team.</p>}
       </Card>
 
+      <ChangePassword meId={me.id} />
       <AgentDocuments t={documents} onlyUserId={me.id} canDelete={isAdmin} />
       <MyRequests t={requests} listings={listings} onlyUserId={me.id} />
     </div>
+  );
+}
+
+/** Anyone changes their own password by proving the current one. Other
+ *  devices are signed out; this one stays in. */
+function ChangePassword({ meId }: { meId: string }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [again, setAgain] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const problem = next && next.length < 10 ? "Use at least 10 characters." : again && next !== again ? "The two new passwords do not match." : null;
+
+  async function save() {
+    setBusy(true); setNote(null);
+    const r = await api("PATCH", "users", { id: meId, current_password: current, password: next });
+    setBusy(false);
+    if (!r.ok) return setNote({ ok: false, text: r.error === "current_password_wrong" ? "The current password is not right." : r.error === "password_too_short" ? "Use at least 10 characters." : `Could not change it (${r.error ?? "unknown error"}).` });
+    setCurrent(""); setNext(""); setAgain("");
+    setNote({ ok: true, text: "Password changed. Your other devices have been signed out." });
+  }
+
+  return (
+    <Card className="p-5">
+      <h3 className="mb-3 text-[14.5px] font-bold">Change password</h3>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label><Label>Current password</Label><input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} className={INPUT} /></label>
+        <label><Label>New password</Label><input type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} className={INPUT} /></label>
+        <label><Label>New password again</Label><input type="password" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} className={INPUT} /></label>
+      </div>
+      {(problem || note) && <p role="status" className={`mt-2 text-[12.5px] ${note?.ok ? "text-[var(--ok)]" : "text-[var(--bad)]"}`}>{problem ?? note?.text}</p>}
+      <button onClick={() => void save()} disabled={busy || !current || next.length < 10 || next !== again} className={`${BTN} mt-3`}>{busy ? "Saving…" : "Change password"}</button>
+    </Card>
   );
 }

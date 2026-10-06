@@ -112,8 +112,8 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
       </div>
 
       {(lead.notes || details.length > 0) && (
-        <section className="rounded-lg border border-[var(--hairline)] bg-[var(--surface)] p-4">
-          <Label>What they submitted</Label>
+        <details className="rounded-lg border border-[var(--hairline)] bg-[var(--surface)] p-4 [&_summary]:cursor-pointer" open={!details.length}>
+          <summary className="ds-label">What they submitted</summary>
           {lead.notes && <p className="whitespace-pre-wrap text-[13px] text-[var(--text-primary)]">{lead.notes}</p>}
           {details.length > 0 && (
             <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
@@ -125,7 +125,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
               ))}
             </dl>
           )}
-        </section>
+        </details>
       )}
 
       <WhatNext lead={lead} />
@@ -235,9 +235,10 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
       <Requirements lead={lead} onSave={save} />
       <Matches lead={lead} listings={listings} />
 
-      <section className="rounded-lg border border-[var(--hairline)] p-3">
-        <Label>Partnership (co-broker)</Label>
-        <div className="mt-2 grid grid-cols-2 gap-3">
+      {/* Only matters when another agency is in the deal, so it stays folded until it does. */}
+      <details open={!!lead.partner_agency} className="rounded-lg border border-[var(--hairline)] p-3 [&_summary]:cursor-pointer">
+        <summary className="ds-label">Co-broker deal? Add the partner agency</summary>
+        <div className="mt-3 grid grid-cols-2 gap-3">
           <label><Label>Partner agency</Label>
             <input defaultValue={lead.partner_agency ?? ""} onBlur={(e) => save({ partner_agency: e.target.value || null })} placeholder="e.g. Metro Homes" className={INPUT} />
           </label>
@@ -254,7 +255,7 @@ export function LeadPanel({ lead, listings, templates, duplicates, isAdmin, user
         {lead.partner_agency && !lead.partner_approved && (
           <p className="mt-1.5 text-[11px] text-amber-700">Not yet approved{isAdmin ? "" : " by an admin"}.</p>
         )}
-      </section>
+      </details>
 
       <section>
         <Label>Client</Label>

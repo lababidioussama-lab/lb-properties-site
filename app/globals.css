@@ -1025,6 +1025,65 @@ html.crm-shell .crm-topbar { border-bottom: 1px solid transparent; }
   html.crm-shell main .panel, html.crm-shell main .crm-card, html.crm-shell .crm-topbar { animation: none; }
   html.crm-shell .crm-progress { display: none; }
 }
+
+/* ---- Motion, third layer: every part of the app ---------------------------
+   Rows, lists, the sidebar, side panels, the page head and the background all
+   move, each a little, so the whole workspace feels alive without shouting. */
+@keyframes crm-row { from { opacity: 0; translate: -10px 0; } to { opacity: 1; translate: 0 0; } }
+@keyframes crm-draw { from { width: 0; } to { width: 64px; } }
+@keyframes crm-side { from { opacity: 0; translate: -8px 0; } to { opacity: 1; translate: 0 0; } }
+@keyframes crm-pop-in { from { opacity: 0; scale: 0.9; } to { opacity: 1; scale: 1; } }
+
+/* The page head: the accent segment draws itself under the title. */
+html.crm-shell .page-head::after { animation: crm-draw 0.7s cubic-bezier(0.3, 0.7, 0.2, 1) 0.15s both; }
+
+
+/* Sidebar: items arrive in turn, and nudge towards you on hover. */
+html.crm-shell aside nav > * { animation: crm-side 0.4s cubic-bezier(0.16, 0.9, 0.28, 1) both; }
+html.crm-shell aside nav > *:nth-child(2) { animation-delay: 0.03s; }
+html.crm-shell aside nav > *:nth-child(3) { animation-delay: 0.06s; }
+html.crm-shell aside nav > *:nth-child(4) { animation-delay: 0.09s; }
+html.crm-shell aside nav > *:nth-child(5) { animation-delay: 0.12s; }
+html.crm-shell aside nav > *:nth-child(6) { animation-delay: 0.15s; }
+html.crm-shell aside nav > *:nth-child(7) { animation-delay: 0.18s; }
+html.crm-shell aside nav > *:nth-child(n + 8) { animation-delay: 0.21s; }
+html.crm-shell aside nav a > svg:first-child, html.crm-shell aside nav button > svg:first-of-type { transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (hover: hover) {
+  html.crm-shell aside nav a:hover > svg:first-child, html.crm-shell aside nav button:hover > svg:first-of-type { transform: translateX(2px) scale(1.08); }
+}
+
+/* Rows in a table or a list slide in from the side, and lean on hover. */
+html.crm-shell main table tbody tr, html.crm-shell main .panel > ul > li, html.crm-shell main .panel > div > ul > li { animation: crm-row 0.42s cubic-bezier(0.16, 0.9, 0.28, 1) both; }
+html.crm-shell main table tbody tr:nth-child(2), html.crm-shell main .panel ul > li:nth-child(2) { animation-delay: 0.03s; }
+html.crm-shell main table tbody tr:nth-child(3), html.crm-shell main .panel ul > li:nth-child(3) { animation-delay: 0.06s; }
+html.crm-shell main table tbody tr:nth-child(4), html.crm-shell main .panel ul > li:nth-child(4) { animation-delay: 0.09s; }
+html.crm-shell main table tbody tr:nth-child(5), html.crm-shell main .panel ul > li:nth-child(5) { animation-delay: 0.12s; }
+html.crm-shell main table tbody tr:nth-child(n + 6), html.crm-shell main .panel ul > li:nth-child(n + 6) { animation-delay: 0.15s; }
+html.crm-shell main table tbody tr td:first-child { transition: padding-inline-start 0.2s ease; }
+
+/* Side panels (a lead, a contact, a record): the body arrives after the panel. */
+html.crm-shell .crm-panel > div > *, html.crm-shell .crm-panel > div > div > * { animation: crm-in 0.42s cubic-bezier(0.16, 0.9, 0.28, 1) 0.08s both; }
+
+/* Chips and badges pop in; icon buttons answer the pointer. */
+html.crm-shell main .rounded-full.inline-flex { animation: crm-pop-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) 0.12s both; }
+html.crm-shell button svg, html.crm-shell a svg { transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (hover: hover) { html.crm-shell main button:hover > svg:only-child, html.crm-shell main a:hover > svg:only-child { transform: scale(1.12); } }
+
+/* Inputs: the field you are in glows softly. */
+html.crm-shell input, html.crm-shell select, html.crm-shell textarea { transition: border-color 0.18s ease, box-shadow 0.25s ease, background-color 0.2s ease; }
+
+/* Rows also rise as they scroll into view where the browser supports it. */
+@supports (animation-timeline: view()) {
+  html.crm-shell main table tbody tr, html.crm-shell main .panel > ul > li, html.crm-shell main .panel > div > ul > li {
+    animation: crm-row linear both; animation-timeline: view(); animation-range: entry 0% entry 60%; animation-delay: 0s;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.crm-shell .page-head::after, html.crm-shell aside nav > *,
+  html.crm-shell main table tbody tr, html.crm-shell main .panel ul > li, html.crm-shell .crm-panel > div > *,
+  html.crm-shell .crm-panel > div > div > *, html.crm-shell main .rounded-full.inline-flex { animation: none; }
+  html.crm-shell button svg, html.crm-shell a svg { transition: none; }
+}
 html.crm-shell ::-webkit-scrollbar { width: 8px; height: 8px; }
 html.crm-shell ::-webkit-scrollbar-thumb { background: rgb(148 163 184 / 0.25); border-radius: 8px; }
 html.crm-shell ::-webkit-scrollbar-track { background: transparent; }

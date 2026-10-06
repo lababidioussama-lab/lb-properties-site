@@ -244,6 +244,11 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
   );
 }
 
+/* How many side panels are open, so the browser's Back closes a panel
+   instead of leaving the screen, and one panel replacing another (opening
+   the next lead) keeps a single history step. */
+let openPanels = 0;
+
 /** Right-hand slide-over used for lead and contact details. */
 export function SidePanel({ title, subtitle, onClose, children, actions, wide = false }: {
   title: string;
@@ -261,6 +266,22 @@ export function SidePanel({ title, subtitle, onClose, children, actions, wide = 
     (document.activeElement as HTMLElement | null)?.blur?.();
     setTimeout(onClose, 0);
   };
+  useEffect(() => {
+    openPanels++;
+    if (!(history.state as { crmPanel?: boolean } | null)?.crmPanel) history.pushState({ crmPanel: true }, "");
+    const onBack = () => {
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      setTimeout(onClose, 0);
+    };
+    window.addEventListener("popstate", onBack);
+    return () => {
+      window.removeEventListener("popstate", onBack);
+      openPanels--;
+      // Closed by its own button: take the panel's step back out of history, unless another panel took over.
+      setTimeout(() => { if (openPanels === 0 && (history.state as { crmPanel?: boolean } | null)?.crmPanel) history.back(); }, 0);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented) return;

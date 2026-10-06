@@ -160,7 +160,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
       { id: "invoices" as View, label: "Invoices", icon: Receipt, group: "Admin", desc: "VAT tax invoices for commission, and who still owes us." },
       { id: "monitor" as View, label: "Agent performance", icon: Activity, group: "Admin", desc: "Who is using the CRM, and how each agent is performing." },
       { id: "team" as View, label: "Team", icon: UserCog, group: "Admin", desc: "Agents, roles, commission slabs and targets." },
-      { id: "integrations" as View, label: "Integrations", icon: PlugZap, group: "Admin", desc: "Bayut, Dubizzle and Property Finder leads, straight to your agents." },
+      { id: "integrations" as View, label: "Lead sources", icon: PlugZap, group: "Admin", desc: "Bayut, Dubizzle and Property Finder leads, straight to your agents." },
       { id: "team_docs" as View, label: "Team documents", icon: FolderLock, group: "Admin", desc: "Every agent's IDs, visas, licences and contracts." },
       { id: "requests" as View, label: "Requests", icon: ClipboardList, group: "Admin", desc: "What agents have asked the office for." },
       { id: "audit" as View, label: "Audit log", icon: ScrollText, group: "Admin", desc: "Who changed what, and when." },
@@ -178,11 +178,11 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     { id: "deals", label: "Deals", icon: HandCoins, views: [{ id: "deals", label: "Sales & off-plan" }, { id: "rentals", label: "Rentals" }, ...(isAdmin ? [{ id: "invoices" as View, label: "Invoices" }] : [])] },
     { id: "calendar", label: "Calendar", icon: CalendarDays, views: [{ id: "calendar", label: "Calendar" }, { id: "tasks", label: "Tasks" }], badge: dueCount, badgeTone: "plain" },
     { id: "dbsearch", label: "DB Search", icon: Database, views: DS_TOOLS.map((t) => ({ id: t.id as View, label: t.label })) },
-    { id: "reports", label: "Reports", icon: BarChart3, views: [{ id: "reports", label: "Overview" }, ...(isAdmin ? [{ id: "monitor" as View, label: "Team" }] : [])] },
+    { id: "reports", label: "Reports", icon: BarChart3, views: [{ id: "reports", label: "Overview" }, ...(isAdmin ? [{ id: "monitor" as View, label: "Agent performance" }] : [])] },
     { id: "tools", label: "Tools", icon: Calculator, views: [{ id: "tools", label: "Calculators" }, { id: "templates", label: "WhatsApp templates" }, { id: "quick_wa", label: "Quick WhatsApp" }], group: "workspace" },
     ...(isAdmin ? [{ id: "admin", label: "Team & rules", icon: SlidersHorizontal, group: "workspace" as const, views: [
       { id: "team" as View, label: "Team" }, { id: "control" as View, label: "Access & activity" }, { id: "integrations" as View, label: "Lead sources" }, { id: "compliance" as View, label: "Compliance" },
-      { id: "requests" as View, label: "Requests" }, { id: "team_docs" as View, label: "Documents" }, { id: "audit" as View, label: "Audit log" },
+      { id: "requests" as View, label: "Requests" }, { id: "team_docs" as View, label: "Team documents" }, { id: "audit" as View, label: "Audit log" },
     ] }] : []),
   ];
   /* DB Search's own tabs open on its page; Market, Checks, Vastu and Access
@@ -487,7 +487,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           const sec = sections.find((x) => x.id === id)!;
           const on = section.id === id;
           return (
-            <button key={id} onClick={() => (id === "dbsearch" ? window.open(dbSearchHref, "lababidi-db-search") : setView(sec.views[0].id))} className={`relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium ${on ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
+            <button key={id} onClick={() => (id === "dbsearch" ? window.location.assign(dbSearchHref) : setView(sec.views[0].id))} className={`relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium ${on ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
               <sec.icon size={20} strokeWidth={on ? 2 : 1.75} />
               {sec.label}
               {!!sec.badge && <span className="absolute end-[22%] top-2 min-w-4 rounded-full bg-[var(--bad)] px-1 text-center text-[10px] font-semibold leading-4 text-white">{sec.badge}</span>}
