@@ -1242,18 +1242,20 @@ html.crm-shell main table tbody tr:hover { background: var(--surface-hover); }
 
 /* Status colours written as Tailwind pastels (bg-emerald-50, text-amber-700…)
    were made for paper and glare as white chips on the dark canvas. Inside the
-   CRM they follow the theme's own status tokens instead, in both themes. */
-html.crm-shell [class*="bg-emerald-50"], html.crm-shell [class*="bg-emerald-100"] { background-color: var(--ok-bg); }
-html.crm-shell [class*="text-emerald-6"], html.crm-shell [class*="text-emerald-7"], html.crm-shell [class*="text-emerald-8"] { color: var(--ok); }
-html.crm-shell [class*="border-emerald-"] { border-color: var(--ok-bd); }
-html.crm-shell [class*="bg-amber-50"] { background-color: var(--warn-bg); }
-html.crm-shell [class*="text-amber-"] { color: var(--warn); }
-html.crm-shell [class*="border-amber-"] { border-color: var(--warn-bd); }
-html.crm-shell [class*="bg-red-50"] { background-color: var(--bad-bg); }
-html.crm-shell [class*="text-red-"] { color: var(--bad); }
-html.crm-shell [class*="border-red-"] { border-color: var(--bad-bd); }
-html.crm-shell [class*="bg-sky-50"], html.crm-shell [class*="bg-indigo-50"] { background-color: var(--info-bg); }
-html.crm-shell [class*="text-sky-"], html.crm-shell [class*="text-indigo-"] { color: var(--info); }
-html.crm-shell [class*="border-sky-"], html.crm-shell [class*="border-indigo-"] { border-color: var(--info-bd); }
-html.crm-shell [class*="bg-zinc-100"] { background-color: var(--surface-hover); }
-html.crm-shell [class*="text-zinc-"] { color: var(--text-muted); }
+   CRM they follow the theme's own status tokens instead, in both themes.
+   Whole class names only, so solid dots (bg-emerald-500) and hover: variants
+   keep their own colour. */
+html.crm-shell [class~="bg-emerald-50"], html.crm-shell [class~="bg-emerald-50/60"], html.crm-shell [class~="bg-emerald-100"] { background-color: var(--ok-bg); }
+html.crm-shell [class~="text-emerald-600"], html.crm-shell [class~="text-emerald-700"], html.crm-shell [class~="text-emerald-800"] { color: var(--ok); }
+html.crm-shell [class~="border-emerald-200"], html.crm-shell [class~="border-emerald-300"] { border-color: var(--ok-bd); }
+html.crm-shell [class~="bg-amber-50"], html.crm-shell [class~="bg-amber-50/50"] { background-color: var(--warn-bg); }
+html.crm-shell [class~="text-amber-600"], html.crm-shell [class~="text-amber-700"], html.crm-shell [class~="text-amber-800"] { color: var(--warn); }
+html.crm-shell [class~="border-amber-200"] { border-color: var(--warn-bd); }
+html.crm-shell [class~="bg-red-50"], html.crm-shell [class~="bg-red-50/50"], html.crm-shell [class~="bg-red-50/60"] { background-color: var(--bad-bg); }
+html.crm-shell [class~="text-red-600"], html.crm-shell [class~="text-red-700"] { color: var(--bad); }
+html.crm-shell [class~="border-red-200"], html.crm-shell [class~="border-red-300"] { border-color: var(--bad-bd); }
+html.crm-shell [class~="bg-sky-50"], html.crm-shell [class~="bg-indigo-50"] { background-color: var(--info-bg); }
+html.crm-shell [class~="text-sky-700"], html.crm-shell [class~="text-indigo-700"] { color: var(--info); }
+html.crm-shell [class~="border-sky-200"], html.crm-shell [class~="border-indigo-200"] { border-color: var(--info-bd); }
+html.crm-shell [class~="bg-zinc-100"] { background-color: var(--surface-hover); }
+html.crm-shell [class~="text-zinc-400"], html.crm-shell [class~="text-zinc-500"], html.crm-shell [class~="text-zinc-600"] { color: var(--text-muted); }

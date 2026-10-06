@@ -192,7 +192,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
      are CRM screens. */
   const inDbSearch = (DS_VIEWS as string[]).includes(view);
   /* DB Search lives on its own link and opens in its own tab. */
-  const dbSearchHref = demo ? "/admin/db-search?demo" : "/admin/db-search";
+  const dbSearchHref = demo ? (isAdmin ? "/admin/db-search?demo" : "/admin/db-search?demo=agent") : "/admin/db-search";
   const initials = (me_?.full_name ?? "?").split(" ").map((w) => w[0]).slice(0, 2).join("");
   const section = sections.find((sec) => sec.views.some((v) => v.id === view)) ?? (view === "profile" ? { id: "profile", label: "My profile", icon: UserCircle, views: [{ id: "profile" as View, label: "My profile" }] } : sections[0]);
 

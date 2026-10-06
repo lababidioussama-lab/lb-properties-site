@@ -171,7 +171,7 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
       {bar(
         <>
           <span title="Your DB Search session ends after 20 minutes without activity"
-            className="hidden h-9 items-center gap-1.5 rounded-full border border-[var(--hairline)] px-3 text-[11.5px] text-[var(--text-muted)] lg:inline-flex">
+            className="hidden h-9 items-center gap-1.5 rounded-full border border-[var(--hairline)] px-3 text-[11.5px] text-[var(--text-muted)] md:inline-flex">
             <Lock size={12} className="text-[var(--emerald)]" />
             <span className="figure text-[var(--text-primary)]">{hm || "-"}</span>
             {info.usage && info.limits && <span><span className="figure">{info.usage.searches}/{info.limits.searches}</span> searches</span>}

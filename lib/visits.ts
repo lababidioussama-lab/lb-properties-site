@@ -68,7 +68,8 @@ const IN_APP: [RegExp, string][] = [
   [/WhatsApp/, "WhatsApp"], [/Snapchat/, "Snapchat"], [/LinkedInApp/, "LinkedIn"], [/Telegram/i, "Telegram"],
 ];
 
-const clean = (s: unknown, max: number) => (typeof s === "string" ? s.replace(/[^\w .\-/+&]/g, "").trim().slice(0, max) : "");
+/* Letters of any alphabet (city names arrive accented or in Arabic), digits and a little punctuation. */
+const clean = (s: unknown, max: number) => (typeof s === "string" ? s.replace(/[^\p{L}\p{N}_ .\-/+&']/gu, "").trim().slice(0, max) : "");
 
 export function hostOf(url: unknown): string {
   if (typeof url !== "string" || !url) return "";

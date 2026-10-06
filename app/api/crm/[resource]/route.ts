@@ -158,7 +158,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
       const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
       const [sessions, actions, work] = await Promise.all([
         db.from("crm_audit").select("user_id, action, created_at, detail").eq("entity", "session").in("action", ["login", "logout", "login_failed", "otp_failed"]).gte("created_at", since).order("created_at", { ascending: false }).limit(5000),
-        db.from("crm_audit").select("user_id, created_at").neq("entity", "session").gte("created_at", since).order("created_at", { ascending: false }).limit(5000),
+        db.from("crm_audit").select("user_id, created_at").neq("entity", "session").not("user_id", "is", null).gte("created_at", since).order("created_at", { ascending: false }).limit(5000),
         db.from("crm_activities").select("user_id, kind, created_at").gte("created_at", since).order("created_at", { ascending: false }).limit(10000),
       ]);
       const err = sessions.error ?? actions.error ?? work.error;

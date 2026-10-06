@@ -43,15 +43,14 @@ export function SecurityView() {
     let live = true;
     const load = () => void api<Report>("GET", "security", undefined, `days=${days}`).then((r) => {
       if (!live) return;
-      if (r.ok) { setData(r as Report); setError(null); } else setError(r.error ?? "unknown");
+      if (r.ok) { setData(r as Report); setError(null); } else setError(r.error ?? "unknown"); // the last good reading stays on screen
     });
     load();
     const t = window.setInterval(load, 60_000);
     return () => { live = false; window.clearInterval(t); };
   }, [days]);
 
-  if (error) return <Card className="p-4 text-[13px] text-[var(--bad)]">Could not load security events ({error}).</Card>;
-  if (!data) return <div className="panel h-64 animate-pulse" />;
+  if (!data) return error ? <Card className="p-4 text-[13px] text-[var(--bad)]">Could not load security events ({error}).</Card> : <div className="panel h-64 animate-pulse" />;
 
   const t = data.totals;
   const stolen = data.targets.filter((x) => x.codes > 0);

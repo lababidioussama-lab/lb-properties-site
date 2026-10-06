@@ -179,7 +179,9 @@ export async function POST(request: NextRequest) {
   }
   if (!user) {
     await logSession(null, "login_failed", { email: email.slice(0, 120), ip, purpose, agent, ...geo });
-    if ((await countRecent("login_failed", { email }, 15 * 60_000)).count === ALERT_AT_WRONG_PASSWORDS) {
+    if ((await countRecent("login_failed", { email }, 15 * 60_000)).count >= ALERT_AT_WRONG_PASSWORDS
+      // Only for a real account: guesses at invented addresses are shown on the Security screen, not emailed.
+      && (await getSupabaseAdmin()?.from("crm_users").select("id").eq("email", email).maybeSingle())?.data) {
       await securityAlert(`password:${email}`, `Repeated wrong passwords for ${email}`, [["Account", email], ["From", place], ["Address", ip], ["Device", device]],
         "Five wrong passwords in fifteen minutes. After eight the account is paused for fifteen minutes. If this was not the account's owner, nothing was opened: the password was never guessed.");
     }

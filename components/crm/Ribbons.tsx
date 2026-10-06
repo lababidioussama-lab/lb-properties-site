@@ -128,7 +128,7 @@ export function Ribbons() {
     const stop = () => { cancelAnimationFrame(raf); raf = 0; };
     const onVis = () => (document.hidden ? stop() : start());
     const onResize = () => { size(); draw(); };
-    const onScroll = () => { quietUntil = performance.now() + 160; if (reduce) draw(); };
+    const onScroll = () => { quietUntil = performance.now() + 160; };
 
     size(); draw(); start();
     window.addEventListener("resize", onResize);

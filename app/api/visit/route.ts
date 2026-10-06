@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
    person. Robots are dropped, and one address can only send so many. */
 
 const WINDOW_MS = 60_000;
-const MAX_PER_WINDOW = 60;
+const MAX_PER_WINDOW = 20;
 const seen = new Map<string, number[]>();
 function tooMany(ip: string): boolean {
   const now = Date.now();
@@ -28,9 +28,10 @@ export async function POST(request: NextRequest) {
   const ua = request.headers.get("user-agent")?.slice(0, 300) ?? "";
   if (isBot(ua)) return done();
   // Only our own pages report visits.
+  // A browser always names the page a POST came from; anything without it is a script.
   const origin = request.headers.get("origin");
   const host = (request.headers.get("host") ?? "").toLowerCase();
-  if (origin && hostOf(origin) !== host.split(":")[0].replace(/^www\./, "")) return done();
+  if (!origin || hostOf(origin) !== host.split(":")[0].replace(/^www\./, "")) return done();
 
   const ip = request.headers.get("x-nf-client-connection-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
   if (tooMany(ip)) return done();
@@ -44,7 +45,9 @@ export async function POST(request: NextRequest) {
   try { b = JSON.parse(text) as Record<string, unknown>; } catch { return done(); }
 
   const path = cleanPath(b.p);
-  const crm = path === "/admin" || path.startsWith("/admin/") || path.startsWith("/documents");
+  // On the CRM's own hostname the sign-in page is served at "/", so the host decides too.
+  const crmHost = process.env.CRM_HOST?.toLowerCase();
+  const crm = path === "/admin" || path.startsWith("/admin/") || path.startsWith("/documents") || (!!crmHost && host.split(":")[0] === crmHost);
   const refHost = hostOf(b.r);
   const ownHost = host.split(":")[0].replace(/^www\./, "");
   const detail: VisitDetail = {

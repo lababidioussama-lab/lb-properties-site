@@ -13,9 +13,11 @@ const fail = (error: string, status = 400) => NextResponse.json({ ok: false, err
    gets totals and short lists, never the raw log. */
 
 const PAGE = 1000;       // the most rows the database hands over at once
+const KEEP_DAYS = 120;   // the longest report is 90 days; older page views are of no use
 const MAX_PAGES = 30;    // 30,000 page views a period is plenty; more is flagged
 
 type Row = { created_at: string; action: string; detail: VisitDetail | null };
+let lastPrune = 0;
 const dubaiDay = (iso: string) => new Date(new Date(iso).getTime() + 4 * 3_600_000).toISOString().slice(0, 10);
 
 function top(map: Map<string, { views: number; who: Set<string> }>, n: number) {
@@ -42,12 +44,21 @@ export async function GET(request: NextRequest) {
   const today = dubaiDay(new Date().toISOString());
   const start = new Date(new Date(`${today}T00:00:00+04:00`).getTime() - (days - 1) * 86_400_000);
 
+  /* Page views older than every report are cleared here, once a day at most,
+     so the audit table the whole CRM reads does not grow without end. Only
+     this feature's own rows (entity "visit") are ever touched. */
+  if (Date.now() - lastPrune > 86_400_000) {
+    lastPrune = Date.now();
+    await db.from("crm_audit").delete().eq("entity", VISIT_ENTITY).lt("created_at", new Date(Date.now() - KEEP_DAYS * 86_400_000).toISOString());
+  }
+
   const rows: Row[] = [];
   let truncated = false;
+  const until = new Date().toISOString(); // a fixed end, so visits arriving mid-read cannot shift the pages
   for (let page = 0; page < MAX_PAGES; page++) {
     const { data, error } = await db.from("crm_audit").select("created_at, action, detail")
-      .eq("entity", VISIT_ENTITY).eq("action", where).gte("created_at", start.toISOString())
-      .order("created_at", { ascending: false }).range(page * PAGE, page * PAGE + PAGE - 1);
+      .eq("entity", VISIT_ENTITY).eq("action", where).gte("created_at", start.toISOString()).lte("created_at", until)
+      .order("created_at", { ascending: false }).order("id", { ascending: false }).range(page * PAGE, page * PAGE + PAGE - 1);
     if (error) { console.error("[visitors] database:", error.message); return fail("server_error", 502); }
     rows.push(...((data ?? []) as Row[]));
     if ((data?.length ?? 0) < PAGE) break;

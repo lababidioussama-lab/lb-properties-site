@@ -7,6 +7,8 @@ import { getSupabaseAdmin } from "./supabase";
  * a sustained attack sends one email, not hundreds.
  */
 
+const MAX_ALERTS_AN_HOUR = 5;
+
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 export async function securityAlert(key: string, title: string, facts: [string, string | null | undefined][], advice: string) {
@@ -18,6 +20,11 @@ export async function securityAlert(key: string, title: string, facts: [string, 
   const { data: sent } = await db.from("crm_audit").select("id").eq("entity", "session").eq("action", "alert_sent")
     .eq("detail->>key", key).gte("created_at", since).limit(1);
   if (sent?.length) return;
+  /* And never more than a handful an hour in all: an attacker inventing
+     accounts must not be able to fill the inbox, or use up the mail allowance
+     that sign-in codes also depend on. */
+  const { data: lately } = await db.from("crm_audit").select("id").eq("entity", "session").eq("action", "alert_sent").gte("created_at", since).limit(MAX_ALERTS_AN_HOUR);
+  if ((lately?.length ?? 0) >= MAX_ALERTS_AN_HOUR) return;
   await db.from("crm_audit").insert({ user_id: null, entity: "session", entity_id: null, action: "alert_sent", detail: { key, title } });
 
   const rows = facts.filter(([, v]) => v).map(([k, v]) =>
@@ -40,5 +47,7 @@ export async function securityAlert(key: string, title: string, facts: [string, 
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from: process.env.OTP_FROM || "Lababidi Properties CRM <security@lababidiproperties.com>", to: [to], subject: `Security alert: ${title}`, html, text }),
+    // A slow mail service must never hold up the sign-in answer.
+    signal: AbortSignal.timeout(5000),
   }).catch(() => null);
 }

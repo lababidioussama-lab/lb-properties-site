@@ -11,6 +11,7 @@ const HEADERS = {
   "Cache-Control": "no-store, max-age=0",
   "X-Robots-Tag": "noindex, nofollow, noarchive",
   "X-Frame-Options": "DENY",
+  "Content-Security-Policy": "frame-ancestors 'none'",
   "Referrer-Policy": "no-referrer",
 };
 
