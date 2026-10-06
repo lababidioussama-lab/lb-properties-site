@@ -295,7 +295,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
           <div className="mx-auto flex h-[68px] w-full max-w-[1408px] items-center gap-3 px-5 md:px-8 xl:px-12">
             <button onClick={() => setView("today")} aria-label="Lababidi Properties, home" className="flex shrink-0 items-center gap-2.5">
               <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="" width={30} height={30} priority />
-              <span className="hidden text-[17px] font-semibold tracking-[-0.02em] text-[var(--text-primary)] sm:inline">Lababidi</span>
+              <span className="hidden whitespace-nowrap text-[17px] font-semibold tracking-[-0.02em] text-[var(--text-primary)] sm:inline">Lababidi <span className="font-normal text-[var(--text-secondary)]">Properties</span></span>
             </button>
             <nav aria-label="Main" className="mx-auto hidden min-w-0 items-center overflow-x-auto [scrollbar-width:none] md:flex">
               {sections.map((sec) => {
