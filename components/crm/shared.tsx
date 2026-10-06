@@ -3,6 +3,7 @@
 import { useEffect, useId, type ReactNode } from "react";
 import { motion } from "motion/react";
 import { X } from "lucide-react";
+import { CountText } from "./Motion";
 import type { Stage } from "@/lib/crm";
 
 export type Json = Record<string, unknown>;
@@ -204,7 +205,7 @@ export function PageHead({ title, lede, figure, figureLabel, action, children }:
           <div className="crm-title-after flex items-end gap-5">
             {figure != null && (
               <div className="text-end">
-                <div className="figure text-[22px] leading-none text-[var(--accent)]">{figure}</div>
+                <div className="figure text-[22px] leading-none text-[var(--accent)]">{typeof figure === "number" ? <CountText text={String(figure)} /> : figure}</div>
                 {figureLabel && <div className="ds-label mt-1.5 !text-[10px]">{figureLabel}</div>}
               </div>
             )}

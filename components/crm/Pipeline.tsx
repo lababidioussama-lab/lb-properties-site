@@ -62,7 +62,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
         {stats.map((s, i) => (
           <div key={s.label} className={`py-4 ${i ? "border-s border-[var(--hairline)] ps-6" : ""}`}>
             <dt className="text-[12px] text-[var(--text-muted)]">{s.label}</dt>
-            <dd className={`figure mt-1.5 whitespace-nowrap text-[22px] leading-none ${"late" in s && s.value !== "0" ? "text-[var(--bad)]" : "text-[var(--text-primary)]"}`}>{s.value}</dd>
+            <dd className={`figure mt-1.5 whitespace-nowrap text-[22px] leading-none ${"late" in s && s.value !== "0" ? "text-[var(--bad)]" : "text-[var(--text-primary)]"}`}><CountText text={s.value} /></dd>
           </div>
         ))}
       </dl>
@@ -185,7 +185,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
                     draggable
                     onDragStart={() => setDragging(l.id)}
                     onClick={() => onOpen(l.id)}
-                    className="rounded-lg border border-[var(--hairline)] bg-[var(--surface-raised)] p-3 text-start transition-colors hover:border-[var(--accent)]"
+                    className="crm-card rounded-lg border border-[var(--hairline)] bg-[var(--surface-raised)] p-3 text-start"
                   >
                     <div className="flex items-center gap-1.5">
                       {l.starred && <Star size={12} className="shrink-0 fill-amber-300 text-amber-700" />}

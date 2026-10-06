@@ -121,7 +121,7 @@ export function MyDay({ me, isAdmin, leads, tasks, tenancies = [], userName, onO
             <CardHead title="Do next" count="Ordered by urgency" />
             {rows.length === 0 ? <Empty icon={<Hand size={18} />}>Nothing urgent. Good time to work the calling list.</Empty> : rows.slice(0, 12).map((r) => (
               <div key={r.key} className="flex min-h-[60px] items-center gap-3 border-b border-[var(--hairline-soft)] px-4 py-2.5 last:border-0">
-                <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: `var(--${r.tone === "neutral" ? "text-muted" : r.tone})` }} />
+                <span className={`h-2 w-2 shrink-0 rounded-full ${r.tone === "bad" ? "crm-pulse" : ""}`} style={{ background: `var(--${r.tone === "neutral" ? "text-muted" : r.tone})`, color: `var(--${r.tone === "neutral" ? "text-muted" : r.tone})` }} />
                 <button onClick={r.onOpen} className="min-w-0 flex-1 text-start">
                   <span className="flex items-baseline gap-2"><span className="truncate text-[14px] font-medium">{r.name}</span><span className="shrink-0 text-[12px] text-[var(--text-muted)]">{r.kind}</span></span>
                   <span className="block truncate text-[12px] text-[var(--text-secondary)]">{r.why}</span>

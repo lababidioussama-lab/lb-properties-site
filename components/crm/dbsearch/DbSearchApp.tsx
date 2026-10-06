@@ -46,6 +46,7 @@ export function DbSearchApp({ me, demo = false }: { me: SessionUser; demo?: bool
   return (
     <div className="relative min-h-[100dvh] text-[var(--text-primary)]">
       <Stars />
+      <div className="crm-progress" aria-hidden="true" />
       <DbSearch
         view={view}
         onView={setView}

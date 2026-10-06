@@ -269,6 +269,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   return (
     <div className="relative flex min-h-screen text-[var(--text-primary)]">
       <Stars />
+      <div className="crm-progress" aria-hidden="true" />
       <aside className="sticky top-0 z-10 hidden h-screen w-[240px] shrink-0 flex-col gap-5 border-e border-[var(--side-border)] bg-[var(--side-bg)] px-4 pb-4 pt-7 text-[var(--side-fg)] md:flex">
         <button onClick={() => setView("today")} aria-label="Lababidi Properties, home" className="block w-fit px-2">
           <Image src={theme === "dark" ? "/logo-full-white.png" : "/logo-full.png"} alt="Lababidi Properties" width={72} height={82} priority />
@@ -348,7 +349,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         {/* One thin utility bar: theme, alerts and you. The place itself is
             set large in the page head below. */}
-        <header className="sticky top-0 z-30 bg-[color-mix(in_srgb,var(--canvas)_80%,transparent)] backdrop-blur-md">
+        <header className="crm-topbar sticky top-0 z-30 bg-[color-mix(in_srgb,var(--canvas)_80%,transparent)] backdrop-blur-md">
           <div className="flex h-14 items-center gap-2 px-5 md:px-12">
             <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="Lababidi Properties" width={28} height={28} className="md:hidden" />
             <div className="flex-1" />

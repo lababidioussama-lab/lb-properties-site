@@ -79,7 +79,7 @@ export function ListingsView({ t, isAdmin, users, contacts, userName, prefill, o
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((l) => (
-            <button key={l.id} onClick={() => setEditing(l)} className="overflow-hidden rounded-xl border border-[var(--hairline)] bg-[var(--surface-raised)] text-start transition-colors hover:border-[var(--accent)]">
+            <button key={l.id} onClick={() => setEditing(l)} className="crm-card overflow-hidden rounded-xl border border-[var(--hairline)] bg-[var(--surface-raised)] text-start">
               <div className="relative aspect-[16/10] bg-[var(--surface-sunken)]">
                 {l.photos?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element

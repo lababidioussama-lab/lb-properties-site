@@ -933,7 +933,7 @@ html.crm-shell .page-head { position: relative; border-bottom: 1px solid var(--r
 html.crm-shell .page-head::after { content: ""; position: absolute; left: 0; bottom: -1px; width: 64px; height: 1px; background: var(--accent); }
 
 /* Motion: DB Search's two speeds. */
-@keyframes crm-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes crm-rise { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
 @keyframes crm-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes crm-slide-in { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes crm-pop { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
@@ -955,6 +955,75 @@ html.crm-shell button:not(:disabled):active, html.crm-shell a.btn:active { trans
   html.crm-shell .crm-stagger > *, html.crm-shell .crm-panel, html.crm-shell .crm-backdrop,
   html.crm-shell .crm-pop, html.crm-shell .crm-sheet, html.crm-shell .crm-title, html.crm-shell .crm-title-after { animation: none; }
   html.crm-shell button:active { transform: none; }
+}
+
+/* ---- Motion, second layer: cards, scrolling, live signals -------------------
+   Entrances move with `translate` and `scale` (their own properties), so a
+   card can still lift on hover with `transform` while its entrance holds. */
+@keyframes crm-in { from { opacity: 0; translate: 0 22px; scale: 0.985; } to { opacity: 1; translate: 0 0; scale: 1; } }
+@keyframes crm-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes crm-bar-in { from { border-bottom-color: transparent; box-shadow: none; } to { border-bottom-color: var(--rule); box-shadow: 0 10px 30px -18px rgb(2 6 23 / 0.6); } }
+@keyframes crm-ping { 0% { box-shadow: 0 0 0 0 currentColor; } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
+@keyframes crm-sheen { from { background-position: -140% 0; } to { background-position: 240% 0; } }
+
+/* A card you can open: it lifts, its edge lights, an accent bar draws down
+   its side, and a soft sheen crosses it once. */
+html.crm-shell .crm-card {
+  position: relative; overflow: hidden;
+  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), border-color var(--snap), box-shadow 0.24s ease;
+}
+html.crm-shell .crm-card::before {
+  content: ""; position: absolute; inset-block: 0; inset-inline-start: 0; width: 2px; background: var(--grad);
+  transform: scaleY(0); transform-origin: top; transition: transform 0.35s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+html.crm-shell .crm-card::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.07) 50%, transparent 65%) no-repeat; background-size: 60% 100%;
+}
+@media (hover: hover) {
+  html.crm-shell .crm-card:hover { transform: translateY(-3px); border-color: var(--accent-dim); box-shadow: 0 18px 34px -20px rgb(2 6 23 / 0.75); }
+  html.crm-shell:not([data-theme="dark"]) .crm-card:hover { box-shadow: 0 16px 30px -20px rgb(26 18 20 / 0.5); }
+  html.crm-shell .crm-card:hover::before { transform: scaleY(1); }
+  html.crm-shell .crm-card:hover::after { opacity: 1; animation: crm-sheen 0.9s ease both; }
+}
+html.crm-shell .crm-card:active { transform: translateY(-1px) scale(0.99); }
+
+/* Cards in a column or grid arrive one after another. */
+html.crm-shell .crm-cards > * { animation: crm-in 0.5s cubic-bezier(0.16, 0.9, 0.28, 1) both; }
+html.crm-shell .crm-cards > *:nth-child(2) { animation-delay: 0.04s; }
+html.crm-shell .crm-cards > *:nth-child(3) { animation-delay: 0.08s; }
+html.crm-shell .crm-cards > *:nth-child(4) { animation-delay: 0.12s; }
+html.crm-shell .crm-cards > *:nth-child(5) { animation-delay: 0.16s; }
+html.crm-shell .crm-cards > *:nth-child(n + 6) { animation-delay: 0.2s; }
+
+/* Panels answer the pointer quietly. */
+html.crm-shell main .panel { transition: border-color 0.2s ease, box-shadow 0.25s ease; }
+@media (hover: hover) { html.crm-shell main .panel:hover { border-color: var(--hairline-strong); } }
+
+/* Something waiting on you breathes. */
+html.crm-shell .crm-pulse { animation: crm-ping 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite; }
+
+/* The thin line at the very top shows how far down the page you are. */
+html.crm-shell .crm-progress { position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 60; pointer-events: none; background: var(--grad); transform: scaleX(0); transform-origin: 0 50%; }
+html.crm-shell .crm-topbar { border-bottom: 1px solid transparent; }
+
+/* Scrolling: panels and cards rise into place as they enter the screen, the
+   top bar gains its edge once the page moves, and the progress line grows.
+   Browsers without scroll-driven animation simply show everything in place. */
+@supports (animation-timeline: view()) {
+  html.crm-shell main .panel, html.crm-shell main .crm-card {
+    animation: crm-in linear both; animation-timeline: view(); animation-range: entry 0% entry 32%;
+  }
+  html.crm-shell .crm-cards > * { animation: crm-in linear both; animation-timeline: view(); animation-range: entry 0% entry 40%; animation-delay: 0s; }
+  html.crm-shell .crm-progress { animation: crm-grow linear both; animation-timeline: scroll(root); }
+  html.crm-shell .crm-topbar { animation: crm-bar-in linear both; animation-timeline: scroll(root); animation-range: 0 140px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.crm-shell .crm-card, html.crm-shell .crm-card::before { transition: none; }
+  html.crm-shell .crm-card:hover { transform: none; }
+  html.crm-shell .crm-card:hover::after, html.crm-shell .crm-cards > *, html.crm-shell .crm-pulse,
+  html.crm-shell main .panel, html.crm-shell main .crm-card, html.crm-shell .crm-topbar { animation: none; }
+  html.crm-shell .crm-progress { display: none; }
 }
 html.crm-shell ::-webkit-scrollbar { width: 8px; height: 8px; }
 html.crm-shell ::-webkit-scrollbar-thumb { background: rgb(148 163 184 / 0.25); border-radius: 8px; }

@@ -117,7 +117,7 @@ export function DsCardView({ card, also, soldFlag, actions }: { card: DsCard; al
   else if (m.tx.noConsideration) txBits.push(<span key="n" className={MUTED}>No consideration (transfer / gift)</span>);
 
   return (
-    <article className="flex flex-col gap-2.5 rounded-xl border border-[var(--hairline)] bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
+    <article className="crm-card flex flex-col gap-2.5 rounded-xl border border-[var(--hairline)] bg-white p-4">
       {/* title */}
       <div className="flex items-start gap-2">
         {card.buildingRecord ? <Building2 size={16} className="mt-0.5 shrink-0 text-[var(--text-muted)]" /> : <User size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" />}
