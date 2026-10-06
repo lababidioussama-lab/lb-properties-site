@@ -215,6 +215,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return done({ unit: await unitLookup(db, user, code, str(b.place, 200) || null) });
     }
 
+    /* Where the live DLD tool is, for the admin's browser to ask it directly:
+       a live check drives a real browser on the office PC for up to a minute,
+       far longer than this function may run. The tool publishes its current
+       address to local_endpoint; its key is DLD_TOOL_KEY on this server. */
+    case "permit_tool": {
+      if (user.role !== "admin") return fail("forbidden", 403);
+      const { data } = await db.from("local_endpoint").select("url, updated_at").eq("id", 1).maybeSingle();
+      return done({ url: (data?.url as string | null) ?? null, key: process.env.DLD_TOOL_KEY ?? null });
+    }
+
     /* ---------------------------------------------------- lookups */
     case "portfolio":
     case "area":
