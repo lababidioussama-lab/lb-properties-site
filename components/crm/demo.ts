@@ -192,6 +192,36 @@ export async function demoApi(method: string, resource: string, body?: Row, quer
     return { ok: true, rows: added, skipped: 0 };
   }
   if (resource === "audit") return { ok: true, entries: tables.audit };
+  if (resource === "security") {
+    const at = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+    const ua = "Mozilla/5.0 (Windows NT 10.0) Chrome/126.0";
+    return {
+      ok: true, days: 7,
+      totals: { wrongPasswords: 31, wrongCodes: 0, refused: 2, blocked: 1, addresses: 3, lockedNow: 0 },
+      lockedNow: [],
+      addresses: [
+        { ip: "185.220.101.47", country: "Frankfurt, Germany", fails: 22, codes: 0, accounts: ["owner@example.com", "admin@lababidiproperties.com", "info@lababidiproperties.com"], last: at(190) },
+        { ip: "91.74.12.203", country: "Dubai, United Arab Emirates", fails: 6, codes: 0, accounts: ["sara@example.com"], last: at(900) },
+        { ip: "102.89.33.10", country: "Lagos, Nigeria", fails: 3, codes: 0, accounts: ["owner@example.com"], last: at(2600) },
+      ],
+      targets: [
+        { email: "owner@example.com", known: true, passwords: 14, codes: 0, last: at(190) },
+        { email: "admin@lababidiproperties.com", known: false, passwords: 9, codes: 0, last: at(195) },
+        { email: "sara@example.com", known: true, passwords: 6, codes: 0, last: at(900) },
+        { email: "info@lababidiproperties.com", known: false, passwords: 2, codes: 0, last: at(200) },
+      ],
+      events: [
+        { id: "s1", at: at(12), action: "login", account: "owner@example.com", name: "Oussama Lababidi", ip: "94.200.18.6", place: "Dubai, United Arab Emirates", agent: ua, reason: null },
+        { id: "s2", at: at(188), action: "blocked_address", account: null, name: null, ip: "185.220.101.47", place: "Frankfurt, Germany", agent: "python-requests/2.31", reason: null },
+        { id: "s3", at: at(190), action: "login_failed", account: "owner@example.com", name: null, ip: "185.220.101.47", place: "Frankfurt, Germany", agent: "python-requests/2.31", reason: null },
+        { id: "s4", at: at(195), action: "login_failed", account: "admin@lababidiproperties.com", name: null, ip: "185.220.101.47", place: "Frankfurt, Germany", agent: "python-requests/2.31", reason: null },
+        { id: "s5", at: at(640), action: "docs_denied", account: "sara@example.com", name: "Sara Haddad", ip: "91.74.12.203", place: "Dubai, United Arab Emirates", agent: ua, reason: null },
+        { id: "s6", at: at(900), action: "login_failed", account: "sara@example.com", name: null, ip: "91.74.12.203", place: "Dubai, United Arab Emirates", agent: ua, reason: null },
+        { id: "s7", at: at(2600), action: "login_failed", account: "owner@example.com", name: null, ip: "102.89.33.10", place: "Lagos, Nigeria", agent: "Mozilla/5.0 (Linux; Android 13) Chrome/125.0 Mobile", reason: null },
+      ],
+      alerts: [{ at: at(188), title: "An address is attacking the CRM sign-in" }, { at: at(192), title: "Repeated wrong passwords for owner@example.com" }],
+    };
+  }
   if (resource === "visitors") {
     const days = Number(new URLSearchParams(query ?? "").get("days") ?? 7) || 7;
     const crm = new URLSearchParams(query ?? "").get("where") === "crm";

@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import { DS_TOOLS, DS_VIEWS, type DsView } from "./dbsearch/DbSearch";
 import { DS_CRM_VIEWS, DsInCrm, type DsCrmView } from "./dbsearch/DsInCrm";
 import { VisitorsView } from "./Visitors";
+import { SecurityView } from "./Security";
 import { Activity, Database, Home, Lock, Moon, Search, History, ShieldCheck, Receipt, KeyRound, Calculator, Menu, X, PlugZap, FolderLock, Sun, KanbanSquare, Users, CheckSquare, UserCog, LogOut, FileText, ExternalLink, Building2, HandCoins, CalendarDays, BarChart3, MessageSquareText, ScrollText, KeySquare, PhoneCall, Send, UserCircle, ClipboardList, SlidersHorizontal } from "lucide-react";
 
 import type { CrmContact, CrmDeal, CrmInvoice, CrmKyc, CrmSourceSpend, CrmTenancy, CrmLead, CrmListing, CrmTask, CrmTemplate, CrmUser } from "@/lib/crm";
@@ -44,7 +45,7 @@ import { Ribbons } from "./Ribbons";
 import { setCrmTheme, type CrmTheme } from "@/lib/crm-theme";
 import type { CrmAgentRequest } from "@/lib/crm";
 
-type View = DsView | "visitors" | "control" | "compliance" | "invoices" | "rentals" | "integrations" | "today" | "tools" | "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
+type View = DsView | "visitors" | "security" | "control" | "compliance" | "invoices" | "rentals" | "integrations" | "today" | "tools" | "monitor" | "team_docs" | "reports" | "pipeline" | "temp_leads" | "contacts" | "listings" | "owner_requests" | "calendar" | "deals" | "tasks" | "templates" | "quick_wa" | "profile" | "team" | "requests" | "audit";
 
 function upsert<T extends { id: string }>(list: T[], item: T, prepend = false): T[] {
   if (list.some((x) => x.id === item.id)) return list.map((x) => (x.id === item.id ? item : x));
@@ -142,6 +143,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     { id: "ds_area", label: "Area prospecting", icon: Search, group: "DB Search", desc: "" },
     { id: "ds_checks", label: "Property checks", icon: Search, group: "DB Search", desc: "" },
     { id: "ds_vastu", label: "Vastu Map", icon: Search, group: "DB Search", desc: "" },
+    ...(isAdmin ? [{ id: "security" as View, label: "Security", icon: ShieldCheck, group: "Admin", desc: "Every refused sign-in, the address behind it, and whether anyone holds a password that is not theirs." }] : []),
     ...(isAdmin ? [{ id: "control" as View, label: "Access & activity", icon: ShieldCheck, group: "Admin", desc: "Block or allow each person in the CRM and DB Search, set their limits, and see everything they did." }] : []),
     { id: "pipeline", label: "Leads", icon: KanbanSquare, badge: leads.filter((l) => l.stage === "new").length, group: "Sales", desc: "Every enquiry, from first contact to closed deal." },
     { id: "temp_leads", label: "Temp leads", icon: PhoneCall, group: "Sales", desc: "Raw calling list, promoted to Leads once qualified." },
@@ -182,7 +184,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
     { id: "reports", label: "Reports", icon: BarChart3, views: [{ id: "reports", label: "Overview" }, ...(isAdmin ? [{ id: "monitor" as View, label: "Agent performance" }, { id: "visitors" as View, label: "Visitors" }] : [])] },
     { id: "tools", label: "Tools", icon: Calculator, views: [{ id: "tools", label: "Calculators" }, { id: "templates", label: "WhatsApp templates" }, { id: "quick_wa", label: "Quick WhatsApp" }], group: "workspace" },
     ...(isAdmin ? [{ id: "admin", label: "Team & rules", icon: SlidersHorizontal, group: "workspace" as const, views: [
-      { id: "team" as View, label: "Team" }, { id: "control" as View, label: "Access & activity" }, { id: "integrations" as View, label: "Lead sources" }, { id: "compliance" as View, label: "Compliance" },
+      { id: "team" as View, label: "Team" }, { id: "control" as View, label: "Access & activity" }, { id: "security" as View, label: "Security" }, { id: "integrations" as View, label: "Lead sources" }, { id: "compliance" as View, label: "Compliance" },
       { id: "requests" as View, label: "Requests" }, { id: "team_docs" as View, label: "Team documents" }, { id: "audit" as View, label: "Audit log" },
     ] }] : []),
   ];
@@ -453,6 +455,7 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
             <TasksView tasks={tasks} users={users} isAdmin={isAdmin} userName={userName} onTask={onTask} onRemoveTask={onRemoveTask} />
           )}
           {view === "team" && isAdmin && <TeamView users={users} meId={me.id} onUser={onUser} />}
+          {view === "security" && isAdmin && <SecurityView />}
           {view === "control" && isAdmin && <AccessControl meId={me.id} />}
           {view === "audit" && isAdmin && <AuditView userName={userName} />}
           {view === "visitors" && isAdmin && <VisitorsView />}
