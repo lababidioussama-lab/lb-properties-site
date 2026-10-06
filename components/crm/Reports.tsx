@@ -125,7 +125,7 @@ export function ReportsView({ leads, deals, users, userName, spend, meId }: {
         {kpis.map((k) => (
           <Card key={k.label} className="px-5 py-4">
             <div className="text-[12px] font-medium text-[var(--text-secondary)]">{k.label}</div>
-            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]"><CountText text={k.value} /></div>
+            <div className="figure mt-2 whitespace-nowrap text-[16px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]"><CountText text={k.value} /></div>
           </Card>
         ))}
       </div>

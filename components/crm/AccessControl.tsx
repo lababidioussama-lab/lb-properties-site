@@ -174,7 +174,7 @@ export function AccessControl({ meId }: { meId: string }) {
                       <div className="grid grid-cols-3 gap-2">
                         {(["searches", "reveals", "lists"] as const).map((k) => (
                           <label key={k} className="block">
-                            <span className="ds-label mb-1 block !text-[9.5px]">{k === "reveals" ? "Numbers a day" : k === "lists" ? "List a day" : "Searches a day"}</span>
+                            <span className="ds-label mb-1 block !text-[10.5px]">{k === "reveals" ? "Numbers a day" : k === "lists" ? "List a day" : "Searches a day"}</span>
                             <input type="number" min={0} max={k === "searches" ? 5000 : 1000} defaultValue={p.ds[k]} key={`${p.id}-${k}-${p.ds[k]}`}
                               onBlur={(e) => { const v = Math.round(Number(e.target.value)); if (Number.isFinite(v) && v !== p.ds[k]) void change(p, { [k]: v }); }}
                               className={`${INPUT} figure !h-8 text-[13px]`} />

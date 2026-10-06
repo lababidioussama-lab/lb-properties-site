@@ -47,11 +47,11 @@ export function IntegrationsView({ onLeadsChanged }: { onLeadsChanged: () => voi
         </div>
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {(rows ?? []).map((p) => {
           const url = `${origin}/api/leads/portal/${p.portal}?token=YOUR_SECRET`;
           return (
-            <Card key={p.portal} className="flex flex-col">
+            <Card key={p.portal} className="flex min-w-0 flex-col">
               <div className="flex items-center gap-3 border-b border-[var(--hairline)] px-5 py-4">
                 <h3 className="text-[16px] font-semibold">{p.label}</h3>
                 <span className={`ms-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold ${p.configured ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-600"}`}>

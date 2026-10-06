@@ -102,7 +102,7 @@ export function DealsView({ t, isAdmin, users, listings, contacts, kyc, userName
         {totals.map((s) => (
           <Card key={s.label} className="px-5 py-4">
             <div className="text-[12px] font-medium text-[var(--text-secondary)]">{s.label}</div>
-            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]"><CountText text={s.value} /></div>
+            <div className="figure mt-2 whitespace-nowrap text-[16px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]"><CountText text={s.value} /></div>
           </Card>
         ))}
       </div>

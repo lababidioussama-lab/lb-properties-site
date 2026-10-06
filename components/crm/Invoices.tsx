@@ -93,7 +93,7 @@ export function InvoicesView({ t, deals, contacts }: { t: Table<CrmInvoice>; dea
         {kpis.map((k) => (
           <Card key={k.label} className="px-5 py-4">
             <div className="text-[12px] font-medium text-[var(--text-secondary)]">{k.label}</div>
-            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none text-[var(--accent)] sm:text-[22px]"><CountText text={k.value} /></div>
+            <div className="figure mt-2 whitespace-nowrap text-[16px] font-semibold leading-none text-[var(--accent)] sm:text-[22px]"><CountText text={k.value} /></div>
           </Card>
         ))}
       </div>

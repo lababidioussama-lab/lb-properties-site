@@ -132,13 +132,14 @@ export function MyDay({ me, isAdmin, leads, tasks, tenancies = [], userName, onO
           <Card>
             <CardHead title="Do next" count="Ordered by urgency" />
             {rows.length === 0 ? <Empty icon={<Hand size={18} />}>Nothing urgent. Good time to work the calling list.</Empty> : rows.slice(0, 12).map((r) => (
-              <div key={r.key} className="flex min-h-[60px] items-center gap-3 border-b border-[var(--hairline-soft)] px-4 py-2.5 last:border-0">
+              <div key={r.key} className="flex min-h-[60px] flex-wrap items-center gap-x-3 gap-y-2 border-b sm:flex-nowrap border-[var(--hairline-soft)] px-4 py-2.5 last:border-0">
                 <span className={`h-2 w-2 shrink-0 rounded-full ${r.tone === "bad" ? "crm-pulse" : ""}`} style={{ background: `var(--${r.tone === "neutral" ? "text-muted" : r.tone})`, color: `var(--${r.tone === "neutral" ? "text-muted" : r.tone})` }} />
-                <button onClick={r.onOpen} className="min-w-0 flex-1 text-start">
-                  <span className="flex items-baseline gap-2"><span className="truncate text-[14px] font-medium">{r.name}</span><span className="shrink-0 text-[12px] text-[var(--text-muted)]">{r.kind}</span></span>
+                <button onClick={r.onOpen} className="min-w-0 flex-1 basis-[calc(100%-1.5rem)] text-start sm:basis-0">
+                  <span className="flex items-baseline gap-2"><span className="max-w-[62%] shrink-0 truncate text-[14px] font-medium">{r.name}</span><span className="min-w-0 truncate text-[12px] text-[var(--text-muted)]">{r.kind}</span></span>
                   <span className="block truncate text-[12px] text-[var(--text-secondary)]">{r.why}</span>
                 </button>
-                <Chip tone={r.tone}>{r.due}</Chip>
+                <span className="ms-5 sm:ms-0"><Chip tone={r.tone}>{r.due}</Chip></span>
+                <span className="flex-1 sm:hidden" />
                 {r.phone && <>
                   <a href={`tel:${r.phone.replace(/\s/g, "")}`} aria-label={`Call ${r.name}`} className={BTN_ICON}><Phone size={15} /></a>
                   <a href={whatsapp(r.phone)} target="_blank" rel="noopener noreferrer" aria-label={`WhatsApp ${r.name}`} className={`${BTN_ICON} !text-[var(--wa)]`}><MessageCircle size={15} /></a>

@@ -146,12 +146,12 @@ export function StatusLine({ children }: { children: ReactNode }) {
 export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
   const group = useId();
   return (
-    <div role="tablist" className="inline-flex shrink-0 gap-0.5 rounded-full border border-[var(--hairline)] bg-[var(--input-bg)] p-1">
+    <div role="tablist" className="inline-flex max-w-full shrink-0 gap-0.5 overflow-x-auto [scrollbar-width:none] rounded-full border border-[var(--hairline)] bg-[var(--input-bg)] p-1">
       {options.map((o) => {
         const on = value === o.id;
         return (
           <button key={o.id} role="tab" aria-selected={on} onClick={() => onChange(o.id)}
-            className={`relative h-8 rounded-full px-3.5 text-[12.5px] font-bold transition-colors ${on ? "text-[var(--on-accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+            className={`relative h-8 shrink-0 whitespace-nowrap rounded-full px-3.5 text-[12.5px] font-bold transition-colors ${on ? "text-[var(--on-accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
             {on && <motion.span layoutId={`seg-${group}`} transition={{ type: "spring", stiffness: 520, damping: 42 }} className="absolute inset-0 rounded-full bg-[image:var(--grad)]" />}
             <span className="relative">{o.label}</span>
           </button>
