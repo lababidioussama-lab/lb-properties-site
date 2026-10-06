@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { ArrowLeft, BarChart3, ChevronDown, Compass, FileSearch, LineChart, Lock, LogOut, Moon, Phone, Search, Send, Sparkles, Sun, UserPlus, Wrench } from "lucide-react";
+import { ArrowLeft, BarChart3, ChevronDown, Compass, FileSearch, Lock, LogOut, Moon, Phone, Search, Send, Sparkles, Sun, UserPlus, Wrench } from "lucide-react";
 
 import { ds, dsError, type DsSessionInfo, type DsUsage } from "./api";
 import { DsSignIn } from "./DsSignIn";
@@ -16,24 +16,22 @@ import { DsCampaign } from "./DsCampaign";
 import { DsArea } from "./DsArea";
 import { DsBrokers } from "./DsBrokers";
 import { DsPortfolio } from "./DsPortfolio";
-import { DsMarket, type MarketMode } from "./DsMarket";
 import { DsChecks, type CheckMode } from "./DsChecks";
 import { DsVastu } from "./DsVastu";
 
 /* Every DB Search view id. Access lives in the CRM (Team & rules); ds_home
    is kept so old links land on Search. */
-export type DsView = "ds_home" | "ds_smart" | "ds_search" | "ds_phone" | "ds_unit" | "ds_portfolio" | "ds_area" | "ds_market" | "ds_checks" | "ds_vastu" | "ds_brokers" | "ds_access" | "ds_campaign";
-export const DS_VIEWS: DsView[] = ["ds_home", "ds_smart", "ds_search", "ds_phone", "ds_unit", "ds_area", "ds_brokers", "ds_campaign", "ds_market", "ds_checks", "ds_vastu", "ds_portfolio"];
+export type DsView = "ds_home" | "ds_smart" | "ds_search" | "ds_phone" | "ds_unit" | "ds_portfolio" | "ds_area" | "ds_checks" | "ds_vastu" | "ds_brokers" | "ds_access" | "ds_campaign";
+export const DS_VIEWS: DsView[] = ["ds_home", "ds_smart", "ds_search", "ds_phone", "ds_unit", "ds_area", "ds_brokers", "ds_campaign", "ds_checks", "ds_vastu", "ds_portfolio"];
 
-/* The extra tools, behind one Tools menu in the bar. All of them, and the
-   WhatsApp campaign, are for the admin: an agent gets the four tabs only. */
+/* The extra tools, behind one Tools menu in the bar. All of them are for
+   the admin: an agent gets the four tabs, the Vastu Map and the WhatsApp
+   campaign. */
 const MORE: { id: DsView; label: string; icon: typeof Search }[] = [
-  { id: "ds_market", label: "Market & valuation", icon: LineChart },
   { id: "ds_checks", label: "Property checks", icon: FileSearch },
-  { id: "ds_vastu", label: "Vastu & sun", icon: Compass },
   { id: "ds_portfolio", label: "Portfolio", icon: BarChart3 },
 ];
-const ADMIN_ONLY: DsView[] = [...MORE.map((m) => m.id), "ds_campaign"];
+const ADMIN_ONLY: DsView[] = MORE.map((m) => m.id);
 
 /* DB Search's own tabs, in its order: Smart, Search, Phone, Agents. */
 const TABS: { id: DsView; label: string; icon: typeof Search }[] = [
@@ -68,7 +66,6 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
   const [ownerRef, setOwnerRef] = useState<string | null>(null);
   const [unitQuery, setUnitQuery] = useState<{ code: string; place?: string | null } | null>(null);
   const [searchQuery, setSearchQuery] = useState<string | null>(initialSearch);
-  const [marketMode, setMarketMode] = useState<MarketMode>("sales");
   const [checkMode, setCheckMode] = useState<CheckMode>("permit");
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -121,28 +118,32 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
     window.location.href = crmHref;
   }
 
-  const topBtn = "inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-transparent px-2.5 text-[12px] font-semibold text-[var(--text-muted)] transition-colors hover:border-[var(--hairline)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]";
+  /* The bar's buttons: one height, one pill shape. `topOn` marks the screen you are on. */
+  const topBtn = "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-transparent px-3 text-[12.5px] font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]";
+  const topOn = "!border-[var(--hairline-strong)] !bg-[var(--surface-hover)] !text-[var(--text-primary)]";
+  const topIcon = "grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]";
   const bar = (right: ReactNode) => (
-    <header className="relative z-20 mx-auto flex w-full max-w-[1100px] items-center gap-2.5 pb-3 pt-3 min-[1400px]:max-w-[1280px]">
-      <div className="flex min-w-0 items-center gap-2.5">
+    <header className="relative z-20 mx-auto flex w-full max-w-[1100px] flex-wrap items-center gap-x-2.5 gap-y-2 pb-3 pt-3 min-[1400px]:max-w-[1280px]">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:flex-none">
         <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="Lababidi Properties" width={32} height={32} priority />
         <div className="min-w-0 leading-tight">
           <div className="display text-[18px]">DB <em className="text-[var(--accent)]">Search</em></div>
-          <div className="ds-label mt-0.5 !text-[9.5px] !tracking-[0.12em]">Lababidi Properties</div>
+          <div className="ds-label mt-0.5 truncate !text-[9.5px] !tracking-[0.12em]">Lababidi Properties</div>
         </div>
       </div>
-      <div className="flex-1" />
-      <div className="flex flex-wrap items-center justify-end gap-1">{right}</div>
+      <div className="hidden flex-1 sm:block" />
+      <div className="contents sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-1.5">{right}</div>
     </header>
   );
   const commonRight = (
     <>
-      <button onClick={onTheme} aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} className={topBtn}>
-        {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}<span className="hidden sm:inline">{theme === "dark" ? "Light" : "Dark"}</span>
+      <button onClick={onTheme} aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} title={theme === "dark" ? "Light mode" : "Dark mode"} className={topIcon}>
+        {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
       </button>
-      <button onClick={backToCrm} className={topBtn}><ArrowLeft size={14} /> Back to CRM</button>
+      <button onClick={backToCrm} aria-label="Back to CRM" className={`${topBtn} !border-[var(--hairline)]`}><ArrowLeft size={14} /><span className="hidden sm:inline">Back to CRM</span><span className="sm:hidden">CRM</span></button>
     </>
   );
+
 
   if (problem) {
     return <div className="relative z-10 px-4">{bar(commonRight)}<p role="alert" className="panel mx-auto max-w-[560px] p-5 text-[14px] text-[var(--text-secondary)]">{dsError(problem)}</p></div>;
@@ -166,42 +167,49 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
   const inMore = more.some((m) => m.id === tab);
 
   return (
-    <div className="relative z-10 min-h-[100dvh] px-4 pb-16 md:px-6">
+    <div className={`relative z-10 min-h-[100dvh] px-3 md:px-6 ${tab === "ds_vastu" ? "pb-3" : "pb-16"}`}>
       {bar(
         <>
           <span title="Your DB Search session ends after 20 minutes without activity"
-            className="me-1 hidden h-9 items-center gap-1.5 rounded-[8px] border border-[var(--hairline)] px-3 text-[11.5px] text-[var(--text-muted)] sm:inline-flex">
+            className="hidden h-9 items-center gap-1.5 rounded-full border border-[var(--hairline)] px-3 text-[11.5px] text-[var(--text-muted)] lg:inline-flex">
             <Lock size={12} className="text-[var(--emerald)]" />
             <span className="figure text-[var(--text-primary)]">{hm || "-"}</span>
-            {info.usage && info.limits && <span className="hidden md:inline"><span className="figure">{info.usage.searches}/{info.limits.searches}</span> searches</span>}
+            {info.usage && info.limits && <span><span className="figure">{info.usage.searches}/{info.limits.searches}</span> searches</span>}
           </span>
-          {isAdmin && <div ref={menuRef} className="relative">
-            <button onClick={() => setMenu((m) => !m)} aria-haspopup="menu" aria-expanded={menu}
-              className={`${topBtn} ${inMore ? "!border-[var(--hairline)] !text-[var(--text-primary)]" : ""}`}>
-              <Wrench size={14} /> Tools <ChevronDown size={12} />
+          <div className="order-last flex basis-full items-center justify-center gap-0.5 rounded-full border border-[var(--hairline)] bg-[var(--input-bg)] p-0.5 sm:order-none sm:basis-auto">
+            <button onClick={() => onView("ds_vastu")} aria-current={tab === "ds_vastu" ? "page" : undefined}
+              className={`${topBtn} !h-8 ${tab === "ds_vastu" ? topOn : ""}`}>
+              <Compass size={14} /> Vastu Map
             </button>
-            {menu && (
-              <div role="menu" className="crm-pop absolute end-0 top-10 z-40 w-56 overflow-hidden rounded-[10px] border border-[var(--hairline)] bg-[var(--surface-solid)] py-1 shadow-[var(--shadow-pop)]">
-                {more.map((m) => (
-                  <button key={m.id} role="menuitem" onClick={() => { setMenu(false); onView(m.id); }}
-                    className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] transition-colors hover:bg-[var(--surface-hover)] ${tab === m.id ? "font-bold text-[var(--accent)]" : "text-[var(--text-primary)]"}`}>
-                    <m.icon size={14} /> {m.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>}
-          {isAdmin && <button onClick={() => onView("ds_campaign")} aria-current={tab === "ds_campaign" ? "page" : undefined}
-            className="inline-flex h-8 items-center gap-1.5 rounded-[8px] bg-[#1f9d57] px-3 text-[12px] font-semibold text-white transition hover:brightness-110">
-            <Send size={13} /> WhatsApp campaign
-          </button>}
+            <button onClick={() => onView("ds_campaign")} aria-current={tab === "ds_campaign" ? "page" : undefined}
+              className={`${topBtn} !h-8 ${tab === "ds_campaign" ? topOn : ""}`}>
+              <Send size={14} className="text-[var(--wa)]" /> <span className="hidden sm:inline">WhatsApp campaign</span><span className="sm:hidden">Campaign</span>
+            </button>
+            {isAdmin && <div ref={menuRef} className="relative">
+              <button onClick={() => setMenu((m) => !m)} aria-haspopup="menu" aria-expanded={menu}
+                className={`${topBtn} !h-8 ${inMore ? topOn : ""}`}>
+                <Wrench size={14} /> Tools <ChevronDown size={12} />
+              </button>
+              {menu && (
+                <div role="menu" className="crm-pop absolute end-0 top-10 z-40 w-56 overflow-hidden rounded-[12px] border border-[var(--hairline)] bg-[var(--surface-solid)] py-1 shadow-[var(--shadow-pop)]">
+                  {more.map((m) => (
+                    <button key={m.id} role="menuitem" onClick={() => { setMenu(false); onView(m.id); }}
+                      className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] transition-colors hover:bg-[var(--surface-hover)] ${tab === m.id ? "font-bold text-[var(--accent)]" : "text-[var(--text-primary)]"}`}>
+                      <m.icon size={14} /> {m.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>}
+          </div>
+          <span aria-hidden="true" className="mx-0.5 hidden h-5 w-px bg-[var(--hairline)] sm:block" />
           {commonRight}
-          <button onClick={leave} className={topBtn}><LogOut size={14} /> Exit</button>
+          <button onClick={leave} aria-label="Exit DB Search" title="Exit DB Search" className={topIcon}><LogOut size={15} /></button>
         </>,
       )}
 
       <div className="mx-auto w-full max-w-[1100px] min-[1400px]:max-w-[1280px]">
-        <nav aria-label="DB Search" className="mb-4 grid grid-cols-4 border-b border-[var(--hairline)]">
+        <nav aria-label="DB Search" className={`grid grid-cols-4 border-b border-[var(--hairline)] ${tab === "ds_vastu" ? "mb-3" : "mb-4"}`}>
           {TABS.map((t) => {
             const on = lit === t.id;
             return (
@@ -227,7 +235,6 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
           {tab === "ds_campaign" && <DsCampaign onExpired={onExpired} onUsage={onUsage} meName={info.user.name} />}
           {tab === "ds_unit" && <DsUnit {...shared} initial={unitQuery} />}
           {tab === "ds_area" && <DsArea {...shared} />}
-          {tab === "ds_market" && <DsMarket mode={marketMode} onMode={setMarketMode} onExpired={onExpired} />}
           {tab === "ds_checks" && <DsChecks mode={checkMode} onMode={setCheckMode} onExpired={onExpired} onOpenOwner={setOwnerRef} />}
           {tab === "ds_vastu" && <DsVastu />}
           {tab === "ds_portfolio" && <DsPortfolio {...shared} onSearchName={(name) => { setSearchQuery(name); onView("ds_search"); }} />}

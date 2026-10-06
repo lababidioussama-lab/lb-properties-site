@@ -5,7 +5,7 @@ import { LEAD_SLA_HOURS } from "@/lib/crm";
 import { DS_COOKIE, audit, dsGate, fail, getSettings, lockIfBurst, putSettings, readRef, readRefInfo, revealedToday, signedIn as signedInAs, usageToday, type DsSettings, type DsUser } from "@/lib/dbsearch/guard";
 import { crmLinks, emailOf, ownerDetail, phoneAt, unitLookup } from "@/lib/dbsearch/search";
 import { MAX_QUERY, communityList, phoneList, phonesForRef, searchFull, soldFlags } from "@/lib/dbsearch/results";
-import { areaOwners, brokers, listedNow, marketOverview, permitLookup, portfolioOwners, propertyNumber, rentals, suggest, valuation } from "@/lib/dbsearch/tools";
+import { areaOwners, brokers, listedNow, permitLookup, portfolioOwners, propertyNumber, suggest } from "@/lib/dbsearch/tools";
 import { formatPhone, maskPhone, phoneCore, toInternational } from "@/lib/dbsearch/model";
 import { SESSION_COOKIE_OPTIONS } from "@/lib/crm-auth";
 
@@ -30,9 +30,6 @@ export const dynamic = "force-dynamic";
  *   POST   portfolio { min }                        → owners of several units (by name)
  *   POST   area      { area }                       → a community as a masked calling list
  *   POST   area_send { refs, list }                 → put owners from it into Temp leads
- *   POST   market    { area, months }               → registered sales, aggregated
- *   POST   rentals   { area, version }              → registered rents, aggregated
- *   POST   valuation { scope, name, sqft, since }   → a value range from comparables
  *   POST   suggest   { kind, q, scope? }            → names for the pickers
  *   POST   permit    { q }                          → cached DLD permits
  *   POST   pnumber   { q }                          → a unit from its property number
@@ -221,15 +218,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     /* ---------------------------------------------------- lookups */
     case "portfolio":
     case "area":
-    case "market":
-    case "rentals":
-    case "valuation":
     case "permit":
     case "pnumber":
     case "listed":
     case "brokers": {
-      // The four tabs are for everyone; the Tools menu (portfolio, market,
-      // rentals, valuation and the property checks) is the admin's.
+      // The four tabs are for everyone; the Tools menu (portfolio and the
+      // property checks) is the admin's.
       if (action !== "area" && action !== "brokers" && user.role !== "admin") return fail("forbidden", 403);
       const limited = await quota(user, db, "searches");
       if (limited) return limited;
@@ -244,12 +238,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         case "area": {
           if (q.length < 3) return fail("query_too_short");
           return done(await areaOwners(db, user, q));
-        }
-        case "market": return done(await marketOverview(db, q, Number(b.months ?? 12)));
-        case "rentals": return done(await rentals(db, q, str(b.version, 10)));
-        case "valuation": {
-          if (q.length < 2) return fail("query_too_short");
-          return done(await valuation(db, str(b.scope, 12), q, Number(b.sqft), Number(b.since), b.exact !== false));
         }
         case "permit": return done(await permitLookup(db, q) as Record<string, unknown>);
         case "pnumber": return done({ rows: await propertyNumber(db, user, q) });
