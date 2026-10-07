@@ -39,9 +39,9 @@ async function sendLimited(userId: string, email: string, ticket: { code: string
   const sent = await countRecent("otp_sent", { userId }, 15 * 60_000);
   if (sent.count >= MAX_CODE_EMAILS) return "rate_limited";
   if (Date.now() - sent.last < 30_000) return "wait";
-  if (!(await sendCode(email, ticket.code, purpose, { device }))) return "email_failed";
-  await logSession(userId, "otp_sent", { nonce, purpose });
-  return null;
+  // The email and its note are sent side by side: each is a round trip, and the sign-in must answer within the host's ten seconds.
+  const [delivered] = await Promise.all([sendCode(email, ticket.code, purpose, { device }), logSession(userId, "otp_sent", { nonce, purpose })]);
+  return delivered ? null : "email_failed";
 }
 
 export const runtime = "nodejs";
@@ -126,10 +126,14 @@ export async function POST(request: NextRequest) {
     }
 
     // A code works once, and five wrong tries lock it — tracked in the database, not in memory.
-    if ((await countRecent("otp_used", { nonce: ticket.nonce }, 20 * 60_000)).count > 0) {
+    const [usedBefore, wrongBefore] = await Promise.all([
+      countRecent("otp_used", { nonce: ticket.nonce }, 20 * 60_000),
+      countRecent("otp_failed", { nonce: ticket.nonce }, 20 * 60_000),
+    ]);
+    if (usedBefore.count > 0) {
       return NextResponse.json({ ok: false, error: "code_expired" }, { status: 401 });
     }
-    if ((await countRecent("otp_failed", { nonce: ticket.nonce }, 20 * 60_000)).count >= MAX_WRONG_CODES) {
+    if (wrongBefore.count >= MAX_WRONG_CODES) {
       return NextResponse.json({ ok: false, error: "code_locked" }, { status: 401 });
     }
     const result = checkCode(ticket, body.code as string);
@@ -162,10 +166,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "invalid" }, { status: 400 });
   }
   const email = body.email.trim().toLowerCase().slice(0, 120);
-  if ((await countRecent("login_failed", { email }, 15 * 60_000)).count >= MAX_WRONG_PASSWORDS) {
+  const [wrongForEmail, wrongFromAddress] = await Promise.all([
+    countRecent("login_failed", { email }, 15 * 60_000),
+    ip === "unknown" ? Promise.resolve({ count: 0, last: 0 }) : countRecent("login_failed", { ip }, 15 * 60_000),
+  ]);
+  if (wrongForEmail.count >= MAX_WRONG_PASSWORDS) {
     return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
   }
-  if (ip !== "unknown" && (await countRecent("login_failed", { ip }, 15 * 60_000)).count >= MAX_WRONG_FROM_ADDRESS) {
+  if (wrongFromAddress.count >= MAX_WRONG_FROM_ADDRESS) {
     if ((await countRecent("blocked_address", { ip }, 15 * 60_000)).count === 0) {
       await logSession(null, "blocked_address", { ip, agent, ...geo });
       await securityAlert(`address:${ip}`, "An address is attacking the CRM sign-in", [["Address", ip], ["From", place], ["Device", device], ["Last account tried", email]],

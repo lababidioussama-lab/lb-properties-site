@@ -20,6 +20,7 @@ const MESSAGES: Record<string, string> = {
   invalid: "Enter your email and password.",
   bad_origin: "Blocked as a cross-site request. Open the CRM from its own address.",
   admin_only: "Company documents are for the admin account only.",
+  timeout: "The server took too long to answer. Wait a few seconds and press Continue again; if a code already reached your email, it is still good for 10 minutes.",
 };
 
 /* The same sign-in serves the CRM and Company documents; only the words
@@ -67,7 +68,9 @@ export function CrmLogin({ configured, purpose = "crm", crmSignedIn = false }: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...body, purpose }),
       });
-      return (await res.json()) as { ok: boolean; error?: string; step?: string; hint?: string };
+      // An answer that is not ours (the host's own error page) means the server gave up, not that the network is down.
+      const answer = (await res.json().catch(() => null)) as { ok: boolean; error?: string; step?: string; hint?: string } | null;
+      return answer ?? { ok: false, error: res.status === 504 || res.status === 502 ? "timeout" : `server_${res.status}` };
     } catch {
       return { ok: false, error: "network" };
     } finally {
@@ -91,7 +94,7 @@ export function CrmLogin({ configured, purpose = "crm", crmSignedIn = false }: {
       return window.location.reload();
     }
     if (r.error === "code_locked" || r.error === "code_expired") { setStep("password"); setPassword(""); }
-    setError(r.error === "network" ? "Could not reach the server." : MESSAGES[r.error ?? ""] ?? `Could not sign in (${r.error ?? "unknown error"}).`);
+    setError(r.error === "network" ? "Could not reach the server. Check your internet connection and try again." : MESSAGES[r.error ?? ""] ?? `Could not sign in (${r.error ?? "unknown error"}).`);
   }
 
   async function resend() {
