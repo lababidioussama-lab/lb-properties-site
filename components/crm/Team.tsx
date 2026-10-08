@@ -101,7 +101,8 @@ export function TeamView({ users, meId, onUser }: {
             <div className="basis-full ps-12">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${licenceValid(u) ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
-                  {licenceValid(u) ? "Licensed" : u.role === "admin" ? "No BRN" : "No valid BRN — gets no leads"}
+                  {/* Say which it is: no number, no expiry date, or an expired card. "No BRN" beside a filled-in number read as a fault. */}
+                  {licenceValid(u) ? "Licensed" : `${!u.brn_no ? "No BRN" : !u.brn_expiry ? "BRN expiry date missing" : "Not licensed: BRN expired"}${u.role === "admin" ? "" : " — gets no leads"}`}
                 </span>
                 {licenceAlerts(u).filter((a) => a.level !== "missing").map((a) => (
                   <span key={a.text} className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${a.level === "expired" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{a.text}</span>
