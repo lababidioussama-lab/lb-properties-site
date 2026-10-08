@@ -73,6 +73,13 @@ export async function generateMetadata({
       statusBarStyle: "default",
     },
 
+    // Meta (Facebook) domain verification for the business portfolio.
+    verification: {
+      other: {
+        "facebook-domain-verification": "xudfq9s1bjx67sy5s86tkqx6xfizfb",
+      },
+    },
+
     alternates: {
       canonical: `/${locale}`,
       languages: Object.fromEntries(LOCALES.map((l) => [l, `/${l}`])),
