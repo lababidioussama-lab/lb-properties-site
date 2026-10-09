@@ -1,3 +1,4 @@
+import { clientIp as clientAddress } from "@/lib/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { readSession, CRM_COOKIE } from "@/lib/crm-auth";
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
   const host = (request.headers.get("host") ?? "").toLowerCase();
   if (!origin || hostOf(origin) !== host.split(":")[0].replace(/^www\./, "")) return done();
 
-  const ip = request.headers.get("x-nf-client-connection-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  const ip = clientAddress(request.headers);
   if (tooMany(ip)) return done();
   const secret = process.env.SESSION_SECRET;
   const db = getSupabaseAdmin();

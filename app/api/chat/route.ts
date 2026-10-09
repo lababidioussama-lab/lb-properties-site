@@ -1,3 +1,4 @@
+import { clientIp as clientAddress } from "@/lib/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { buildSystemPrompt } from "@/lib/agent-knowledge";
 
@@ -33,11 +34,7 @@ function rateLimited(ip: string): boolean {
   return recent.length > MAX_PER_WINDOW;
 }
 
-function clientIp(request: NextRequest): string {
-  const fwd = request.headers.get("x-nf-client-connection-ip") ?? request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return request.headers.get("x-real-ip") ?? "unknown";
-}
+const clientIp = (request: NextRequest): string => clientAddress(request.headers);
 
 interface Turn {
   role: "user" | "assistant";

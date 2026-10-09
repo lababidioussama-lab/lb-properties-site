@@ -1,3 +1,4 @@
+import { clientIp as clientAddress } from "@/lib/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { CRM_COOKIE, DOCS_COOKIE, DOCS_COOKIE_OPTIONS, SESSION_COOKIE_OPTIONS, createDocsSession, authenticate, createSession, isCrmConfigured, sameOrigin, sessionFromRequest, liveUser } from "@/lib/crm-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
   if (!isCrmConfigured()) {
     return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
   }
-  const ip = request.headers.get("x-nf-client-connection-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  const ip = clientAddress(request.headers);
   if (throttled(ip)) {
     return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
   }

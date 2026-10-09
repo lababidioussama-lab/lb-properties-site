@@ -1,3 +1,4 @@
+import { clientIp as clientAddress } from "@/lib/client";
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -189,8 +190,10 @@ export interface DsUser {
   limits: { searches: number; reveals: number; lists: number };
 }
 
-const clientIp = (r: NextRequest) =>
-  r.headers.get("x-nf-client-connection-ip") ?? r.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? null;
+const clientIp = (r: NextRequest) => {
+  const ip = clientAddress(r.headers);
+  return ip === "unknown" ? null : ip;
+};
 
 export async function audit(db: SupabaseClient, user: { id: string }, action: DsAction, fields: { query?: string | null; target?: string | null; detail?: Record<string, unknown>; request?: NextRequest } = {}) {
   await db.from("crm_audit").insert({

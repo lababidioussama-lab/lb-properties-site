@@ -1,3 +1,4 @@
+import { clientIp as clientAddress } from "@/lib/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabase, LEADS_TABLE } from "@/lib/supabase";
 import { SERVICE_KEYS, type ServiceKey } from "@/lib/site-config";
@@ -34,11 +35,7 @@ function rateLimited(ip: string): boolean {
   return recent.length > MAX_PER_WINDOW;
 }
 
-function clientIp(request: NextRequest): string {
-  const forwarded = request.headers.get("x-nf-client-connection-ip") ?? request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return request.headers.get("x-real-ip") ?? "unknown";
-}
+const clientIp = (request: NextRequest): string => clientAddress(request.headers);
 
 const trim = (value: unknown, max: number): string | null => {
   if (typeof value !== "string") return null;

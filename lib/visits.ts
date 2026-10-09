@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { cloudflareGeo } from "./client";
 
 /**
  * Visitor counting for the public site and the CRM sign-in pages.
@@ -98,6 +99,8 @@ export function sourceOf(input: { refHost: string; ownHost: string; utmSource?: 
 
 /** Netlify tells each function where the request came from. */
 export function geoOf(headers: Headers): { country?: string; city?: string } {
+  const behindCloudflare = cloudflareGeo(headers);
+  if (behindCloudflare) return behindCloudflare;
   try {
     const raw = headers.get("x-nf-geo");
     if (raw) {
