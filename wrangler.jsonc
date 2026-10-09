@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "lababidi-properties",
+	"name": "lababidi-crm",
 	"main": ".open-next/worker.js",
 	"compatibility_date": "2026-10-01",
 	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
@@ -21,18 +21,21 @@
 		{
 			// The Worker calls itself; the service name must match "name" above.
 			"binding": "WORKER_SELF_REFERENCE",
-			"service": "lababidi-properties"
+			"service": "lababidi-crm"
 		}
 	],
-	"images": {
-		// Image optimisation for next/image (resizing and WebP/AVIF).
-		"binding": "IMAGES"
-	},
 	// Run the Worker close to Supabase, not close to each visitor: every page
 	// and sign-in makes several database calls, and the distance to the
 	// database is what makes the CRM slow, not the distance to the browser.
 	"placement": { "mode": "smart" },
-	"observability": { "enabled": true }
+	"observability": { "enabled": true },
+	"vars": {
+		// Where the heavy password and Documents work is done (Supabase Edge
+		// Functions, see supabase/functions) in your Supabase project. Until the
+		// secret PASSWORD_SERVICE_SECRET is set, hashing is done in this Worker instead.
+		"PASSWORD_SERVICE_URL": "https://glsbjxncslcfaskigshw.supabase.co/functions/v1/password",
+		"SUITE_SERVICE_URL": "https://glsbjxncslcfaskigshw.supabase.co/functions/v1/suite"
+	}
 
 	// Secrets (SUPABASE_*, SESSION_SECRET, ADMIN_*, RESEND_API_KEY, ...) are not
 	// written here: set them in the Cloudflare dashboard (Settings > Variables

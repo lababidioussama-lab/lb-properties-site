@@ -343,7 +343,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
       if (!email || !full_name || password.length < 10) return fail("email_name_and_10char_password_required");
       const { data, error } = await db
         .from("crm_users")
-        .insert({ email, full_name, role: pick(b.role, ["admin", "agent"] as const) ?? "agent", password_hash: hashPassword(password) })
+        .insert({ email, full_name, role: pick(b.role, ["admin", "agent"] as const) ?? "agent", password_hash: await hashPassword(password) })
         .select("id, email, full_name, role, active")
         .single();
       return error ? (error.message.includes("duplicate") ? fail("email_exists", 409) : dbFail(error)) : ok({ user: data });
@@ -518,9 +518,9 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
         if (b.password.length < 10) return fail("password_too_short");
         if (self) {
           const { data: row } = await db.from("crm_users").select("password_hash").eq("id", id).maybeSingle();
-          if (!verifyPassword(typeof b.current_password === "string" ? b.current_password : "", (row?.password_hash as string) ?? "")) return fail("current_password_wrong", 403);
+          if (!(await verifyPassword(typeof b.current_password === "string" ? b.current_password : "", (row?.password_hash as string) ?? ""))) return fail("current_password_wrong", 403);
         } else if (user.role !== "admin") return fail("forbidden", 403);
-        patch.password_hash = hashPassword(b.password);
+        patch.password_hash = await hashPassword(b.password);
         passwordChanged = true;
       }
       if (!Object.keys(patch).length) return fail("empty_patch");

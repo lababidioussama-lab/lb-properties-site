@@ -25,3 +25,5 @@ Thumbs.db
 
 # Local secrets file used once to upload settings to Cloudflare
 cloudflare.secrets.env
+supabase.secrets.env
+cloudflare.site.secrets.env

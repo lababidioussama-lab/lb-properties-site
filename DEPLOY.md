@@ -193,62 +193,78 @@ in Netlify — it reads `netlify.toml` and configures itself.
 
 ---
 
-## Deploying on Cloudflare instead of Netlify
+## Deploying on Cloudflare (free plan): two Workers and two Supabase functions
 
-The site and the CRM run as one Cloudflare Worker (built with OpenNext).
-Static files and images are free and unlimited; the Worker needs the
-**Workers Paid plan ($5 a month)** because it is a little over the free
-plan's 3 MiB size limit.
+Cloudflare's free plan allows about 10 ms of computing per request and a
+3 MiB program, so the project is split into two small Workers that each fit:
 
-### One-time setup
+| Worker | Branch | What it serves | Address |
+|---|---|---|---|
+| `lababidi-site` | `claude/cloudflare-site` | the public website, chat and enquiry form | `lababidiproperties.com`, `www` |
+| `lababidi-crm` | `claude/cloudflare-crm` | the CRM, DB Search, Documents, Vastu Map | `crm.lababidiproperties.com` |
 
-1. **Plan.** Cloudflare dashboard → Workers & Pages → Plans → Workers Paid.
-2. **Sign in the CLI.** `npx wrangler login` opens the browser; approve it.
-3. **Private storage for the Documents suite** (it has no web address; only
-   the Worker reads it). The namespace is already created and named in
-   `wrangler.jsonc`; upload the file once:
+Two jobs are too heavy for 10 ms, so Supabase does them (Edge Functions, free
+allowance): checking and creating passwords (`supabase/functions/password`) and
+unlocking the encrypted Documents file (`supabase/functions/suite`). The Worker
+sends them the work over HTTPS with a shared secret and waits; waiting costs no
+computing time. Until those functions exist and `PASSWORD_SERVICE_SECRET` is
+set, the CRM Worker does the hashing itself, which the free plan may refuse.
 
-   ```
-   npx wrangler kv key put suite.html --path private/documents/suite.html --binding PRIVATE_FILES --remote
-   ```
-
-4. **Settings.** Dashboard → the Worker → Settings → Variables and Secrets.
-   Add these as **Secrets** (or `npx wrangler secret put NAME`):
-
-   `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
-   `SESSION_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RESEND_API_KEY`,
-   `GROQ_API_KEY`, `OTP_FROM`; and only if you use them: `RAPIDAPI_KEY`,
-   `PORTAL_WEBHOOK_SECRET`, `DLD_TOOL_KEY`, `DOCUMENTS_PASSWORD`.
-
-   Add as plain **Variables**: `CRM_HOST` (`crm.lababidiproperties.com`),
-   `SITE_URL`. Never set `CRM_OTP_DISABLED` or `ADMIN_PASSWORD_RESET` to true.
-   `NEXT_PUBLIC_COMPANY_ADDRESS/ORN/TRN` are read when the site is built, so
-   set them as **build** variables, not here.
-
-### Deploy
+### 1. Supabase functions (once)
 
 ```
+npx supabase login
+npx supabase functions deploy password --no-verify-jwt --project-ref glsbjxncslcfaskigshw
+npx supabase functions deploy suite --no-verify-jwt --project-ref glsbjxncslcfaskigshw
+npx supabase secrets set --env-file supabase.secrets.env --project-ref glsbjxncslcfaskigshw
+```
+
+`supabase.secrets.env` is a local file (ignored by git): fill in
+`DOCUMENTS_PASSWORD` (the password the old Documents page asked for).
+
+### 2. Settings (once per Worker)
+
+Fill in `cloudflare.secrets.env` (CRM) and `cloudflare.site.secrets.env`
+(website), both ignored by git, then:
+
+```
+npx wrangler secret bulk cloudflare.secrets.env --name lababidi-crm
+npx wrangler secret bulk cloudflare.site.secrets.env --name lababidi-site
+```
+
+Plain settings go in `wrangler.jsonc` `vars`: on the CRM Worker `CRM_HOST` =
+`crm.lababidiproperties.com`; on the website Worker `CRM_HOST` and `SITE_URL`.
+Do this only when the domains move; before that the test addresses work as they are.
+Never set `CRM_OTP_DISABLED` or `ADMIN_PASSWORD_RESET` to true.
+
+The encrypted Documents file lives in a private key-value store with no web
+address. It is already uploaded; to replace it:
+`npx wrangler kv key put suite.html --path private/documents/suite.html --binding PRIVATE_FILES --remote`
+(run from the CRM branch).
+
+### 3. Deploy (each Worker, from its own branch)
+
+```
+git checkout claude/cloudflare-site
+npm run cf:deploy
+
+git checkout claude/cloudflare-crm
 npm run cf:deploy
 ```
 
-It builds, then publishes to `https://lababidi-properties.<your-account>.workers.dev`.
-Check the site, the CRM sign-in (code email arrives), Documents and DB Search
-there **before** moving the domain.
+Test addresses: `https://lababidi-site.<account>.workers.dev` and
+`https://lababidi-crm.<account>.workers.dev`. Check both before moving the domain.
 
-To deploy automatically from GitHub instead: Workers & Pages → Create →
-Import a repository; build command `npm run cf:build`, deploy command
-`npx wrangler deploy`, and add the `NEXT_PUBLIC_*` values as build variables.
+### 4. Moving the domain
 
-### Moving the domains
+1. Add `lababidiproperties.com` to Cloudflare (free) and let it import the DNS
+   records. **Keep every email record** (MX, SPF, DKIM, DMARC, and the ones
+   Resend gave you), or sign-in codes stop arriving. Email records stay "DNS only".
+2. At the registrar, change the nameservers to the two Cloudflare gives you.
+3. Worker `lababidi-site` > Settings > Domains & Routes: add `lababidiproperties.com`
+   and `www.lababidiproperties.com`. Worker `lababidi-crm`: add `crm.lababidiproperties.com`.
+4. Set `CRM_HOST` as above and redeploy both.
+5. Only when everything works, remove the domains from Netlify.
 
-1. Add `lababidiproperties.com` to Cloudflare and let it import the existing
-   DNS records. **Keep every email record** (MX, SPF, DKIM, DMARC, and the
-   ones Resend gave you), or sign-in codes stop arriving. Email records must
-   stay "DNS only" (grey cloud).
-2. At your registrar, change the nameservers to the two Cloudflare gives you.
-3. Worker → Settings → Domains & Routes → add `lababidiproperties.com`,
-   `www.lababidiproperties.com` and `crm.lababidiproperties.com`.
-4. Only once those work, remove the domains from Netlify.
-
-Rolling back: Worker → Deployments → pick an earlier version → Roll back.
-While the domains are still on Netlify nothing here changes the live site.
+Rolling back: Worker > Deployments > pick an earlier version > Roll back. While
+the domains are still on Netlify nothing here changes the live site.

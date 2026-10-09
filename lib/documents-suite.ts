@@ -47,6 +47,49 @@ export function decryptSuite(page: string, password: string): string | null {
   }
 }
 
+/** The suite file's raw bytes, from the private store on Cloudflare or from disk elsewhere. */
+async function readSuiteBytes(): Promise<ArrayBuffer> {
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const store = (getCloudflareContext().env as { PRIVATE_FILES?: { get: (k: string, type: "arrayBuffer") => Promise<ArrayBuffer | null> } }).PRIVATE_FILES;
+    const bytes = await store?.get("suite.html", "arrayBuffer");
+    if (bytes) return bytes;
+  } catch { /* not running on Cloudflare */ }
+  const { readFile } = await import("node:fs/promises");
+  const buf = await readFile(SUITE_FILE);
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+}
+
+/**
+ * The page to send to a signed-in admin. When SUITE_SERVICE_URL is set (the
+ * Cloudflare setup), the heavy unlocking is done by the Supabase Edge Function
+ * in supabase/functions/suite and its answer is passed straight through, so
+ * this server spends almost no computing time. Otherwise it unlocks the file
+ * itself, as loadSuite does.
+ */
+export async function openSuite(): Promise<{ body: string | ReadableStream<Uint8Array>; unlocked: boolean }> {
+  const url = process.env.SUITE_SERVICE_URL;
+  const key = process.env.PASSWORD_SERVICE_SECRET;
+  if (url && key) {
+    const bytes = await readSuiteBytes();
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "x-hash-secret": key, "Content-Type": "text/html" },
+        body: bytes,
+        signal: AbortSignal.timeout(25_000),
+      });
+      if (res.ok && res.body) return { body: res.body, unlocked: true };
+      console.error(`[documents] the unlock service answered ${res.status}; serving the locked page.`);
+    } catch (e) {
+      console.error("[documents] the unlock service is unreachable:", e instanceof Error ? e.message : e);
+    }
+    return { body: new TextDecoder().decode(bytes), unlocked: false };
+  }
+  const { html, unlocked } = await loadSuite();
+  return { body: html, unlocked };
+}
+
 export async function loadSuite(): Promise<{ html: string; unlocked: boolean }> {
   const page = await readSuite();
   /* The key that opens the file: DOCUMENTS_PASSWORD when it is set, and

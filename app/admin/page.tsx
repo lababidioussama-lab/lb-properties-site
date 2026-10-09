@@ -1,6 +1,6 @@
 import { isCrmConfigured, sessionFromCookies } from "@/lib/crm-auth";
 import { CrmLogin } from "@/components/crm/CrmLogin";
-import { CrmApp } from "@/components/crm/CrmApp";
+import { CrmApp } from "@/components/crm/CrmClient";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

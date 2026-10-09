@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { isCrmConfigured, sessionFromCookies } from "@/lib/crm-auth";
 import { CrmLogin } from "@/components/crm/CrmLogin";
-import { DbSearchApp } from "@/components/crm/dbsearch/DbSearchApp";
+import { DbSearchApp } from "@/components/crm/CrmClient";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

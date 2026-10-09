@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { DOCS_COOKIE, liveUser, readDocsSession } from "@/lib/crm-auth";
-import { loadSuite } from "@/lib/documents-suite";
+import { openSuite } from "@/lib/documents-suite";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +32,6 @@ export async function GET(request: NextRequest) {
       headers: { "Cache-Control": "no-store, max-age=0" },
     });
   }
-  const { html } = await loadSuite();
-  return new NextResponse(html, { status: 200, headers: HEADERS });
+  const { body } = await openSuite();
+  return new NextResponse(body, { status: 200, headers: HEADERS });
 }

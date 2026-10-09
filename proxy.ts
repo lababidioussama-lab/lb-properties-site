@@ -1,16 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { LOCALES } from "@/lib/i18n/types";
 
-/* Next 16 renamed the `middleware` file convention to `proxy`. */
+/* Next 16 renamed the `middleware` file convention to `proxy`.
 
-const DEFAULT_LOCALE = "en";
+   This Worker is the CRM, DB Search and the Documents only. The public website
+   is a separate Worker on the main address. On the CRM's own host (CRM_HOST,
+   e.g. crm.lababidiproperties.com) the sign-in page is the home page; any other
+   address that reaches this Worker (the test address, for instance) gets the
+   same pages at /admin and /documents. */
 
-/* The CRM's own hostname, e.g. crm.lababidiproperties.com. When set, the CRM
-   is served at that host's root and /admin on the public site sends people
-   there. Unset (local dev, preview URLs) keeps /admin working as before. */
 const CRM_HOST = process.env.CRM_HOST?.toLowerCase();
 
-/** The admin-only areas: the CRM and the Documents suite. */
 const isPrivate = (pathname: string) =>
   pathname === "/admin" || pathname.startsWith("/admin/") || pathname === "/documents" || pathname.startsWith("/documents/");
 
@@ -18,48 +17,20 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = (request.headers.get("host") ?? "").toLowerCase().split(":")[0];
 
-  if (CRM_HOST) {
-    if (host === CRM_HOST) {
-      if (pathname === "/") {
-        const url = request.nextUrl.clone();
-        url.pathname = "/admin";
-        return NextResponse.rewrite(url);
-      }
-      if (isPrivate(pathname)) return NextResponse.next();
-      const url = request.nextUrl.clone();
-      url.pathname = "/";
-      url.search = "";
-      return NextResponse.redirect(url);
+  if (pathname === "/" || (CRM_HOST && host === CRM_HOST && !isPrivate(pathname))) {
+    const url = request.nextUrl.clone();
+    if (pathname === "/") {
+      url.pathname = "/admin";
+      return NextResponse.rewrite(url);
     }
-    if (pathname === "/admin" || pathname.startsWith("/admin/")) {
-      return NextResponse.redirect(new URL(`https://${CRM_HOST}/`));
-    }
-    if (pathname === "/documents" || pathname.startsWith("/documents/")) {
-      return NextResponse.redirect(new URL(`https://${CRM_HOST}/documents`));
-    }
+    url.pathname = "/";
+    url.search = "";
+    return NextResponse.redirect(url);
   }
-
-  if (isPrivate(pathname)) return NextResponse.next();
-
-  const hasLocale = LOCALES.some(
-    (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
-  );
-  if (hasLocale) return NextResponse.next();
-
-  // Honour the browser's stated preference on first landing, then hand over
-  // to the explicit selector. Anything unrecognised falls back to English.
-  const header = request.headers.get("accept-language") ?? "";
-  const preferred = header
-    .split(",")
-    .map((part) => part.split(";")[0].trim().slice(0, 2).toLowerCase())
-    .find((code) => (LOCALES as readonly string[]).includes(code));
-
-  const target = new URL(request.nextUrl);
-  target.pathname = `/${preferred ?? DEFAULT_LOCALE}${pathname === "/" ? "" : pathname}`;
-  return NextResponse.redirect(target);
+  return NextResponse.next();
 }
 
 export const config = {
   /* Everything except API routes, Next internals and static files. */
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.[\\w]+$).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\.[\w]+$).*)"],
 };

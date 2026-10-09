@@ -1,8 +1,12 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
 
 import { getSupabaseAdmin } from "./supabase";
+import { hashPassword, verifyPassword } from "./password";
+
+/* Hashing lives in ./password, which can hand the heavy work to a Supabase Edge Function. */
+export { hashPassword, verifyPassword };
 
 /**
  * CRM accounts: one row per person in crm_users, scrypt-hashed passwords,
@@ -46,18 +50,7 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(x, y);
 }
 
-export function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString("hex");
-  return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
-}
-
 const DUMMY_HASH = `${"0".repeat(32)}:${"0".repeat(128)}`;
-
-export function verifyPassword(password: string, stored: string): boolean {
-  const [salt, hash] = stored.split(":");
-  if (!salt || !hash) return false;
-  return safeEqual(scryptSync(password, salt, 64).toString("hex"), hash);
-}
 
 const sign = (payload: string, key: string) =>
   createHmac("sha256", key).update(payload).digest("hex");
@@ -208,7 +201,7 @@ export async function authenticate(email: string, password: string): Promise<Ses
        set it on the server to let the setup password in again. */
     const { data: existing } = await supabase.from("crm_users").select("id, password_hash").eq("email", ownerEmail).maybeSingle();
     const stored = (existing as { password_hash?: string | null } | null)?.password_hash ?? null;
-    const stillSetup = !stored || verifyPassword(ownerPassword, stored);
+    const stillSetup = !stored || (await verifyPassword(ownerPassword, stored));
     const breakGlass = process.env.ADMIN_PASSWORD_RESET === "true";
     if ((stillSetup || breakGlass || !existing) && safeEqual(password, ownerPassword)) {
       /* Update in place when the row exists: an upsert rewrote full_name to
@@ -216,10 +209,10 @@ export async function authenticate(email: string, password: string): Promise<Ses
          is written only when there is none or on break-glass, so signing in
          never overwrites a password he has since changed. */
       const fields: Record<string, unknown> = { role: "admin", active: true };
-      if (!stored || breakGlass) fields.password_hash = hashPassword(ownerPassword);
+      if (!stored || breakGlass) fields.password_hash = await hashPassword(ownerPassword);
       const { data } = existing
         ? await supabase.from("crm_users").update(fields).eq("id", (existing as { id: string }).id).select("id").single()
-        : await supabase.from("crm_users").insert({ email: ownerEmail, full_name: "Owner", ...fields, password_hash: hashPassword(ownerPassword) }).select("id").single();
+        : await supabase.from("crm_users").insert({ email: ownerEmail, full_name: "Owner", ...fields, password_hash: await hashPassword(ownerPassword) }).select("id").single();
       return data ? { id: data.id as string, role: "admin" } : null;
     }
   }
@@ -230,7 +223,7 @@ export async function authenticate(email: string, password: string): Promise<Ses
     .eq("email", normalized)
     .maybeSingle();
   // Hash even for unknown emails so response time does not reveal which accounts exist.
-  const valid = verifyPassword(password, (data?.password_hash as string) ?? DUMMY_HASH);
+  const valid = await verifyPassword(password, (data?.password_hash as string) ?? DUMMY_HASH);
   if (!data || !valid) return null;
   // Only someone who knows the password learns the account is switched off.
   if (!data.active) return "disabled";
