@@ -1,45 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { LOCALES } from "@/lib/i18n/types";
 
-/* Next 16 renamed the `middleware` file convention to `proxy`. */
+/* Next 16 renamed the `middleware` file convention to `proxy`.
+
+   This is the public website only. The CRM, DB Search and the Documents run
+   on their own host (CRM_HOST, e.g. crm.lababidiproperties.com), so anyone
+   who opens /admin or /documents here is sent there. */
 
 const DEFAULT_LOCALE = "en";
-
-/* The CRM's own hostname, e.g. crm.lababidiproperties.com. When set, the CRM
-   is served at that host's root and /admin on the public site sends people
-   there. Unset (local dev, preview URLs) keeps /admin working as before. */
-const CRM_HOST = process.env.CRM_HOST?.toLowerCase();
-
-/** The admin-only areas: the CRM and the Documents suite. */
-const isPrivate = (pathname: string) =>
-  pathname === "/admin" || pathname.startsWith("/admin/") || pathname === "/documents" || pathname.startsWith("/documents/");
+const CRM_HOST = (process.env.CRM_HOST ?? "crm.lababidiproperties.com").toLowerCase();
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const host = (request.headers.get("host") ?? "").toLowerCase().split(":")[0];
 
-  if (CRM_HOST) {
-    if (host === CRM_HOST) {
-      if (pathname === "/") {
-        const url = request.nextUrl.clone();
-        url.pathname = "/admin";
-        return NextResponse.rewrite(url);
-      }
-      if (isPrivate(pathname)) return NextResponse.next();
-      const url = request.nextUrl.clone();
-      url.pathname = "/";
-      url.search = "";
-      return NextResponse.redirect(url);
-    }
-    if (pathname === "/admin" || pathname.startsWith("/admin/")) {
-      return NextResponse.redirect(new URL(`https://${CRM_HOST}/`));
-    }
-    if (pathname === "/documents" || pathname.startsWith("/documents/")) {
-      return NextResponse.redirect(new URL(`https://${CRM_HOST}/documents`));
-    }
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    return NextResponse.redirect(new URL(`https://${CRM_HOST}/`));
   }
-
-  if (isPrivate(pathname)) return NextResponse.next();
+  if (pathname === "/documents" || pathname.startsWith("/documents/")) {
+    return NextResponse.redirect(new URL(`https://${CRM_HOST}/documents`));
+  }
 
   const hasLocale = LOCALES.some(
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),

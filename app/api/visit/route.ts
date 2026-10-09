@@ -1,7 +1,6 @@
 import { clientIp as clientAddress } from "@/lib/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { readSession, CRM_COOKIE } from "@/lib/crm-auth";
 import { VISIT_ENTITY, cleanPath, cleanText, deviceOf, geoOf, hostOf, isBot, sourceOf, visitorHash, type VisitDetail } from "@/lib/visits";
 
 export const runtime = "nodejs";
@@ -46,9 +45,7 @@ export async function POST(request: NextRequest) {
   try { b = JSON.parse(text) as Record<string, unknown>; } catch { return done(); }
 
   const path = cleanPath(b.p);
-  // On the CRM's own hostname the sign-in page is served at "/", so the host decides too.
-  const crmHost = process.env.CRM_HOST?.toLowerCase();
-  const crm = path === "/admin" || path.startsWith("/admin/") || path.startsWith("/documents") || (!!crmHost && host.split(":")[0] === crmHost);
+  const crm = false; // this build serves the public website only; the CRM counts its own visits
   const refHost = hostOf(b.r);
   const ownHost = host.split(":")[0].replace(/^www\./, "");
   const detail: VisitDetail = {
@@ -63,7 +60,6 @@ export async function POST(request: NextRequest) {
   if (campaign) detail.campaign = campaign;
   const lang = cleanText(b.l, 12);
   if (lang) detail.lang = lang;
-  if (readSession(request.cookies.get(CRM_COOKIE)?.value)) detail.team = true;
 
   await db.from("crm_audit").insert({ user_id: null, entity: VISIT_ENTITY, entity_id: null, action: crm ? "crm" : "site", detail });
   return done();

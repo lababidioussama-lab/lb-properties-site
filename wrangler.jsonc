@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "lababidi-properties",
+	"name": "lababidi-site",
 	"main": ".open-next/worker.js",
 	"compatibility_date": "2026-10-01",
 	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
@@ -8,20 +8,11 @@
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"
 	},
-	"kv_namespaces": [
-		{
-			// Private storage for the encrypted Documents suite. Nothing here has a
-			// web address: only this Worker can read it, and only for a signed-in
-			// admin. The file is uploaded once (see DEPLOY.md).
-			"binding": "PRIVATE_FILES",
-			"id": "4b73fd97d67348b2bf672a3ff1e74bc2"
-		}
-	],
 	"services": [
 		{
 			// The Worker calls itself; the service name must match "name" above.
 			"binding": "WORKER_SELF_REFERENCE",
-			"service": "lababidi-properties"
+			"service": "lababidi-site"
 		}
 	],
 	"images": {
