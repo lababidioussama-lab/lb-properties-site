@@ -138,7 +138,7 @@ ${turn.content}`;
         // first answer it is billed at a tenth of the normal input price.
         system: [{ type: "text", text: buildSystemPrompt(locale), cache_control: { type: "ephemeral" } }],
         messages: turns,
-        temperature: 0.3, // Low: this answers factual questions about stock.
+        // No temperature: this model rejects it, and its default answers factual questions well.
         max_tokens: 500,
       }),
       signal: AbortSignal.timeout(25_000),
