@@ -23,7 +23,13 @@ function tooMany(ip: string): boolean {
   return recent.length > MAX_PER_WINDOW;
 }
 
-const done = () => new NextResponse(null, { status: 204 });
+/* The public website (a separate Worker with no database key) reports its page
+   views here, so these origins may post. Anything else must be this server's own pages. */
+const SITE_ORIGINS = (process.env.VISIT_SITE_ORIGINS ?? "https://lababidiproperties.com,https://www.lababidiproperties.com")
+  .split(",").map((o) => o.trim().toLowerCase()).filter(Boolean);
+
+const done = (allowOrigin?: string) =>
+  new NextResponse(null, { status: 204, headers: allowOrigin ? { "Access-Control-Allow-Origin": allowOrigin, Vary: "Origin" } : undefined });
 
 export async function POST(request: NextRequest) {
   const ua = request.headers.get("user-agent")?.slice(0, 300) ?? "";
@@ -32,25 +38,27 @@ export async function POST(request: NextRequest) {
   // A browser always names the page a POST came from; anything without it is a script.
   const origin = request.headers.get("origin");
   const host = (request.headers.get("host") ?? "").toLowerCase();
-  if (!origin || hostOf(origin) !== host.split(":")[0].replace(/^www\./, "")) return done();
+  const fromSite = !!origin && SITE_ORIGINS.includes(origin.toLowerCase());
+  const fromOwn = !!origin && hostOf(origin) === host.split(":")[0].replace(/^www\./, "");
+  if (!fromSite && !fromOwn) return done();
+  const reply = () => done(fromSite ? origin! : undefined);
 
   const ip = clientAddress(request.headers);
-  if (tooMany(ip)) return done();
+  if (tooMany(ip)) return reply();
   const secret = process.env.SESSION_SECRET;
   const db = getSupabaseAdmin();
-  if (!db || !secret) return done();
+  if (!db || !secret) return reply();
 
   const text = await request.text().catch(() => "");
-  if (text.length > 2_000) return done();
+  if (text.length > 2_000) return reply();
   let b: Record<string, unknown> = {};
-  try { b = JSON.parse(text) as Record<string, unknown>; } catch { return done(); }
+  try { b = JSON.parse(text) as Record<string, unknown>; } catch { return reply(); }
 
   const path = cleanPath(b.p);
-  // On the CRM's own hostname the sign-in page is served at "/", so the host decides too.
-  const crmHost = process.env.CRM_HOST?.toLowerCase();
-  const crm = path === "/admin" || path.startsWith("/admin/") || path.startsWith("/documents") || (!!crmHost && host.split(":")[0] === crmHost);
+  // Pages of this server are the CRM; pages reported by the public website are the website.
+  const crm = !fromSite;
   const refHost = hostOf(b.r);
-  const ownHost = host.split(":")[0].replace(/^www\./, "");
+  const ownHost = fromSite ? hostOf(origin) : host.split(":")[0].replace(/^www\./, "");
   const detail: VisitDetail = {
     v: visitorHash(ip, ua, secret),
     path,
@@ -63,8 +71,8 @@ export async function POST(request: NextRequest) {
   if (campaign) detail.campaign = campaign;
   const lang = cleanText(b.l, 12);
   if (lang) detail.lang = lang;
-  if (readSession(request.cookies.get(CRM_COOKIE)?.value)) detail.team = true;
+  if (!fromSite && readSession(request.cookies.get(CRM_COOKIE)?.value)) detail.team = true;
 
   await db.from("crm_audit").insert({ user_id: null, entity: VISIT_ENTITY, entity_id: null, action: crm ? "crm" : "site", detail });
-  return done();
+  return reply();
 }
