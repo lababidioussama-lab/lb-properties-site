@@ -104,15 +104,29 @@ export async function liveUser(session: SessionUser | null): Promise<SessionUser
   if (!session) return null;
   const db = getSupabaseAdmin();
   if (!db) return null;
-  const [{ data }, cut] = await Promise.all([
-    db.from("crm_users").select("role, active").eq("id", session.id).maybeSingle(),
-    sessionCut(session.id),
-  ]);
-  if (!data || !data.active) return null;
+  /* A page load makes a dozen requests at once, each needing this answer.
+     The role and active flag are remembered for a few seconds, so they cost
+     one database round trip together instead of one each. Blocking someone
+     or ending their sessions forgets it at once on this server, and takes at
+     most LIVE_USER_MS on any other. */
+  let row = liveRows.get(session.id);
+  if (!row || Date.now() - row.read > LIVE_USER_MS) {
+    const { data } = await db.from("crm_users").select("role, active").eq("id", session.id).maybeSingle();
+    row = { read: Date.now(), role: data?.role === "admin" ? "admin" : "agent", active: !!data?.active, exists: !!data };
+    if (liveRows.size > 500) liveRows.clear();
+    liveRows.set(session.id, row);
+  }
+  if (!row.exists || !row.active) return null;
   // "Sign out everywhere" and password changes end every session opened before them.
+  const cut = await sessionCut(session.id);
   if (cut && session.iat != null && session.iat < cut) return null;
-  return { id: session.id, role: data.role === "admin" ? "admin" : "agent" };
+  return { id: session.id, role: row.role };
 }
+
+const LIVE_USER_MS = 8_000;
+const liveRows = new Map<string, { read: number; role: Role; active: boolean; exists: boolean }>();
+/** Drop what is remembered about a person, after they are blocked, demoted or signed out everywhere. */
+export function forgetUser(id: string) { liveRows.delete(id); cuts.delete(id); }
 
 /* "Sign out everywhere": a moment per person, kept in crm_audit (entity
    "session_cut") like the DB Search settings, so nothing new is stored in the
@@ -136,6 +150,7 @@ export async function cutSessions(userId: string, actorId: string | null, why: s
   const at = new Date();
   await getSupabaseAdmin()?.from("crm_audit").insert({ user_id: actorId, entity: "session_cut", entity_id: userId, action: "cut", detail: { why }, created_at: at.toISOString() });
   cuts.set(userId, { read: Date.now(), cut: at.getTime() });
+  liveRows.delete(userId);
 }
 
 export async function sessionFromCookies(): Promise<SessionUser | null> {

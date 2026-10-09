@@ -92,24 +92,28 @@ export function CrmApp({ me, demo = false }: { me: SessionUser; demo?: boolean }
   const invoices = useTable<CrmInvoice>("invoices", isAdmin);
   const spend = useTable<CrmSourceSpend>("source_spend", isAdmin);
 
-  const load = useCallback(async () => {
-    const [l, c, t, u] = await Promise.all([
+  /* Leads and tasks move all day, so they refresh every minute. People and
+     contacts change rarely and are the big ones, so after the first load they
+     refresh every five minutes, or when asked for (`all`). */
+  const load = useCallback(async (all = true) => {
+    const [l, t, c, u] = await Promise.all([
       api<{ leads: CrmLead[] }>("GET", "leads"),
-      api<{ contacts: CrmContact[] }>("GET", "contacts"),
       api<{ tasks: CrmTask[] }>("GET", "tasks"),
-      api<{ users: CrmUser[] }>("GET", "users"),
+      all ? api<{ contacts: CrmContact[] }>("GET", "contacts") : null,
+      all ? api<{ users: CrmUser[] }>("GET", "users") : null,
     ]);
     setProblem(l.ok ? null : l.error ?? "Could not load data");
     setLeads(l.leads ?? []);
-    setContacts(c.contacts ?? []);
     setTasks(t.tasks ?? []);
-    setUsers(u.users ?? []);
+    if (c) setContacts(c.contacts ?? []);
+    if (u) setUsers(u.users ?? []);
     setLoaded(true);
   }, []);
 
   useEffect(() => {
     void load();
-    const timer = window.setInterval(load, 60_000);
+    let tick = 0;
+    const timer = window.setInterval(() => void load(++tick % 5 === 0), 60_000);
     return () => window.clearInterval(timer);
   }, [load]);
 

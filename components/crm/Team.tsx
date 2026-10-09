@@ -15,6 +15,8 @@ export function TeamView({ users, meId, onUser }: {
   const [error, setError] = useState<string | null>(null);
 
   const [done, setDone] = useState<string | null>(null);
+  /* A save is confirmed on the row it happened on, since the top of the page is out of sight. */
+  const [saved, setSaved] = useState<{ id: string; text: string } | null>(null);
 
   async function create() {
     setError(null);
@@ -36,11 +38,13 @@ export function TeamView({ users, meId, onUser }: {
     }
   }
 
-  async function patch(id: string, change: Record<string, unknown>) {
+  async function patch(id: string, change: Record<string, unknown>, what?: string) {
     setError(null);
     const r = await api<{ user: CrmUser }>("PATCH", "users", { id, ...change });
-    if (r.user) onUser(r.user as CrmUser);
-    else setError(r.error === "cannot_demote_self" ? "You cannot remove your own admin access." : "Could not save.");
+    if (r.user) {
+      onUser(r.user as CrmUser);
+      if (what) { setSaved({ id, text: `${what} saved` }); window.setTimeout(() => setSaved((c) => (c?.id === id ? null : c)), 3000); }
+    } else setError(r.error === "cannot_demote_self" ? "You cannot remove your own admin access." : `Could not save${what ? ` ${what}` : ""} (${r.error ?? "unknown error"}). Try again.`);
   }
 
   async function resetPassword(u: CrmUser) {
@@ -104,15 +108,19 @@ export function TeamView({ users, meId, onUser }: {
                   {/* Say which it is: no number, no expiry date, or an expired card. "No BRN" beside a filled-in number read as a fault. */}
                   {licenceValid(u) ? "Licensed" : `${!u.brn_no ? "No BRN" : !u.brn_expiry ? "BRN expiry date missing" : "Not licensed: BRN expired"}${u.role === "admin" ? "" : " — gets no leads"}`}
                 </span>
+                {saved?.id === u.id && <span role="status" className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">{saved.text}</span>}
                 {licenceAlerts(u).filter((a) => a.level !== "missing").map((a) => (
                   <span key={a.text} className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${a.level === "expired" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{a.text}</span>
                 ))}
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                <label><Label>BRN (broker card)</Label><input defaultValue={u.brn_no ?? ""} onBlur={(e) => e.target.value !== (u.brn_no ?? "") && patch(u.id, { brn_no: e.target.value })} className={INPUT} /></label>
+                <label><Label>BRN (broker card)</Label><input defaultValue={u.brn_no ?? ""} onBlur={(e) => e.target.value !== (u.brn_no ?? "") && patch(u.id, { brn_no: e.target.value }, "BRN")} className={INPUT} /></label>
                 {([["brn_expiry", "BRN expiry"], ["visa_expiry", "Visa expiry"], ["emirates_id_expiry", "Emirates ID expiry"], ["rera_cert_date", "RERA exam passed"]] as const).map(([k, label]) => (
                   <label key={k}><Label>{label}</Label>
-                    <input type="date" defaultValue={u[k] ?? ""} onBlur={(e) => e.target.value !== (u[k] ?? "") && patch(u.id, { [k]: e.target.value || null })} className={INPUT} />
+                    {/* Saved the moment a whole date is chosen (picking from the calendar never "leaves" the field, so waiting for that left it unsaved); clearing a date still saves on leaving. */}
+                    <input type="date" defaultValue={u[k] ?? ""}
+                      onChange={(e) => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && e.target.value !== (u[k] ?? "") && patch(u.id, { [k]: e.target.value }, label)}
+                      onBlur={(e) => e.target.value !== (u[k] ?? "") && patch(u.id, { [k]: e.target.value || null }, label)} className={INPUT} />
                   </label>
                 ))}
               </div>

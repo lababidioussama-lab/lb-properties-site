@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getSupabaseAdmin, LEADS_TABLE } from "@/lib/supabase";
 import { parseFilePath, pathFromUrl } from "@/lib/crm-files";
-import { CRM_COOKIE, SESSION_COOKIE_OPTIONS, createSession, cutSessions, hashPassword, liveUser, sameOrigin, sessionFromRequest, verifyPassword, type SessionUser } from "@/lib/crm-auth";
+import { CRM_COOKIE, SESSION_COOKIE_OPTIONS, createSession, cutSessions, forgetUser, hashPassword, liveUser, sameOrigin, sessionFromRequest, verifyPassword, type SessionUser } from "@/lib/crm-auth";
 import { PORTALS, PORTAL_LABEL, ingestPortalLead, portalSecret, type Portal } from "@/lib/portal-intake";
 import { licenceValid, ACTIVITY_KINDS, CONTACT_KINDS, CONTACT_STATUSES, LEAD_SLA_HOURS, LOST_REASONS, STAGES, STAGE_LABEL, STAR_LIMIT, complianceIssues, type Stage } from "@/lib/crm";
 
@@ -82,7 +82,11 @@ const OPEN_STAGES = ["new", "contacted", "viewing", "offer"];
 const slaDeadline = () => new Date(Date.now() + LEAD_SLA_HOURS * 3_600_000).toISOString();
 
 /** Leads whose agent let the clock run out go back to the open pool. */
+let lastExpiry = 0;
 async function expireLeads(db: SupabaseClient) {
+  // Once a minute is plenty for a deadline counted in hours, and every page load and refresh asks.
+  if (Date.now() - lastExpiry < 60_000) return;
+  lastExpiry = Date.now();
   const { data } = await db
     .from(LEADS_TABLE)
     .update({ owner_id: null, expires_at: null })
@@ -523,6 +527,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       const { data, error } = await db.from("crm_users").update(patch).eq("id", id)
         .select("id, email, full_name, role, active, slab_pct, quarterly_target_aed, phone, languages, specialties, bio, avatar_url, brn_no, brn_expiry, visa_expiry, emirates_id_expiry, rera_cert_date").single();
       if (error) return dbFail(error);
+      forgetUser(id);
       if (passwordChanged) {
         await cutSessions(id, user.id, self ? "password changed" : "password reset by admin");
         // The person changing their own password stays signed in, on a fresh session.
