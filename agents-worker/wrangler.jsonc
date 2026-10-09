@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lababidi-agents",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "placement": { "mode": "smart" },
+  "routes": [{ "pattern": "agents.lababidiproperties.com", "custom_domain": true }],
+  "vars": {
+    "SUPABASE_URL": "https://glsbjxncslcfaskigshw.supabase.co",
+    "PASSWORD_SERVICE_URL": "https://glsbjxncslcfaskigshw.supabase.co/functions/v1/crm-password"
+  }
+}
