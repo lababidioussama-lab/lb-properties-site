@@ -8,13 +8,13 @@
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"
 	},
-	"r2_buckets": [
+	"kv_namespaces": [
 		{
 			// Private storage for the encrypted Documents suite. Nothing here has a
 			// web address: only this Worker can read it, and only for a signed-in
-			// admin. Create the bucket and upload the file once (see DEPLOY.md).
+			// admin. The file is uploaded once (see DEPLOY.md).
 			"binding": "PRIVATE_FILES",
-			"bucket_name": "lababidi-private"
+			"id": "4b73fd97d67348b2bf672a3ff1e74bc2"
 		}
 	],
 	"services": [

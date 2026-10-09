@@ -18,14 +18,14 @@ export const SUITE_FILE = path.join(process.cwd(), "private", "documents", "suit
 
 let cache: { salt: string; html: string } | null = null;
 
-/* The suite file: on Cloudflare it lives in a private R2 bucket that has no web
-   address; anywhere else it is read from disk. */
+/* The suite file: on Cloudflare it lives in a private key-value store that has no
+   web address; anywhere else it is read from disk. */
 async function readSuite(): Promise<string> {
   try {
     const { getCloudflareContext } = await import("@opennextjs/cloudflare");
-    const bucket = (getCloudflareContext().env as { PRIVATE_FILES?: { get: (k: string) => Promise<{ text: () => Promise<string> } | null> } }).PRIVATE_FILES;
-    const object = await bucket?.get("suite.html");
-    if (object) return await object.text();
+    const store = (getCloudflareContext().env as { PRIVATE_FILES?: { get: (k: string, type: "text") => Promise<string | null> } }).PRIVATE_FILES;
+    const text = await store?.get("suite.html", "text");
+    if (text) return text;
   } catch { /* not running on Cloudflare */ }
   const { readFile } = await import("node:fs/promises");
   return readFile(SUITE_FILE, "utf8");

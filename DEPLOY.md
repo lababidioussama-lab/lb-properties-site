@@ -205,11 +205,11 @@ plan's 3 MiB size limit.
 1. **Plan.** Cloudflare dashboard → Workers & Pages → Plans → Workers Paid.
 2. **Sign in the CLI.** `npx wrangler login` opens the browser; approve it.
 3. **Private storage for the Documents suite** (it has no web address; only
-   the Worker reads it):
+   the Worker reads it). The namespace is already created and named in
+   `wrangler.jsonc`; upload the file once:
 
    ```
-   npx wrangler r2 bucket create lababidi-private
-   npx wrangler r2 object put lababidi-private/suite.html --file private/documents/suite.html --remote
+   npx wrangler kv key put suite.html --path private/documents/suite.html --binding PRIVATE_FILES --remote
    ```
 
 4. **Settings.** Dashboard → the Worker → Settings → Variables and Secrets.
