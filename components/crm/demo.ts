@@ -192,6 +192,42 @@ export async function demoApi(method: string, resource: string, body?: Row, quer
     return { ok: true, rows: added, skipped: 0 };
   }
   if (resource === "audit") return { ok: true, entries: tables.audit };
+  if (resource === "agents") {
+    const now = Date.now();
+    const iso = (m: number) => new Date(now - m * 60_000).toISOString();
+    const desk = ((globalThis as unknown as { __deskDemo?: { waiting: Row[]; decided: Row[] } }).__deskDemo ??= {
+      waiting: [
+        { id: "a1", created_at: iso(6), kind: "reply", title: "Reply to Ahmed Al Mansoori", target: { type: "lead", id: "x", label: "Ahmed Al Mansoori" },
+          draft: { reply: "Hello Ahmed, thank you for getting in touch with Lababidi Properties. I understand you are looking at investment apartments. To point you to the right options, could you tell me your budget range and whether you plan to rent them out? I can arrange a short call whenever suits you.", language: "en", next_step: "Send it on WhatsApp, then set a follow-up for tomorrow.", phone: "+971 50 000 0000" },
+          facts: { name: "Ahmed Al Mansoori", source: "Website", stage: "new", asked_for: { service: "Investor Advisory" } }, tokens: { in: 820, out: 96 }, by: "u1" },
+        { id: "a2", created_at: iso(41), kind: "listing", title: "Advert text for Marina Gate 2 · 2BR", target: { type: "listing", id: "y", label: "Marina Gate 2 · 2BR" },
+          draft: { title: "2BR apartment for sale in Marina Gate 2, Dubai Marina", description_en: "Bright two-bedroom apartment in Marina Gate 2, Dubai Marina, offered for sale. 1,250 sq ft of living space. Contact Lababidi Properties to arrange a viewing.", description_ar: "شقة من غرفتي نوم في مارينا جيت 2 بدبي مارينا، معروضة للبيع، بمساحة 1,250 قدم مربع. تواصلوا مع لبيدي للعقارات لترتيب معاينة.", check: ["No photos on file", "Permit number still missing"] },
+          facts: { purpose: "sale", bedrooms: "2", size_sqft: 1250 }, tokens: { in: 640, out: 310 }, by: "u1" },
+      ],
+      decided: [
+        { id: "a0", created_at: iso(300), kind: "briefing", title: "Briefing for 2026-10-05", target: { type: "office", id: null, label: "Office" }, draft: { briefing: "x" }, facts: {}, tokens: { in: 500, out: 120 }, by: "u1",
+          decision: { outcome: "approved", at: iso(290), by: "u1", final: { briefing: "Three new enquiries are unclaimed; call Ahmed first." }, applied: "Approved. Not emailed." } },
+      ],
+    });
+    const body2 = (body ?? {}) as Row;
+    if (method === "GET") {
+      if ((query ?? "").includes("view=count")) return { ok: true, pending: desk.waiting.length };
+      return { ok: true, configured: true, model: "claude-sonnet-5-5", waiting: desk.waiting, decided: desk.decided, usage: { drafts_today: 3, cap: 40, tokens_24h: { in: 1960, out: 526 } } };
+    }
+    if (body2.action === "decide") {
+      const i = desk.waiting.findIndex((x) => x.id === body2.id);
+      if (i < 0) return { ok: false, error: "not_found" };
+      const [p] = desk.waiting.splice(i, 1);
+      const approved = body2.decision === "approve";
+      desk.decided.unshift({ ...p, decision: { outcome: approved ? "approved" : "rejected", at: new Date().toISOString(), by: "u1", final: body2.final, applied: approved ? (p.kind === "reply" ? "Kept in the lead's notes. Nothing was sent: use the WhatsApp button to send it yourself." : "Approved.") : undefined } });
+      return { ok: true, id: p.id, outcome: approved ? "approved" : "rejected", applied: approved ? "Approved in the demo." : undefined, whatsapp: approved && p.kind === "reply" ? "https://wa.me/971500000000" : null };
+    }
+    const kind = body2.action === "draft_listing" ? "listing" : body2.action === "briefing" ? "briefing" : "reply";
+    desk.waiting.push({ id: `d${now}`, created_at: new Date().toISOString(), kind, title: kind === "briefing" ? "Briefing for today" : kind === "listing" ? "Advert text (demo)" : "Reply (demo)", target: { type: "office", id: null, label: "Demo" },
+      draft: kind === "briefing" ? { briefing: "Demo briefing: three enquiries are waiting for a first reply; start with the oldest." } : kind === "listing" ? { title: "Demo title", description_en: "Demo description.", description_ar: "وصف تجريبي.", check: [] } : { reply: "Demo reply.", language: "en", next_step: "Send it, then follow up tomorrow." },
+      facts: { demo: true }, tokens: { in: 400, out: 80 }, by: "u1" });
+    return { ok: true };
+  }
   if (resource === "security") {
     const at = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
     const ua = "Mozilla/5.0 (Windows NT 10.0) Chrome/126.0";
