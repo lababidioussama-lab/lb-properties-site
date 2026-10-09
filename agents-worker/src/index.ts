@@ -4,6 +4,7 @@ import { ask, budgetUsd, chatsToday, dailyCap, decide, loadProposals, meeting, o
 import { ROSTER, byId } from "./roster";
 import { handleUpdate, secretOk } from "./telegram";
 import { agentPage, homePage, loginPage } from "./ui";
+import { makePdf } from "./pdf";
 
 const SECURITY = {
   "X-Frame-Options": "DENY",
@@ -79,6 +80,13 @@ export default {
     if (path === "/api/meeting" && (req.method === "GET" || req.method === "POST")) {
       const m = await meeting(env, req.method === "POST");
       return m ? json({ ok: true, at: m.at, lines: m.lines }) : json({ ok: false, error: (await spendThisMonth(env)).usd >= budgetUsd(env) ? "budget" : "upstream" }, 200);
+    }
+
+    if (path === "/api/pdf" && req.method === "GET") {
+      const p = (await loadProposals(env)).find((x) => x.id === url.searchParams.get("id"));
+      if (!p) return json({ ok: false, error: "not_found" }, 404);
+      const made = makePdf(p.title, p.draft.text ?? "", `DRAFT for review - not valid until signed - prepared by ${byId(p.agent)?.name ?? "staff"} (AI), Lababidi Properties`);
+      return new Response(made.bytes, { headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="draft.pdf"`, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
     }
 
     if (path === "/api/chat" && req.method === "POST") {

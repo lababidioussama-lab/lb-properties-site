@@ -1,6 +1,7 @@
 import { ROSTER, addressedTo, byId, type Agent } from "./roster";
 import { ask, budgetUsd, chatsToday, dailyCap, decide, lastAgent, loadProposals, meeting, route, spendThisMonth, type Attachment } from "./engine";
 import { audit, rest, same, type Env } from "./core";
+import { makePdf } from "./pdf";
 
 /**
  * Telegram: the owner's line to the whole office.
@@ -31,6 +32,21 @@ async function sendProposal(env: Env, chat: number, id: string) {
   if (!p) return;
   const a = byId(p.agent);
   const what = p.kind === "reply" ? "Saves this reply in the lead's notes (you send it yourself)." : p.kind === "listing" ? "Updates the listing's title and description in the CRM (nothing goes to portals)." : "Records this. Nothing else happens.";
+  const buttons = { inline_keyboard: [[{ text: "Approve", callback_data: `ok:${id}` }, { text: "Reject", callback_data: `no:${id}` }]] };
+
+  if (p.draft.pdf) {
+    // A document goes to him as a PDF draft, with the decision buttons on the file itself.
+    const made = makePdf(p.title, p.draft.text ?? "", `DRAFT for review - not valid until signed - prepared by ${a?.name ?? "staff"} (AI), Lababidi Properties`);
+    const form = new FormData();
+    form.append("chat_id", String(chat));
+    form.append("document", new Blob([made.bytes], { type: "application/pdf" }), `${p.title.replace(/[^A-Za-z0-9 ._-]/g, "").trim().slice(0, 60) || "draft"}.pdf`);
+    form.append("caption", `Draft for your approval, from ${a?.name ?? "staff"}: ${p.title}\n\nIf you approve: ${what}${made.lost ? "\nNote: Arabic or other non-Latin text could not be printed in this PDF and shows as ?. The full text is in the office." : ""}`.slice(0, 1000));
+    form.append("reply_markup", JSON.stringify(buttons));
+    const res = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendDocument`, { method: "POST", body: form, signal: AbortSignal.timeout(20_000) }).catch(() => null);
+    if (res?.ok) return;
+    await say(env, chat, "The PDF could not be sent, so here is the text instead.");
+  }
+
   const body = `For your approval\nFrom ${a?.name ?? "staff"}: ${p.title}\n\n${p.draft.text ?? ""}${p.draft.description_ar ? `\n\n${p.draft.description_ar}` : ""}`;
   const parts: string[] = [];
   for (let rest = body; rest.length; ) {
@@ -41,9 +57,7 @@ async function sendProposal(env: Env, chat: number, id: string) {
     rest = rest.slice(cut).replace(/^\n/, "");
   }
   for (const part of parts) await say(env, chat, part);
-  await say(env, chat, `If you approve: ${what}${parts.length > 1 ? "\nThe full text is also in the office, where you can edit it before approving." : ""}`, {
-    reply_markup: { inline_keyboard: [[{ text: "Approve", callback_data: `ok:${id}` }, { text: "Reject", callback_data: `no:${id}` }]] },
-  });
+  await say(env, chat, `If you approve: ${what}${parts.length > 1 ? "\nThe full text is also in the office, where you can edit it before approving." : ""}`, { reply_markup: buttons });
 }
 
 const HELP = `Your office is open. Talk to anyone by starting with their first name:\n• Karim, who owns unit 2104 in Marina Gate?\n• Layla, what should I do first today?\n• Ines, write the advert for my newest listing.\nIf you name nobody, Omar sends it to the right person.\n\n/team lists everyone · /pending shows what waits · /usage shows spend · /meeting shows what the team is discussing.`;

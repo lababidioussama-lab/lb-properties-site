@@ -175,7 +175,7 @@ export function agentPage(a: Agent, props: Proposal[], chat: { role: string; tex
   const pcard = (p: Proposal) => `<div class="prop" data-id="${esc(p.id)}"><div class="meta">${esc(p.kind === "reply" ? "Reply draft" : p.kind === "listing" ? "Advert text" : "Report / note")} · ${esc(new Date(p.created_at).toLocaleString("en-GB", { timeZone: "Asia/Dubai" }))}</div><b>${esc(p.title)}</b>
 <textarea aria-label="Draft text, editable">${esc(p.draft.text ?? "")}</textarea>${p.draft.description_ar ? `<div class="hist" dir="rtl" style="margin-top:6px">${esc(p.draft.description_ar)}</div>` : ""}
 <div class="hist" style="margin-top:6px">${p.kind === "reply" ? "Approving saves this in the lead's notes. You send it yourself." : p.kind === "listing" ? "Approving updates the listing in the CRM only." : "Approving records it. Nothing else happens."}</div>
-<div class="row"><button class="btn" onclick="decide(this,'approved')">Approve</button><button class="btn bad" onclick="decide(this,'rejected')">Reject</button></div></div>`;
+<div class="row">${p.draft.pdf ? `<a class="btn ghost" href="/api/pdf?id=${esc(p.id)}" target="_blank" rel="noopener">Open as PDF</a>` : ""}<button class="btn" onclick="decide(this,'approved')">Approve</button><button class="btn bad" onclick="decide(this,'rejected')">Reject</button></div></div>`;
   const av = portrait(a, 30);
   const msgs = chat.map((m) => (m.role === "user" ? `<div class="msg me"><div class="m">${esc(m.text)}</div></div>` : `<div class="msg ag">${av}<div class="m">${esc(m.text)}</div></div>`)).join("");
   return page(`${a.name} · AI office`, `<div class="wrap"><div class="top"><a class="btn ghost" href="/">‹ All offices</a><div class="brand">Lababidi Properties<small>AI office</small></div></div>

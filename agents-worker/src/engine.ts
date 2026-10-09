@@ -82,6 +82,7 @@ const TOOLS: Record<ToolName, { name: string; description: string; input_schema:
         description_ar: { type: "string", description: "listing only: Arabic description" },
         lead_id: { type: "string" },
         listing_id: { type: "string" },
+        pdf: { type: "boolean", description: "true for a document he will read or sign (a contract, an addendum, a form, a formal report): it is sent to him as a PDF draft. Write its text as a clean document: the title is given separately, headings in CAPITALS on their own line, numbered clauses, no markdown." },
       },
       required: ["kind", "title", "text"],
     },
@@ -148,7 +149,7 @@ async function runTool(env: Env, agent: Agent, name: string, input: Record<strin
     if (!["note", "reply", "listing"].includes(kind)) return { error: "bad kind" };
     const text = String(input.text ?? "").slice(0, 16000);
     if (!text) return { error: "empty text" };
-    const draft: Record<string, unknown> = { text, description_ar: String(input.description_ar ?? "").slice(0, 2500) };
+    const draft: Record<string, unknown> = { text, description_ar: String(input.description_ar ?? "").slice(0, 2500), pdf: input.pdf === true };
     const target = { lead_id: input.lead_id ? String(input.lead_id) : null, listing_id: input.listing_id ? String(input.listing_id) : null };
     if (kind === "reply" && !target.lead_id) return { error: "a reply needs lead_id: ask crm_snapshot or Oussama which lead" };
     if (kind === "listing" && !target.listing_id) return { error: "a listing text needs listing_id" };
@@ -301,7 +302,7 @@ export async function ask(env: Env, agent: Agent, text: string, via: "telegram" 
 
 /* --------------------------------------------------------------- proposals */
 
-export interface Proposal { id: string; created_at: string; agent: string; kind: string; title: string; draft: { text?: string; description_ar?: string }; target: { lead_id: string | null; listing_id: string | null }; decision?: { outcome: string; at: string; applied?: string } }
+export interface Proposal { id: string; created_at: string; agent: string; kind: string; title: string; draft: { text?: string; description_ar?: string; pdf?: boolean }; target: { lead_id: string | null; listing_id: string | null }; decision?: { outcome: string; at: string; applied?: string } }
 
 export async function loadProposals(env: Env, days = 30): Promise<Proposal[]> {
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
