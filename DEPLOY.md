@@ -204,8 +204,8 @@ Cloudflare's free plan allows about 10 ms of computing per request and a
 | `lababidi-crm` | `claude/cloudflare-crm` | the CRM, DB Search, Documents, Vastu Map | `crm.lababidiproperties.com` |
 
 Two jobs are too heavy for 10 ms, so Supabase does them (Edge Functions, free
-allowance): checking and creating passwords (`supabase/functions/password`) and
-unlocking the encrypted Documents file (`supabase/functions/suite`). The Worker
+allowance): checking and creating passwords (`supabase/functions/crm-password`) and
+unlocking the encrypted Documents file (`supabase/functions/crm-suite`). The Worker
 sends them the work over HTTPS with a shared secret and waits; waiting costs no
 computing time. Until those functions exist and `PASSWORD_SERVICE_SECRET` is
 set, the CRM Worker does the hashing itself, which the free plan may refuse.

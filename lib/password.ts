@@ -6,7 +6,7 @@ import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
  * Hashing a password is deliberately heavy work, about 40 ms of computing.
  * That is fine on an ordinary server, but Cloudflare's free plan allows about
  * 10 ms per request, so there the work is done by a small Supabase Edge
- * Function instead (supabase/functions/password): this server sends it the
+ * Function instead (supabase/functions/crm-password): this server sends it the
  * password over HTTPS with a shared secret, and it answers. Waiting for that
  * answer costs no computing time here. Without PASSWORD_SERVICE_URL the work
  * is done locally, as before, with the same hash format, so nothing stored
@@ -14,7 +14,9 @@ import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
  */
 
 const serviceUrl = () => process.env.PASSWORD_SERVICE_URL;
-const serviceKey = () => process.env.PASSWORD_SERVICE_SECRET;
+/* The function trusts only a caller that holds this project's own service key,
+   which this server already has, so no extra shared secret has to be kept. */
+const serviceKey = () => process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function same(a: string, b: string): boolean {
   const x = Buffer.from(a);
@@ -29,7 +31,7 @@ function same(a: string, b: string): boolean {
 async function ask(body: Record<string, string>): Promise<Record<string, unknown>> {
   const res = await fetch(serviceUrl()!, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-hash-secret": serviceKey() ?? "" },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey() ?? ""}` },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(8000),
   });

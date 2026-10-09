@@ -3,18 +3,17 @@
 // Why it exists: unlocking the file takes about a quarter of a second of
 // computing (a deliberately slow key derivation), far more than Cloudflare's
 // free plan allows per request. The CRM, after it has checked that the person
-// is the signed-in admin, sends the still-encrypted file here; this function
-// unlocks it and sends the page back. The password never leaves Supabase: it is
-// read from this function's own secrets, and nothing is stored.
+// is the signed-in admin, sends the still-encrypted file here with the
+// password; this function unlocks it and sends the page back. Nothing is stored
+// and the password is used only for that one request.
 //
-// Deploy (once):  supabase functions deploy suite --no-verify-jwt
-// Secrets (once): supabase secrets set HASH_SERVICE_SECRET=<same value as for "password">
-//                 supabase secrets set DOCUMENTS_PASSWORD=<the documents password>
-//                 (ADMIN_PASSWORD is tried too, if DOCUMENTS_PASSWORD is not set or does not fit)
+// Who may call it: only a caller holding this project's own service key (the
+// CRM server does); see the "password" function.
+import { Buffer } from "node:buffer";
 import { createDecipheriv, pbkdf2Sync, timingSafeEqual } from "node:crypto";
 import { gunzipSync } from "node:zlib";
 
-const secret = Deno.env.get("HASH_SERVICE_SECRET") ?? "";
+const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 function same(a: string, b: string): boolean {
   const x = Buffer.from(a);
@@ -41,15 +40,16 @@ function decrypt(page: string, password: string): string | null {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("method", { status: 405 });
-  if (secret.length < 24 || !same(req.headers.get("x-hash-secret") ?? "", secret)) return new Response("forbidden", { status: 403 });
+  const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (serviceKey.length < 40 || !same(bearer, serviceKey)) return new Response("forbidden", { status: 403 });
+
+  const password = req.headers.get("x-documents-password") ?? "";
+  if (!password || password.length > 200) return new Response("password needed", { status: 400 });
 
   const page = await req.text();
   if (page.length < 1000 || page.length > 12_000_000) return new Response("bad file", { status: 400 });
 
-  const passwords = [Deno.env.get("DOCUMENTS_PASSWORD"), Deno.env.get("ADMIN_PASSWORD")].filter((p): p is string => !!p);
-  for (const password of passwords) {
-    const html = decrypt(page, password);
-    if (html) return new Response(html, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } });
-  }
-  return new Response("no password opens the file", { status: 422 });
+  const html = decrypt(page, password);
+  if (!html) return new Response("that password does not open the file", { status: 422 });
+  return new Response(html, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } });
 });

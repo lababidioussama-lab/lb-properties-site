@@ -2,16 +2,17 @@
 //
 // Why it exists: hashing a password takes about 40 ms of computing, more than
 // Cloudflare's free plan allows per request. The CRM sends the password here
-// instead, over HTTPS with a shared secret, and gets back a hash or a yes/no.
-// It stores nothing and reads nothing from the database.
+// instead, over HTTPS, and gets back a hash or a yes/no. It stores nothing and
+// reads nothing from the database.
 //
-// Deploy (once):  supabase functions deploy password --no-verify-jwt
-// Secret   (once): supabase secrets set HASH_SERVICE_SECRET=<a long random value>
-// Then give the CRM the same value as PASSWORD_SERVICE_SECRET and the function's
-// address as PASSWORD_SERVICE_URL (https://<project>.supabase.co/functions/v1/password).
+// Who may call it: only a caller holding this project's own service key (the
+// CRM server does). Supabase checks the key's signature before the function
+// runs, and the function then requires the exact key, so the public anon key
+// is refused. No extra secret is needed.
+import { Buffer } from "node:buffer";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
-const secret = Deno.env.get("HASH_SERVICE_SECRET") ?? "";
+const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 function same(a: string, b: string): boolean {
   const x = Buffer.from(a);
@@ -25,7 +26,8 @@ const json = (body: unknown, status = 200) =>
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method" }, 405);
-  if (secret.length < 24 || !same(req.headers.get("x-hash-secret") ?? "", secret)) return json({ error: "forbidden" }, 403);
+  const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (serviceKey.length < 40 || !same(bearer, serviceKey)) return json({ error: "forbidden" }, 403);
 
   let body: { op?: string; password?: unknown; stored?: unknown };
   try { body = await req.json(); } catch { return json({ error: "bad_json" }, 400); }

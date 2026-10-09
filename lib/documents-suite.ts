@@ -63,19 +63,21 @@ async function readSuiteBytes(): Promise<ArrayBuffer> {
 /**
  * The page to send to a signed-in admin. When SUITE_SERVICE_URL is set (the
  * Cloudflare setup), the heavy unlocking is done by the Supabase Edge Function
- * in supabase/functions/suite and its answer is passed straight through, so
+ * in supabase/functions/crm-suite and its answer is passed straight through, so
  * this server spends almost no computing time. Otherwise it unlocks the file
  * itself, as loadSuite does.
  */
 export async function openSuite(): Promise<{ body: string | ReadableStream<Uint8Array>; unlocked: boolean }> {
   const url = process.env.SUITE_SERVICE_URL;
-  const key = process.env.PASSWORD_SERVICE_SECRET;
-  if (url && key) {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const password = process.env.DOCUMENTS_PASSWORD;
+  if (url && key && password) {
     const bytes = await readSuiteBytes();
     try {
       const res = await fetch(url, {
         method: "POST",
-        headers: { "x-hash-secret": key, "Content-Type": "text/html" },
+        // The function trusts the project's service key; the password travels with the request and is never stored there.
+        headers: { Authorization: `Bearer ${key}`, "x-documents-password": password, "Content-Type": "text/html" },
         body: bytes,
         signal: AbortSignal.timeout(25_000),
       });

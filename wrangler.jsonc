@@ -33,8 +33,8 @@
 		// Where the heavy password and Documents work is done (Supabase Edge
 		// Functions, see supabase/functions) in your Supabase project. Until the
 		// secret PASSWORD_SERVICE_SECRET is set, hashing is done in this Worker instead.
-		"PASSWORD_SERVICE_URL": "https://glsbjxncslcfaskigshw.supabase.co/functions/v1/password",
-		"SUITE_SERVICE_URL": "https://glsbjxncslcfaskigshw.supabase.co/functions/v1/suite"
+		"PASSWORD_SERVICE_URL": "https://glsbjxncslcfaskigshw.supabase.co/functions/v1/crm-password",
+		"SUITE_SERVICE_URL": "https://glsbjxncslcfaskigshw.supabase.co/functions/v1/crm-suite"
 	}
 
 	// Secrets (SUPABASE_*, SESSION_SECRET, ADMIN_*, RESEND_API_KEY, ...) are not
