@@ -4,6 +4,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "workers_dev": true,
+  "assets": { "directory": "./public" },
   "observability": { "enabled": true },
   "placement": { "mode": "smart" },
   "routes": [{ "pattern": "agents.lababidiproperties.com", "custom_domain": true }],

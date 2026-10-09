@@ -1,6 +1,6 @@
 import { OWNER_EMAIL, audit, rest, type Env } from "./core";
 import { login, logout, signedIn } from "./auth";
-import { ask, budgetUsd, chatsToday, dailyCap, decide, loadProposals, spendThisMonth } from "./engine";
+import { ask, budgetUsd, chatsToday, dailyCap, decide, loadProposals, meeting, officeLog, spendThisMonth } from "./engine";
 import { ROSTER, byId } from "./roster";
 import { handleUpdate, secretOk } from "./telegram";
 import { agentPage, homePage, loginPage } from "./ui";
@@ -47,8 +47,8 @@ export default {
     if (path === "/" && req.method === "GET") {
       const pending = new Map<string, number>();
       for (const p of await loadProposals(env)) if (!p.decision) pending.set(p.agent, (pending.get(p.agent) ?? 0) + 1);
-      const [spend, today] = await Promise.all([spendThisMonth(env), chatsToday(env)]);
-      return html(homePage(pending, { waiting: [...pending.values()].reduce((x, y) => x + y, 0), today, spend: spend.usd, budget: budgetUsd(env), telegram: !!env.TELEGRAM_CHAT_ID }));
+      const [spend, today, log] = await Promise.all([spendThisMonth(env), chatsToday(env), officeLog(env)]);
+      return html(homePage(pending, { waiting: [...pending.values()].reduce((x, y) => x + y, 0), today, spend: spend.usd, budget: budgetUsd(env), telegram: !!env.TELEGRAM_CHAT_ID, log }));
     }
 
     const m = /^\/a\/([a-z0-9]+)$/.exec(path);
@@ -62,6 +62,11 @@ export default {
       const rows = (Array.isArray(chat.data) ? chat.data : []) as { detail: { role: string; text: string; to?: string; agent?: string } }[];
       const mine = rows.filter((r) => (r.detail.role === "user" ? r.detail.to === a.id : r.detail.agent === a.id)).reverse().map((r) => ({ role: r.detail.role, text: r.detail.text }));
       return html(agentPage(a, props, mine));
+    }
+
+    if (path === "/api/meeting" && (req.method === "GET" || req.method === "POST")) {
+      const m = await meeting(env, req.method === "POST");
+      return m ? json({ ok: true, at: m.at, lines: m.lines }) : json({ ok: false, error: (await spendThisMonth(env)).usd >= budgetUsd(env) ? "budget" : "upstream" }, 200);
     }
 
     if (path === "/api/chat" && req.method === "POST") {

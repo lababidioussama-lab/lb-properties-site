@@ -1,5 +1,5 @@
 import { ROSTER, addressedTo, byId, type Agent } from "./roster";
-import { ask, budgetUsd, chatsToday, dailyCap, decide, loadProposals, route, spendThisMonth } from "./engine";
+import { ask, budgetUsd, chatsToday, dailyCap, decide, loadProposals, meeting, route, spendThisMonth } from "./engine";
 import { audit, same, type Env } from "./core";
 
 /**
@@ -36,7 +36,7 @@ async function sendProposal(env: Env, chat: number, id: string) {
   });
 }
 
-const HELP = `Your office is open. Talk to anyone by starting with their first name:\n• Karim, who owns unit 2104 in Marina Gate?\n• Layla, what should I do first today?\n• Ines, write the advert for my newest listing.\nIf you name nobody, Omar sends it to the right person.\n\n/team lists everyone · /pending shows what waits · /usage shows spend.`;
+const HELP = `Your office is open. Talk to anyone by starting with their first name:\n• Karim, who owns unit 2104 in Marina Gate?\n• Layla, what should I do first today?\n• Ines, write the advert for my newest listing.\nIf you name nobody, Omar sends it to the right person.\n\n/team lists everyone · /pending shows what waits · /usage shows spend · /meeting shows what the team is discussing.`;
 
 export async function handleUpdate(env: Env, update: Record<string, any>): Promise<void> {
   const allowed = env.TELEGRAM_CHAT_ID ? Number(env.TELEGRAM_CHAT_ID) : null;
@@ -71,6 +71,20 @@ export async function handleUpdate(env: Env, update: Record<string, any>): Promi
   if (/^\/team\b/i.test(text)) {
     const lines = ROSTER.map((a) => `${a.emoji} ${a.name.split(" ")[0]} · ${a.title}`);
     await say(env, chat, `Your team of ${ROSTER.length} (all AI):\n\n${lines.join("\n")}`);
+    return;
+  }
+  if (/^\/meeting\b/i.test(text)) {
+    await tg(env, "sendChatAction", { chat_id: chat, action: "typing" });
+    const m = await meeting(env, false);
+    if (!m) { await say(env, chat, "There is no team discussion to show yet."); return; }
+    await say(env, chat, `Team discussion (from the CRM's live numbers). They only talk here; nothing is acted on without your approval.`);
+    let block = "";
+    for (const l of m.lines) {
+      const line = `${byId(l.from)?.name ?? l.from} to ${byId(l.to)?.name.split(" ")[0] ?? l.to}:\n${l.text}\n\n`;
+      if (block.length + line.length > 3500) { await say(env, chat, block); block = ""; }
+      block += line;
+    }
+    if (block) await say(env, chat, block);
     return;
   }
   if (/^\/usage\b/i.test(text)) {

@@ -1,5 +1,6 @@
 import { ROSTER, byId, type Agent, type ToolName } from "./roster";
 import { MODEL, audit, dubaiMidnight, rest, type Env } from "./core";
+import { DISCIPLINE, PLAYBOOK, REFERENCE } from "./knowledge";
 
 /**
  * How the staff think and act.
@@ -22,8 +23,23 @@ You are an AI colleague; never claim to be human to anyone outside the office.`;
 
 const COMPANY = `Company facts (from the firm's own WhatsApp Business profile): Lababidi Properties, Dubai real-estate brokerage. Office 327, Al Mansoori Building, Hor Al Anz, Dubai. Website lababidiproperties.com. Instagram @lababidiproperties. Facebook page "Lababidi Properties". Email lababidioussama@gmail.com. Phone and WhatsApp +971 54 704 4047. Listed hours: Saturday and Sunday 9:00 to 18:00 (other days are on the profile). Social accounts: you know their names and that the brokerage uses them; you cannot open them, so you have no follower, reach or engagement figures unless Oussama sends them to you. Never invent such figures; ask for an Instagram Insights screenshot or export when you need them.`;
 
-function systemFor(a: Agent): string {
-  return `${RULES}\n\nYou are ${a.name}, ${a.title}, in the ${a.dept} department.\nYour expertise: ${a.expert}\nYour job in one line: ${a.does}\nToday is ${new Date(Date.now() + 4 * 3_600_000).toISOString().slice(0, 10)} (Dubai).`;
+/** The part every colleague shares (cached by the API, so it is paid for once), then the part that makes them who they are. */
+const SHARED = `${RULES}
+
+${DISCIPLINE}
+
+${COMPANY}
+
+${REFERENCE}`;
+
+function systemFor(a: Agent): [string, string] {
+  const colleagues = a.id === "md" || a.id === "coordinator" ? `
+Colleagues: ${ROSTER.map((x) => `${x.name.split(" ")[0]} (${x.title})`).join("; ")}.` : "";
+  return [SHARED, `You are ${a.name}, ${a.title}, in the ${a.dept} department.
+Your expertise: ${a.expert}
+Your job in one line: ${a.does}
+How you must do it: ${PLAYBOOK[a.id] ?? ""}${colleagues}
+Today is ${new Date(Date.now() + 4 * 3_600_000).toISOString().slice(0, 10)} (Dubai).`];
 }
 
 /* ------------------------------------------------------------------- tools */
@@ -149,11 +165,11 @@ async function runTool(env: Env, agent: Agent, name: string, input: Record<strin
 interface Block { type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }
 type Msg = { role: "user" | "assistant"; content: string | unknown[] };
 
-async function claude(env: Env, system: string, messages: Msg[], tools: unknown[] | null, maxTokens = 700, model = MODEL) {
+async function claude(env: Env, system: string | [string, string], messages: Msg[], tools: unknown[] | null, maxTokens = 700, model = MODEL) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-    body: JSON.stringify({ model, max_tokens: maxTokens, system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }], messages, ...(tools?.length ? { tools } : {}) }),
+    body: JSON.stringify({ model, max_tokens: maxTokens, system: typeof system === "string" ? [{ type: "text", text: system, cache_control: { type: "ephemeral" } }] : [{ type: "text", text: system[0], cache_control: { type: "ephemeral" } }, { type: "text", text: system[1] }], messages, ...(tools?.length ? { tools } : {}) }),
     signal: AbortSignal.timeout(45_000),
   });
   if (!res.ok) {
@@ -293,4 +309,62 @@ export async function decide(env: Env, id: string, outcome: "approved" | "reject
   }
   await audit(env, "agent_office", "approved", { proposal_id: id, agent: p.agent, applied, final: text });
   return { ok: true, message: `Approved. ${applied}` };
+}
+
+/* ------------------------------------------------------------ team meeting */
+
+export interface Line { from: string; to: string; text: string }
+export interface Meeting { at: string; lines: Line[]; fresh: boolean }
+
+const MEETING_TTL_MS = 6 * 3_600_000;
+const MEETING_MIN_GAP_MS = 20 * 60_000;
+
+/**
+ * What the staff say to each other on the office floor. One Claude call writes
+ * a short working conversation from the CRM's real numbers; it is kept for six
+ * hours so that watching the office costs nothing. It is talk only: nobody in
+ * it can act, and anything worth doing still has to be proposed and approved.
+ */
+export async function meeting(env: Env, force = false): Promise<Meeting | null> {
+  const last = await rest(env, "crm_audit?select=created_at,detail&entity=eq.agent_meeting&order=created_at.desc&limit=1");
+  const row = (Array.isArray(last.data) ? last.data[0] : null) as { created_at: string; detail: { lines: Line[] } } | null;
+  const age = row ? Date.now() - Date.parse(row.created_at) : Infinity;
+  if (row && (age < (force ? MEETING_MIN_GAP_MS : MEETING_TTL_MS))) return { at: row.created_at, lines: row.detail.lines, fresh: false };
+  if ((await spendThisMonth(env)).usd >= budgetUsd(env)) return row ? { at: row.created_at, lines: row.detail.lines, fresh: false } : null;
+
+  const md = byId("md")!;
+  const sink = { proposals: [] as string[] };
+  const [snap, team, listings, leads, props] = await Promise.all([
+    runTool(env, md, "crm_snapshot", {}, sink), runTool(env, md, "team", {}, sink), runTool(env, md, "listings", {}, sink),
+    runTool(env, md, "leads", { limit: 8 }, sink), loadProposals(env, 7),
+  ]);
+  // Lead names stay; phone numbers and emails are not needed for a floor conversation.
+  const safeLeads = ((leads as { leads?: Record<string, unknown>[] }).leads ?? []).map(({ phone, email, ...x }) => x);
+  const facts = { today: new Date(Date.now() + 4 * 3_600_000).toISOString().slice(0, 10), crm: snap, staff: team, listings, leads: safeLeads, proposals_waiting: props.filter((p) => !p.decision).map((p) => ({ from: p.agent, title: p.title })), proposals_decided_this_week: props.filter((p) => p.decision).length };
+  const cast = ROSTER.map((a) => `${a.id}: ${a.name}, ${a.title}`).join("\n");
+  const sys = `You write the working conversation heard on the office floor of Lababidi Properties, a Dubai brokerage staffed by AI colleagues who report to the owner, Oussama.\nCast (use these ids):\n${cast}\n\n${COMPANY}\n\nWrite 12 short exchanges between colleagues about the company's real situation today, using ONLY the facts given: what needs doing first, who should prepare what for Oussama's approval, gaps (for example no listings yet, a follow-up overdue, a document expiring), and sensible next steps within the rules (no cold contact with database owners; nothing happens without Oussama's approval). Each speaker talks from their own specialism, formally and concretely, one or two sentences, under 170 characters, plain text, no emojis. Vary the pairs across departments; a reply may follow a remark. Never invent numbers, names, clients or results. If the facts are thin, they discuss what is needed to get started.\nAnswer ONLY with JSON: {"lines":[{"from":"id","to":"id","text":"..."}]}`;
+  try {
+    const r = await claude(env, sys, [{ role: "user", content: JSON.stringify(facts).slice(0, 7000) }], null, 1500);
+    const text = r.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
+    const a = text.indexOf("{"), b = text.lastIndexOf("}");
+    const parsed = JSON.parse(text.slice(a, b + 1)) as { lines?: Line[] };
+    const lines = (parsed.lines ?? []).filter((l) => byId(l.from) && byId(l.to) && l.from !== l.to && typeof l.text === "string").map((l) => ({ from: l.from, to: l.to, text: plain(l.text).slice(0, 220) })).slice(0, 14);
+    if (!lines.length) throw new Error("empty");
+    await audit(env, "agent_meeting", "held", { lines });
+    return { at: new Date().toISOString(), lines, fresh: true };
+  } catch (e) {
+    console.error("[meeting]", e instanceof Error ? e.message : e);
+    return row ? { at: row.created_at, lines: row.detail.lines, fresh: false } : null;
+  }
+}
+
+/** The last things that really happened in the office, for the log under the floor. */
+export async function officeLog(env: Env): Promise<{ at: string; who: string; what: string }[]> {
+  const r = await rest(env, "crm_audit?select=created_at,entity,action,detail&entity=in.(agent_chat,agent_office,agent_lookup)&action=in.(assistant,proposed,approved,rejected,find_owners)&order=created_at.desc&limit=10");
+  const rows = (Array.isArray(r.data) ? r.data : []) as { created_at: string; entity: string; action: string; detail: Record<string, unknown> }[];
+  return rows.map((x) => {
+    const who = byId(String(x.detail.agent ?? ""))?.name ?? "Staff";
+    const what = x.action === "assistant" ? "answered you" : x.action === "proposed" ? `prepared "${String(x.detail.title ?? "a draft")}" for your approval` : x.action === "find_owners" ? "looked up an owner" : x.action === "approved" ? "had a proposal approved" : "had a proposal rejected";
+    return { at: x.created_at, who, what };
+  });
 }
