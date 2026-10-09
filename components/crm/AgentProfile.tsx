@@ -15,7 +15,7 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
   const requests = useTable<CrmAgentRequest>("requests");
   const documents = useTable<CrmAgentDocument>("agent_documents");
   const [f, setF] = useState({
-    phone: me.phone ?? "", languages: me.languages ?? "", specialties: me.specialties ?? "",
+    full_name: me.full_name ?? "", phone: me.phone ?? "", languages: me.languages ?? "", specialties: me.specialties ?? "",
     bio: me.bio ?? "", avatar_url: me.avatar_url ?? "",
   });
   const [saved, setSaved] = useState(false);
@@ -43,8 +43,10 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
 
   async function save() {
     setSaved(false);
-    const { avatar_url: _photo, ...fields } = f;
-    const r = await api<{ user: CrmUser }>("PATCH", "users", { id: me.id, ...fields });
+    const { avatar_url: _photo, full_name, ...fields } = f;
+    // The name is the admin's to change; it is left out for an agent, whose name the admin sets under Team.
+    const name = full_name.trim();
+    const r = await api<{ user: CrmUser }>("PATCH", "users", { id: me.id, ...fields, ...(isAdmin && name ? { full_name: name } : {}) });
     if (r.user) { setSaved(true); onMeUpdate?.(r.user as CrmUser); }
   }
 
@@ -80,6 +82,7 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
         {photoError && <p className="mt-2 text-[12px] text-[var(--bad)]">{photoError}</p>}
 
         <div className="mt-5 grid grid-cols-2 gap-3">
+          {isAdmin && <label className="col-span-2"><Label>Your name</Label><input value={f.full_name} maxLength={80} onChange={(e) => setF({ ...f, full_name: e.target.value })} className={INPUT} /></label>}
           <label><Label>Phone</Label><input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} className={INPUT} /></label>
           <label><Label>Languages</Label><input value={f.languages} onChange={(e) => setF({ ...f, languages: e.target.value })} placeholder="English, Arabic" className={INPUT} /></label>
           <label className="col-span-2"><Label>Specialises in</Label><input value={f.specialties} onChange={(e) => setF({ ...f, specialties: e.target.value })} placeholder="Dubai Marina, JVC" className={INPUT} /></label>

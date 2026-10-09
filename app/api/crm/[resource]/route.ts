@@ -501,7 +501,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       if (user.role === "admin") {
         if ("role" in b) patch.role = pick(b.role, ["admin", "agent"] as const) ?? "agent";
         if ("active" in b) patch.active = !!b.active;
-        if ("full_name" in b) patch.full_name = str(b.full_name, 200);
+        if ("full_name" in b) { const name = str(b.full_name, 200)?.trim(); if (name) patch.full_name = name; }
         if ("slab_pct" in b) patch.slab_pct = num(b.slab_pct) ?? 50;
         if ("quarterly_target_aed" in b) patch.quarterly_target_aed = num(b.quarterly_target_aed);
         if ("brn_no" in b) patch.brn_no = str(b.brn_no, 40);

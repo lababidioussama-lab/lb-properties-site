@@ -75,8 +75,17 @@ export function TeamView({ users, meId, onUser }: {
           <div key={u.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
             <Avatar name={u.full_name} url={u.avatar_url} />
             <div className="min-w-[180px] flex-1">
-              <div className="text-[13px] font-medium text-[var(--text-primary)]">
-                {u.full_name} {u.id === meId && <span className="text-[11px] text-[var(--text-muted)]">(you)</span>}
+              <div className="flex items-center gap-1.5">
+                {/* The name is a field: change it and press Enter or click away. */}
+                <input defaultValue={u.full_name} aria-label={`Name of ${u.full_name}`} maxLength={80}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = u.full_name; e.currentTarget.blur(); } }}
+                  onBlur={(e) => {
+                    const name = e.target.value.trim();
+                    if (!name) { e.target.value = u.full_name; return; }
+                    if (name !== u.full_name) void patch(u.id, { full_name: name }, "Name");
+                  }}
+                  className="h-8 min-w-0 flex-1 rounded-[8px] border border-transparent bg-transparent px-1.5 text-[13px] font-medium text-[var(--text-primary)] outline-none transition hover:border-[var(--hairline)] focus:border-[var(--accent)] focus:bg-[var(--input-bg)]" />
+                {u.id === meId && <span className="shrink-0 text-[11px] text-[var(--text-muted)]">(you)</span>}
               </div>
               <div className="text-[12px] text-[var(--text-muted)]">{u.email}</div>
             </div>
