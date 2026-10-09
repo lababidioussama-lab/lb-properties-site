@@ -200,18 +200,9 @@ export async function POST(request: NextRequest) {
     await logSession(user.id, "docs_denied", { ip, agent, ...geo });
     return NextResponse.json({ ok: false, error: "admin_only" }, { status: 403 });
   }
-  /* Company documents for an admin already signed in to the CRM in this
-     browser: that session was opened with an emailed code, so the password
-     alone opens the documents here. One code, not two. */
-  if (purpose === "documents") {
-    const crm = await liveUser(sessionFromRequest(request));
-    if (crm && crm.id === user.id && crm.role === "admin") {
-      const response = signedIn(user, "documents");
-      if (!response) return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
-      await logSession(user.id, "docs_login", { ip, agent, via: "crm_session", ...geo });
-      return response;
-    }
-  }
+  /* Company documents always ask for their own emailed code, even when the
+     admin is already signed in to the CRM: one email and password, then a
+     "Documents sign-in" code that opens only the Documents. */
   if (purpose === "dbsearch") {
     const refusal = await dbSearchRefusal(user);
     if (refusal) {

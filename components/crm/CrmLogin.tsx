@@ -39,12 +39,9 @@ const COPY = {
   },
 };
 
-export function CrmLogin({ configured, purpose = "crm", crmSignedIn = false }: {
+export function CrmLogin({ configured, purpose = "crm" }: {
   configured: boolean;
   purpose?: "crm" | "documents";
-  /** Documents only: the admin is already signed in to the CRM in this
-   *  browser (with a code), so the password alone opens the documents. */
-  crmSignedIn?: boolean;
 }) {
   const copy = COPY[purpose];
   const [email, setEmail] = useState("");
@@ -103,7 +100,6 @@ export function CrmLogin({ configured, purpose = "crm", crmSignedIn = false }: {
     else setError(MESSAGES[r.error ?? ""] ?? "Could not send a new code.");
   }
 
-  const oneStep = purpose === "documents" && crmSignedIn;
   const stepCls = (on: boolean) => `rounded-[9px] py-2 ${on ? "bg-[image:var(--grad)] text-white" : "text-[var(--text-muted)]"}`;
 
   return (
@@ -123,7 +119,7 @@ export function CrmLogin({ configured, purpose = "crm", crmSignedIn = false }: {
           <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--text-muted)]">
             {step === "otp"
               ? <>We emailed a 6-digit code to <span className="font-semibold text-[var(--text-primary)]">{hint}</span>. It expires in 10 minutes.</>
-              : oneStep ? "You are signed in to the CRM, so your password alone opens the documents. No second code." : copy.intro}
+              : copy.intro}
           </p>
 
           {!configured ? (
@@ -133,12 +129,10 @@ export function CrmLogin({ configured, purpose = "crm", crmSignedIn = false }: {
             </p>
           ) : (
             <>
-              {!oneStep && (
-                <div className="mt-5 grid grid-cols-2 gap-1 rounded-[12px] border border-[var(--hairline)] bg-[var(--input-bg)] p-1 text-center text-[12.5px] font-bold">
-                  <span className={stepCls(step === "password")}>1. Password</span>
-                  <span className={stepCls(step === "otp")}>2. Email code</span>
-                </div>
-              )}
+              <div className="mt-5 grid grid-cols-2 gap-1 rounded-[12px] border border-[var(--hairline)] bg-[var(--input-bg)] p-1 text-center text-[12.5px] font-bold">
+                <span className={stepCls(step === "password")}>1. Password</span>
+                <span className={stepCls(step === "otp")}>2. Email code</span>
+              </div>
               <form onSubmit={submit} className="mt-5 space-y-4">
                 {step === "password" ? (
                   <>
@@ -160,7 +154,7 @@ export function CrmLogin({ configured, purpose = "crm", crmSignedIn = false }: {
                 {note && <p className="rounded-[10px] border border-[var(--ok-bd)] bg-[var(--ok-bg)] px-3 py-2 text-[12.5px] text-[var(--ok)]">{note}</p>}
                 <button type="submit" disabled={busy || (step === "password" ? !email || !password : code.length !== 6)}
                   className="btn-go inline-flex h-12 w-full items-center justify-center gap-2 rounded-[9px] text-[14px] font-semibold disabled:opacity-60">
-                  <Lock size={15} /> {busy ? "Checking…" : step === "password" ? (oneStep ? copy.done : "Continue") : copy.done}
+                  <Lock size={15} /> {busy ? "Checking…" : step === "password" ? "Continue" : copy.done}
                 </button>
                 {step === "otp" && (
                   <div className="flex items-center justify-between text-[12.5px]">
