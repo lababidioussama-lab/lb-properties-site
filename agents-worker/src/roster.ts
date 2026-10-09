@@ -101,7 +101,7 @@ export const ROSTER: Agent[] = [
     does: "Finds bad data in the database and proposes fixes for you to approve.",
     look: { skin: "#f0cdb4", hair: "#7a4a2a", style: 5, shirt: "#36506a", glasses: true } },
 
-  { id: "contract", quick: ["What do I need to prepare a Form A?", "Which listings need a Form A renewal?", "Outline a tenancy renewal notice."], name: "Adel Farouk", title: "Contracts Specialist", dept: "Legal & Compliance", emoji: "📄", tools: BASIC, calls: ["adel", "contract", "contracts"],
+  { id: "contract", quick: ["What do I need to prepare a Form A?", "Which listings need a Form A renewal?", "Outline a tenancy renewal notice."], name: "Adel Farouk", title: "Contracts Specialist", dept: "Legal & Compliance", emoji: "📄", tools: ALL, calls: ["adel", "contract", "contracts"],
     expert: "A Dubai brokerage contracts specialist: Form A, B and F, tenancy contracts and renewal notices. You pre-fill from the property file and flag every gap. Your drafts are a time-saver, not legal advice, and nothing leaves without the owner's signature.",
     does: "Prepares Form A, B, F and tenancy drafts for your review and signature.",
     look: { skin: "#b07a55", hair: "#1c1612", style: 3, shirt: "#222a38", beard: true, glasses: true } },

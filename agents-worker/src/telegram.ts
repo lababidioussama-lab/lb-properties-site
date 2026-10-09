@@ -1,5 +1,5 @@
 import { ROSTER, addressedTo, byId, type Agent } from "./roster";
-import { ask, budgetUsd, chatsToday, dailyCap, decide, loadProposals, meeting, route, spendThisMonth } from "./engine";
+import { ask, budgetUsd, chatsToday, dailyCap, decide, lastAgent, loadProposals, meeting, route, spendThisMonth, type Attachment } from "./engine";
 import { audit, same, type Env } from "./core";
 
 /**
@@ -64,8 +64,16 @@ export async function handleUpdate(env: Env, update: Record<string, any>): Promi
     return;
   }
 
-  const text: string = String(update.message?.text ?? "").trim();
-  if (!text) { await say(env, chat, "I can read text for now. Type it and I will pass it on."); return; }
+  const m = update.message ?? {};
+  let files: Attachment[] = [];
+  let text: string = String(m.text ?? m.caption ?? "").trim();
+  if (m.photo || m.document) {
+    const got = await attachment(env, m);
+    if (typeof got === "string") { await say(env, chat, got); return; }
+    files = [got];
+    if (!text) text = "Please read this document. Tell me what it is, the key details exactly as written, and what is missing or needs my attention.";
+  }
+  if (!text) { await say(env, chat, "I can read text, photos and PDF files. Voice notes and other file types are not supported yet."); return; }
 
   if (/^\/start\b/i.test(text) || /^\/help\b/i.test(text)) { await say(env, chat, HELP); return; }
   if (/^\/team\b/i.test(text)) {
@@ -111,10 +119,12 @@ export async function handleUpdate(env: Env, update: Record<string, any>): Promi
     else if (named && !named.rest) { await sayAs(env, chat, named.agent, `Yes, Oussama? Tell me what you need.`); return; }
     else {
       const omar = byId("coordinator")!;
-      agent = await route(env, text);
-      if (agent.id !== "md") await sayAs(env, chat, omar, `Passing this to ${agent.name.split(" ")[0]}, our ${agent.title}.`);
+      // A message with no name on it, soon after an answer, continues with the same colleague.
+      const same = await lastAgent(env);
+      agent = same ?? (await route(env, text));
+      if (!same && agent.id !== "md") await sayAs(env, chat, omar, `Passing this to ${agent.name.split(" ")[0]}, our ${agent.title}.`);
     }
-    const reply = await ask(env, agent, body, "telegram");
+    const reply = await ask(env, agent, body, "telegram", files);
     await sayAs(env, chat, agent, reply.text);
     for (const id of reply.proposals) await sendProposal(env, chat, id);
   } catch (e) {
@@ -122,6 +132,32 @@ export async function handleUpdate(env: Env, update: Record<string, any>): Promi
     console.error("[telegram] failed:", e instanceof Error ? e.message : e);
     await say(env, chat, "⚠️ I could not reach the AI service just now. Nothing was done. Please try again in a minute.");
   }
+}
+
+/** A photo or a PDF he sent, fetched from Telegram and handed to the colleague to read. */
+async function attachment(env: Env, m: Record<string, any>): Promise<Attachment | string> {
+  let fileId = "", media = "", name = "", kind: Attachment["kind"] = "image";
+  if (m.photo?.length) {
+    // Telegram offers several sizes; the largest one under about 1 MB reads well and stays cheap.
+    const fit = [...m.photo].reverse().find((p: any) => (p.file_size ?? 0) <= 1_000_000) ?? m.photo[0];
+    fileId = fit.file_id; media = "image/jpeg"; name = "photo";
+  } else if (m.document) {
+    const d = m.document, mime = String(d.mime_type ?? "");
+    if ((d.file_size ?? 0) > 3_000_000) return "That file is larger than 3 MB. Please send a smaller copy, or photos of the pages.";
+    if (mime === "application/pdf") { kind = "pdf"; media = mime; }
+    else if (["image/jpeg", "image/png", "image/webp"].includes(mime)) media = mime;
+    else return "I can read PDF files and photos (JPG, PNG). Please send the document in one of those forms.";
+    fileId = d.file_id; name = String(d.file_name ?? "document").slice(0, 60);
+  }
+  const info = await tg(env, "getFile", { file_id: fileId }) as { result?: { file_path?: string } } | null;
+  const path = info?.result?.file_path;
+  if (!path) return "I could not fetch that file from Telegram. Please send it again.";
+  const res = await fetch(`https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${path}`, { signal: AbortSignal.timeout(15_000) }).catch(() => null);
+  if (!res?.ok) return "I could not download that file from Telegram. Please send it again.";
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return { kind, media, data: btoa(bin), name };
 }
 
 export const secretOk = (env: Env, header: string | null) => !!header && !!env.TELEGRAM_WEBHOOK_SECRET && same(header, env.TELEGRAM_WEBHOOK_SECRET);

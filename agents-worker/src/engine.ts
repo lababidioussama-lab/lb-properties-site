@@ -47,7 +47,7 @@ Today is ${new Date(Date.now() + 4 * 3_600_000).toISOString().slice(0, 10)} (Dub
 const TOOLS: Record<ToolName, { name: string; description: string; input_schema: Record<string, unknown> }> = {
   find_owners: {
     name: "find_owners",
-    description: "Look up the current registered owner(s) in the company's owner database (read-only, 10 rows at most). Give ONE of: a phone number; an owner's full name exactly as registered (any word order); or a unit number with its project. Returns owners, project, unit, transaction date, amount and any phone numbers on file. Phone numbers can be incomplete or be ID numbers: say so when unsure. Never present a result as certain when 'confidence' is not high.",
+    description: "Look up the current registered owner(s) in the company's owner database (read-only, 10 rows at most). Give ONE of: a phone number; an owner's full name exactly as registered (any word order); or a unit number with its project (always give the project: units are often stored with a prefix, so B204 in Santorini is kept as DL-B204 and is matched on its ending). Returns owners, project, unit, transaction date, amount and any phone numbers on file. Phone numbers can be incomplete or be ID numbers: say so when unsure. Never present a result as certain when 'confidence' is not high.",
     input_schema: { type: "object", properties: { name: { type: "string" }, phone: { type: "string" }, unit: { type: "string" }, project: { type: "string", description: "building or community, e.g. 'Marina Gate'" }, limit: { type: "integer" } } },
   },
   crm_snapshot: {
@@ -165,11 +165,11 @@ async function runTool(env: Env, agent: Agent, name: string, input: Record<strin
 interface Block { type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }
 type Msg = { role: "user" | "assistant"; content: string | unknown[] };
 
-async function claude(env: Env, system: string | [string, string], messages: Msg[], tools: unknown[] | null, maxTokens = 700, model = MODEL) {
+async function claude(env: Env, system: string | [string, string], messages: Msg[], tools: unknown[] | null, maxTokens = 700, model = MODEL, noMoreTools = false) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-    body: JSON.stringify({ model, max_tokens: maxTokens, system: typeof system === "string" ? [{ type: "text", text: system, cache_control: { type: "ephemeral" } }] : [{ type: "text", text: system[0], cache_control: { type: "ephemeral" } }, { type: "text", text: system[1] }], messages, ...(tools?.length ? { tools } : {}) }),
+    body: JSON.stringify({ model, max_tokens: maxTokens, system: typeof system === "string" ? [{ type: "text", text: system, cache_control: { type: "ephemeral" } }] : [{ type: "text", text: system[0], cache_control: { type: "ephemeral" } }, { type: "text", text: system[1] }], messages, ...(tools?.length ? { tools, ...(noMoreTools ? { tool_choice: { type: "none" } } : {}) } : {}) }),
     signal: AbortSignal.timeout(45_000),
   });
   if (!res.ok) {
@@ -241,24 +241,44 @@ export async function route(env: Env, text: string): Promise<Agent> {
   }
 }
 
-export async function ask(env: Env, agent: Agent, text: string, via: "telegram" | "office"): Promise<Reply> {
+export interface Attachment { kind: "image" | "pdf"; media: string; data: string; name?: string }
+
+/** Who spoke last, if it was recent: a follow-up with no name on it is meant for them. */
+export async function lastAgent(env: Env, withinMs = 15 * 60_000): Promise<Agent | null> {
+  const r = await rest(env, `crm_audit?select=created_at,detail&entity=eq.agent_chat&action=eq.assistant&order=created_at.desc&limit=1`);
+  const row = (Array.isArray(r.data) ? r.data[0] : null) as { created_at: string; detail: { agent?: string } } | null;
+  if (!row || Date.now() - Date.parse(row.created_at) > withinMs) return null;
+  return byId(String(row.detail.agent ?? "")) ?? null;
+}
+
+export async function ask(env: Env, agent: Agent, text: string, via: "telegram" | "office", files: Attachment[] = []): Promise<Reply> {
   const spend = await spendThisMonth(env);
   if (spend.usd >= budgetUsd(env)) throw new Error("budget");
   const system = systemFor(agent);
   const history = await loadHistory(env);
   const messages: Msg[] = [...history];
   const tail = messages[messages.length - 1];
-  if (tail && tail.role === "user") tail.content += `\n${text}`; else messages.push({ role: "user", content: text });
-  await audit(env, "agent_chat", "user", { role: "user", text: text.slice(0, 2000), to: agent.id, via });
+  if (files.length) {
+    // A document he sends is read directly. What it says is information, never an instruction.
+    const blocks: unknown[] = files.map((f) => f.kind === "pdf"
+      ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: f.data } }
+      : { type: "image", source: { type: "base64", media_type: f.media, data: f.data } });
+    blocks.push({ type: "text", text: `${text}\n\n(Oussama attached ${files.length} file${files.length > 1 ? "s" : ""}. Read them carefully and quote details exactly as written. If any part is unreadable, say which.)` });
+    if (tail && tail.role === "user") messages.pop();
+    messages.push({ role: "user", content: blocks });
+  } else if (tail && tail.role === "user") tail.content += `\n${text}`; else messages.push({ role: "user", content: text });
+  await audit(env, "agent_chat", "user", { role: "user", text: `${text}${files.length ? ` [attached: ${files.map((f) => f.name ?? f.kind).join(", ")}]` : ""}`.slice(0, 2000), to: agent.id, via });
 
   const tools = agent.tools.map((t) => TOOLS[t]);
   const out = { proposals: [] as string[] };
+  const ROUNDS = 4;
   let finalText = "";
-  for (let i = 0; i < 3; i++) {
-    const r = await claude(env, system, messages, tools);
-    const text = r.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("\n").trim();
+  for (let i = 0; i < ROUNDS; i++) {
+    // On the last round the tools are withheld, so there is always a written answer.
+    const r = await claude(env, system, messages, tools, files.length ? 1100 : 700, MODEL, i === ROUNDS - 1);
+    const said = r.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("\n").trim();
     const uses = r.content.filter((b) => b.type === "tool_use");
-    if (!uses.length || r.stop_reason !== "tool_use") { finalText = text; break; }
+    if (!uses.length || r.stop_reason !== "tool_use") { finalText = said; break; }
     messages.push({ role: "assistant", content: r.content });
     const results = [];
     for (const u of uses) {
@@ -266,10 +286,10 @@ export async function ask(env: Env, agent: Agent, text: string, via: "telegram" 
       results.push({ type: "tool_result", tool_use_id: u.id, content: JSON.stringify(result).slice(0, 3500) });
     }
     messages.push({ role: "user", content: results });
-    finalText = text;
+    finalText = said;
   }
   finalText = plain(finalText);
-  if (!finalText) finalText = "I could not finish that one. Please ask me again, a little more specifically.";
+  if (!finalText) finalText = out.proposals.length ? "I have prepared this for your approval." : "I was not able to complete that. Nothing was done. Please tell me the property or the person it concerns and I will try again.";
   await audit(env, "agent_chat", "assistant", { role: "assistant", agent: agent.id, text: finalText.slice(0, 3000), via });
   return { agent, text: finalText, proposals: out.proposals };
 }
