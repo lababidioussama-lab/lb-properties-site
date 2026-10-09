@@ -74,7 +74,7 @@ The full list is in `.env.example`. All five are required:
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase → Settings → API → **service_role**,
   behind the "Reveal" button. Not the anon key.
 - `ADMIN_PASSWORD` — 12+ characters
-- `GROQ_API_KEY`
+- `ANTHROPIC_API_KEY`
 
 CRM sign-in and domain (all required for the CRM):
 

@@ -30,7 +30,10 @@ export function VisitBeacon() {
     }
     const body = JSON.stringify({ ...arrived, p: pathname, l: navigator.language });
     // keepalive lets the report finish even if the visitor leaves at once.
-    void fetch("/api/visit", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
+    // The count is kept by the CRM server, so this public website never holds the database's master key.
+    // text/plain keeps it a "simple" cross-site request, which needs no preflight round trip.
+    const target = /(^|\.)lababidiproperties\.com$/.test(window.location.hostname) ? "https://crm.lababidiproperties.com/api/visit" : null;
+    if (target) void fetch(target, { method: "POST", headers: { "Content-Type": "text/plain" }, body, keepalive: true, credentials: "omit", mode: "cors" }).catch(() => {});
   }, [pathname]);
 
   return null;

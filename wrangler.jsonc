@@ -8,6 +8,13 @@
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"
 	},
+	"kv_namespaces": [
+		{
+			// The day's chat allowance (see app/api/chat/route.ts).
+			"binding": "CHAT_BUDGET",
+			"id": "5818466bac3d4f3ca5936d7d87a81c59"
+		}
+	],
 	"services": [
 		{
 			// The Worker calls itself; the service name must match "name" above.

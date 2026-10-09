@@ -6,14 +6,37 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /* ---------------------------------------------------------------------------
-   The key never leaves the server. GROQ_API_KEY has no NEXT_PUBLIC_ prefix,
-   so it cannot be inlined into the client bundle, and the browser only ever
-   talks to this route. Calling Groq directly from the client would publish
-   the key to anyone who opens devtools.
+   The key never leaves the server. ANTHROPIC_API_KEY has no NEXT_PUBLIC_
+   prefix, so it cannot be inlined into the client bundle, and the browser only
+   ever talks to this route. Calling Claude directly from the client would
+   publish the key to anyone who opens devtools.
    ------------------------------------------------------------------------ */
 
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "llama-3.3-70b-versatile";
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+const MODEL = "claude-sonnet-5-5";
+
+/* This chat is open to the public and every answer costs money, so the whole
+   site shares a daily allowance (CHAT_DAILY_CAP, 150 answers a day unless set).
+   The count is kept in a Cloudflare key-value store (CHAT_BUDGET); where there
+   is none (a developer's machine) there is no cap. */
+const DAILY_CAP = Math.max(1, Number(process.env.CHAT_DAILY_CAP) || 150);
+
+async function takeFromDailyAllowance(): Promise<boolean> {
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const kv = (getCloudflareContext().env as { CHAT_BUDGET?: { get: (k: string) => Promise<string | null>; put: (k: string, v: string, o: { expirationTtl: number }) => Promise<void> } }).CHAT_BUDGET;
+    if (!kv) return true;
+    const day = new Date(Date.now() + 4 * 3_600_000).toISOString().slice(0, 10); // the Dubai day
+    const key = `chat:${day}`;
+    const used = Number((await kv.get(key)) ?? 0);
+    if (used >= DAILY_CAP) return false;
+    await kv.put(key, String(used + 1), { expirationTtl: 172_800 });
+    return true;
+  } catch (cause) {
+    console.error("[chat] daily allowance unavailable:", cause);
+    return true; // a broken counter should not take the chat down
+  }
+}
 
 /* Tighter than the lead route: a chat turn costs real tokens, and an
    unattended script left looping is the expensive failure mode here. */
@@ -78,29 +101,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "no_messages" }, { status: 400 });
   }
 
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ ok: false, error: "not_configured" }, { status: 503 });
+  }
+
+  // Claude wants the turns to alternate and to start with the visitor: drop a
+  // leading greeting from the assistant and join any two turns in a row.
+  const turns: Turn[] = [];
+  for (const turn of history) {
+    if (turns.length === 0 && turn.role !== "user") continue;
+    const last = turns[turns.length - 1];
+    if (last && last.role === turn.role) last.content += `
+
+${turn.content}`;
+    else turns.push({ ...turn });
+  }
+
+  if (!(await takeFromDailyAllowance())) {
+    return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
   }
 
   const locale = typeof body.locale === "string" ? body.locale : "en";
 
   try {
-    const upstream = await fetch(GROQ_URL, {
+    const upstream = await fetch(ANTHROPIC_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
-        // Groq sits behind Cloudflare, which has been observed returning
-        // 403 "error code: 1010" to requests with a default client UA.
-        "User-Agent": "Mozilla/5.0 (compatible; LBPropertiesConcierge/1.0)",
       },
       body: JSON.stringify({
         model: MODEL,
-        messages: [
-          { role: "system", content: buildSystemPrompt(locale) },
-          ...history,
-        ],
+        // The brief is the same for every visitor, so it is cached: after the
+        // first answer it is billed at a tenth of the normal input price.
+        system: [{ type: "text", text: buildSystemPrompt(locale), cache_control: { type: "ephemeral" } }],
+        messages: turns,
         temperature: 0.3, // Low: this answers factual questions about stock.
         max_tokens: 500,
       }),
@@ -110,14 +147,12 @@ export async function POST(request: NextRequest) {
     if (!upstream.ok) {
       const detail = await upstream.text().catch(() => "");
       // Logged, never returned: the upstream body can echo request details.
-      console.error("[chat] groq %s: %s", upstream.status, detail.slice(0, 400));
+      console.error("[chat] anthropic %s: %s", upstream.status, detail.slice(0, 400));
       return NextResponse.json({ ok: false, error: "upstream" }, { status: 502 });
     }
 
-    const data = (await upstream.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const reply = data.choices?.[0]?.message?.content?.trim();
+    const data = (await upstream.json()) as { content?: { type?: string; text?: string }[] };
+    const reply = (data.content ?? []).filter((b) => b.type === "text").map((b) => b.text ?? "").join("").trim();
     if (!reply) {
       return NextResponse.json({ ok: false, error: "empty" }, { status: 502 });
     }
