@@ -146,7 +146,7 @@ async function runTool(env: Env, agent: Agent, name: string, input: Record<strin
   if (name === "propose") {
     const kind = String(input.kind);
     if (!["note", "reply", "listing"].includes(kind)) return { error: "bad kind" };
-    const text = String(input.text ?? "").slice(0, 4000);
+    const text = String(input.text ?? "").slice(0, 16000);
     if (!text) return { error: "empty text" };
     const draft: Record<string, unknown> = { text, description_ar: String(input.description_ar ?? "").slice(0, 2500) };
     const target = { lead_id: input.lead_id ? String(input.lead_id) : null, listing_id: input.listing_id ? String(input.listing_id) : null };
@@ -203,7 +203,7 @@ export const plain = (t: string) => t.replace(/\*\*(.+?)\*\*/gs, "$1").replace(/
 
 /* ----------------------------------------------------------------- history */
 
-export async function loadHistory(env: Env, limit = 4): Promise<Msg[]> {
+export async function loadHistory(env: Env, limit = 8): Promise<Msg[]> {
   const r = await rest(env, `crm_audit?select=detail&entity=eq.agent_chat&order=created_at.desc&limit=${limit}`);
   const rows = (Array.isArray(r.data) ? r.data : []) as { detail: { role: "user" | "assistant"; text: string; agent?: string } }[];
   const msgs: Msg[] = [];
@@ -263,7 +263,7 @@ export async function ask(env: Env, agent: Agent, text: string, via: "telegram" 
     const blocks: unknown[] = files.map((f) => f.kind === "pdf"
       ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: f.data } }
       : { type: "image", source: { type: "base64", media_type: f.media, data: f.data } });
-    blocks.push({ type: "text", text: `${text}\n\n(Oussama attached ${files.length} file${files.length > 1 ? "s" : ""}. Read them carefully and quote details exactly as written. If any part is unreadable, say which.)` });
+    blocks.push({ type: "text", text: `${text}\n\n(Oussama attached ${files.length} file${files.length > 1 ? "s" : ""}. Read them carefully. In your reply, record every detail that matters (names, numbers, dates, addresses) exactly as written, because the files themselves will not be in front of you in later messages. If any part is unreadable, say which.)` });
     if (tail && tail.role === "user") messages.pop();
     messages.push({ role: "user", content: blocks });
   } else if (tail && tail.role === "user") tail.content += `\n${text}`; else messages.push({ role: "user", content: text });
@@ -275,7 +275,12 @@ export async function ask(env: Env, agent: Agent, text: string, via: "telegram" 
   let finalText = "";
   for (let i = 0; i < ROUNDS; i++) {
     // On the last round the tools are withheld, so there is always a written answer.
-    const r = await claude(env, system, messages, tools, files.length ? 1100 : 700, MODEL, i === ROUNDS - 1);
+    let r = await claude(env, system, messages, tools, 3000, MODEL, i === ROUNDS - 1);
+    if (r.stop_reason === "max_tokens") {
+      // The reply ran out of room part-way (usually a long draft). Ask once more for a tighter version rather than lose it.
+      const retry: Msg[] = [...messages, { role: "user", content: "Your last reply was cut off because it was too long. Do it again, complete but tighter: if you are filing a document with the propose tool, keep its text under 2,200 words." }];
+      r = await claude(env, system, retry, tools, 4000, MODEL, i === ROUNDS - 1);
+    }
     const said = r.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("\n").trim();
     const uses = r.content.filter((b) => b.type === "tool_use");
     if (!uses.length || r.stop_reason !== "tool_use") { finalText = said; break; }
@@ -315,7 +320,7 @@ export async function decide(env: Env, id: string, outcome: "approved" | "reject
     await audit(env, "agent_office", "rejected", { proposal_id: id, agent: p.agent });
     return { ok: true, message: "Rejected. Nothing was done." };
   }
-  const text = (edited?.text ?? p.draft.text ?? "").slice(0, 4000);
+  const text = (edited?.text ?? p.draft.text ?? "").slice(0, 16000);
   let applied = "Recorded. Nothing else was changed.";
   if (p.kind === "reply" && p.target.lead_id) {
     const r = await rest(env, "crm_activities", { method: "POST", body: JSON.stringify({ lead_id: p.target.lead_id, kind: "note", body: `AI draft approved by the owner (not sent yet): ${text}` }) });

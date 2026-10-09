@@ -26,7 +26,19 @@ export default {
     if (path === "/tg" && req.method === "POST") {
       if (!secretOk(env, req.headers.get("x-telegram-bot-api-secret-token"))) return new Response("no", { status: 401 });
       const update = (await req.json().catch(() => null)) as Record<string, unknown> | null;
-      if (update) ctx.waitUntil(handleUpdate(env, update).catch((e) => console.error("[tg]", e instanceof Error ? e.message : e)));
+      if (!update) return new Response("ok");
+      /* Telegram repeats an update it thinks was not received. Each one is handled once. */
+      const uid = String(update.update_id ?? "");
+      if (uid) {
+        const seen = await rest(env, `crm_audit?select=id&entity=eq.agent_inbox&action=eq.update&detail->>id=eq.${encodeURIComponent(uid)}&limit=1`);
+        if (Array.isArray(seen.data) && seen.data.length) return new Response("ok");
+        await audit(env, "agent_inbox", "update", { id: uid });
+      }
+      /* A long draft can take a minute. The request stays open while the colleague works (up to 50 s),
+         and the platform then allows the remainder to finish in the background. */
+      const work = handleUpdate(env, update).catch((e) => console.error("[tg]", e instanceof Error ? e.message : e));
+      ctx.waitUntil(work);
+      await Promise.race([work, new Promise((r) => setTimeout(r, 50_000))]);
       return new Response("ok");
     }
 

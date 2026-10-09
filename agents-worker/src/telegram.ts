@@ -1,6 +1,6 @@
 import { ROSTER, addressedTo, byId, type Agent } from "./roster";
 import { ask, budgetUsd, chatsToday, dailyCap, decide, lastAgent, loadProposals, meeting, route, spendThisMonth, type Attachment } from "./engine";
-import { audit, same, type Env } from "./core";
+import { audit, rest, same, type Env } from "./core";
 
 /**
  * Telegram: the owner's line to the whole office.
@@ -31,8 +31,18 @@ async function sendProposal(env: Env, chat: number, id: string) {
   if (!p) return;
   const a = byId(p.agent);
   const what = p.kind === "reply" ? "Saves this reply in the lead's notes (you send it yourself)." : p.kind === "listing" ? "Updates the listing's title and description in the CRM (nothing goes to portals)." : "Records this. Nothing else happens.";
-  await say(env, chat, `📝 For your approval\nFrom ${a?.name ?? "staff"}: ${p.title}\n\n${p.draft.text ?? ""}${p.draft.description_ar ? `\n\n${p.draft.description_ar}` : ""}\n\nIf you approve: ${what}`, {
-    reply_markup: { inline_keyboard: [[{ text: "✅ Approve", callback_data: `ok:${id}` }, { text: "✖ Reject", callback_data: `no:${id}` }]] },
+  const body = `For your approval\nFrom ${a?.name ?? "staff"}: ${p.title}\n\n${p.draft.text ?? ""}${p.draft.description_ar ? `\n\n${p.draft.description_ar}` : ""}`;
+  const parts: string[] = [];
+  for (let rest = body; rest.length; ) {
+    // break on a line end where possible, so a long document reads cleanly across messages
+    let cut = rest.length <= 3600 ? rest.length : rest.lastIndexOf("\n", 3600);
+    if (cut < 1500) cut = Math.min(3600, rest.length);
+    parts.push(rest.slice(0, cut));
+    rest = rest.slice(cut).replace(/^\n/, "");
+  }
+  for (const part of parts) await say(env, chat, part);
+  await say(env, chat, `If you approve: ${what}${parts.length > 1 ? "\nThe full text is also in the office, where you can edit it before approving." : ""}`, {
+    reply_markup: { inline_keyboard: [[{ text: "Approve", callback_data: `ok:${id}` }, { text: "Reject", callback_data: `no:${id}` }]] },
   });
 }
 
@@ -68,9 +78,27 @@ export async function handleUpdate(env: Env, update: Record<string, any>): Promi
   let files: Attachment[] = [];
   let text: string = String(m.text ?? m.caption ?? "").trim();
   if (m.photo || m.document) {
-    const got = await attachment(env, m);
-    if (typeof got === "string") { await say(env, chat, got); return; }
-    files = [got];
+    /* Telegram delivers each file of a batch as its own message. Each one is noted, then only the last
+       to arrive goes on, carrying all of them: one reading, one answer, instead of one per file. */
+    const ref = fileRef(m);
+    if (typeof ref === "string") { await say(env, chat, ref); return; }
+    await audit(env, "agent_inbox", "file", { ...ref, msg: m.message_id, caption: text });
+    await new Promise((r) => setTimeout(r, 3500));
+    const since = new Date(Date.now() - 60_000).toISOString();
+    const q = await rest(env, `crm_audit?select=action,detail&entity=eq.agent_inbox&created_at=gte.${since}&order=created_at.desc&limit=12`);
+    const rows = (Array.isArray(q.data) ? q.data : []) as { action: string; detail: Record<string, any> }[];
+    const fresh: Record<string, any>[] = [];
+    for (const r of rows) { if (r.action !== "file") break; fresh.push(r.detail); }
+    if (!fresh.length || fresh[0].msg !== m.message_id) return;
+    await audit(env, "agent_inbox", "read", { count: fresh.length });
+    const batch = fresh.reverse().slice(0, 5);
+    text = batch.map((f) => String(f.caption ?? "")).filter(Boolean).join("\n");
+    await tg(env, "sendChatAction", { chat_id: chat, action: "typing" });
+    for (const f of batch) {
+      const got = await download(env, f as FileRef);
+      if (typeof got === "string") { await say(env, chat, got); return; }
+      files.push(got);
+    }
     if (!text) text = "Please read this document. Tell me what it is, the key details exactly as written, and what is missing or needs my attention.";
   }
   if (!text) { await say(env, chat, "I can read text, photos and PDF files. Voice notes and other file types are not supported yet."); return; }
@@ -134,22 +162,26 @@ export async function handleUpdate(env: Env, update: Record<string, any>): Promi
   }
 }
 
-/** A photo or a PDF he sent, fetched from Telegram and handed to the colleague to read. */
-async function attachment(env: Env, m: Record<string, any>): Promise<Attachment | string> {
-  let fileId = "", media = "", name = "", kind: Attachment["kind"] = "image";
+interface FileRef { file_id: string; kind: Attachment["kind"]; media: string; name: string }
+
+/** Which file a message carries, or a sentence explaining why it cannot be read. */
+function fileRef(m: Record<string, any>): FileRef | string {
   if (m.photo?.length) {
     // Telegram offers several sizes; the largest one under about 1 MB reads well and stays cheap.
     const fit = [...m.photo].reverse().find((p: any) => (p.file_size ?? 0) <= 1_000_000) ?? m.photo[0];
-    fileId = fit.file_id; media = "image/jpeg"; name = "photo";
-  } else if (m.document) {
-    const d = m.document, mime = String(d.mime_type ?? "");
-    if ((d.file_size ?? 0) > 3_000_000) return "That file is larger than 3 MB. Please send a smaller copy, or photos of the pages.";
-    if (mime === "application/pdf") { kind = "pdf"; media = mime; }
-    else if (["image/jpeg", "image/png", "image/webp"].includes(mime)) media = mime;
-    else return "I can read PDF files and photos (JPG, PNG). Please send the document in one of those forms.";
-    fileId = d.file_id; name = String(d.file_name ?? "document").slice(0, 60);
+    return { file_id: fit.file_id, kind: "image", media: "image/jpeg", name: "photo" };
   }
-  const info = await tg(env, "getFile", { file_id: fileId }) as { result?: { file_path?: string } } | null;
+  const d = m.document, mime = String(d?.mime_type ?? "");
+  if ((d?.file_size ?? 0) > 3_000_000) return "That file is larger than 3 MB. Please send a smaller copy, or photos of the pages.";
+  const name = String(d?.file_name ?? "document").slice(0, 60);
+  if (mime === "application/pdf") return { file_id: d.file_id, kind: "pdf", media: mime, name };
+  if (["image/jpeg", "image/png", "image/webp"].includes(mime)) return { file_id: d.file_id, kind: "image", media: mime, name };
+  return "I can read PDF files and photos (JPG, PNG). Please send the document in one of those forms.";
+}
+
+/** Fetch a file he sent from Telegram, ready to hand to the colleague who will read it. */
+async function download(env: Env, f: FileRef): Promise<Attachment | string> {
+  const info = await tg(env, "getFile", { file_id: f.file_id }) as { result?: { file_path?: string } } | null;
   const path = info?.result?.file_path;
   if (!path) return "I could not fetch that file from Telegram. Please send it again.";
   const res = await fetch(`https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${path}`, { signal: AbortSignal.timeout(15_000) }).catch(() => null);
@@ -157,7 +189,7 @@ async function attachment(env: Env, m: Record<string, any>): Promise<Attachment 
   const bytes = new Uint8Array(await res.arrayBuffer());
   let bin = "";
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return { kind, media, data: btoa(bin), name };
+  return { kind: f.kind, media: f.media, data: btoa(bin), name: f.name };
 }
 
 export const secretOk = (env: Env, header: string | null) => !!header && !!env.TELEGRAM_WEBHOOK_SECRET && same(header, env.TELEGRAM_WEBHOOK_SECRET);
