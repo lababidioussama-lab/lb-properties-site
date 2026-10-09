@@ -19,7 +19,7 @@ async function tg(env: Env, method: string, body: Record<string, unknown>) {
 
 const say = (env: Env, chat: number, text: string, extra: Record<string, unknown> = {}) => tg(env, "sendMessage", { chat_id: chat, text: text.slice(0, 3900), disable_web_page_preview: true, ...extra });
 
-const head = (a: Agent) => `${a.emoji} ${a.name} · ${a.title}`;
+const head = (a: Agent) => `${a.name} · ${a.title}`;
 
 async function sayAs(env: Env, chat: number, a: Agent, text: string) {
   const body = `${head(a)}\n\n${text}`;

@@ -6,15 +6,15 @@ const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "
 const CSS = `
 :root{--bg:#07090f;--panel:#0e131f;--panel2:#121a2b;--line:#1f2a42;--text:#e8edf8;--mute:#8a97b4;--acc:#3d7dff;--ok:#2fbf84;--bad:#ef5b6b;--warn:#e8b04a}
 @media (prefers-color-scheme:light){:root{--bg:#f3f6fc;--panel:#fff;--panel2:#f0f4fb;--line:#d8e0f0;--text:#101828;--mute:#5a6785;--acc:#2158d0;--ok:#168a5c;--bad:#c63a4a;--warn:#a8741a}}
-*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 "Inter",system-ui,Segoe UI,Roboto,sans-serif;min-height:100dvh}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 "Manrope","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;min-height:100dvh}
 a{color:inherit;text-decoration:none}button,input,textarea{font:inherit;color:inherit}
 .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
 .top{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:22px}
-.brand{font-weight:650;letter-spacing:.2px}.brand small{display:block;color:var(--mute);font-weight:400;font-size:12.5px}
+.brand small{display:block;color:var(--mute);font:500 12px "Manrope",sans-serif;letter-spacing:.3px}
 .btn{background:var(--acc);border:0;color:#fff;padding:9px 16px;border-radius:10px;cursor:pointer;font-weight:600;min-height:40px}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}.btn.bad{background:transparent;border:1px solid var(--bad);color:var(--bad)}
 .btn:disabled{opacity:.5;cursor:default}
-h1{font-size:26px;margin:0 0 4px;letter-spacing:-.3px}h2{font-size:13px;color:var(--mute);font-weight:600;margin:30px 0 12px;text-transform:none;letter-spacing:.3px}
+h1,.card .nm,.brand{font-family:"Cormorant Garamond","Times New Roman",serif}h1{font-size:34px;font-weight:600;margin:0 0 4px;letter-spacing:-.2px;line-height:1.1}.card .nm{font-size:19px;font-weight:600;line-height:1.15}.brand{font-size:19px;font-weight:600}h2{font-size:13px;color:var(--mute);font-weight:600;margin:30px 0 12px;text-transform:none;letter-spacing:.3px}
 .sub{color:var(--mute);margin:0 0 6px;max-width:68ch}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
 .card{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;transition:border-color .15s,transform .15s;position:relative}
@@ -29,7 +29,7 @@ h1{font-size:26px;margin:0 0 4px;letter-spacing:-.3px}h2{font-size:13px;color:va
 .prop .meta{color:var(--mute);font-size:12.5px;margin-bottom:6px}.prop textarea{width:100%;min-height:110px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;resize:vertical}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .chat{display:flex;flex-direction:column;gap:10px;max-height:420px;overflow:auto;margin-bottom:10px;padding-right:2px}
-.m{padding:9px 12px;border-radius:12px;max-width:92%;white-space:pre-wrap;word-wrap:break-word}.m.me{align-self:flex-end;background:var(--acc);color:#fff}.m.ag{background:var(--panel2);border:1px solid var(--line)}
+.m{font-size:14.5px;padding:9px 12px;border-radius:12px;max-width:92%;white-space:pre-wrap;word-wrap:break-word}.m.me{align-self:flex-end;background:var(--acc);color:#fff}.m.ag{background:var(--panel2);border:1px solid var(--line)}
 .send{display:flex;gap:8px}.send input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px}
 .login{max-width:380px;margin:12vh auto 0;padding:0 16px}.login .panel{padding:22px}
 .field{display:block;margin:12px 0}.field span{display:block;color:var(--mute);font-size:12.5px;margin-bottom:4px}
@@ -38,7 +38,7 @@ h1{font-size:26px;margin:0 0 4px;letter-spacing:-.3px}h2{font-size:13px;color:va
 .tg{display:inline-flex;align-items:center;gap:6px;color:var(--acc);font-weight:600}
 `;
 
-const page = (title: string, body: string, script = "") => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${esc(title)}</title><style>${CSS}</style></head><body>${body}${script ? `<script>${script}</script>` : ""}</body></html>`;
+const page = (title: string, body: string, script = "") => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"><title>${esc(title)}</title><style>${CSS}</style></head><body>${body}${script ? `<script>${script}</script>` : ""}</body></html>`;
 
 export const loginPage = () => page("AI office sign-in", `<div class="login"><div class="panel"><div class="brand">Lababidi Properties<small>AI office · private</small></div>
 <form id="f"><label class="field" id="l1"><span>Email</span><input id="e" type="email" autocomplete="username" required></label>
