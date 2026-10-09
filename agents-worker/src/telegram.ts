@@ -1,5 +1,5 @@
 import { ROSTER, addressedTo, byId, type Agent } from "./roster";
-import { ask, chatsToday, dailyCap, decide, loadProposals, route } from "./engine";
+import { ask, budgetUsd, chatsToday, dailyCap, decide, loadProposals, route, spendThisMonth } from "./engine";
 import { audit, same, type Env } from "./core";
 
 /**
@@ -36,7 +36,7 @@ async function sendProposal(env: Env, chat: number, id: string) {
   });
 }
 
-const HELP = `Your office is open. Talk to anyone by starting with their first name:\n• Karim, who owns unit 2104 in Marina Gate?\n• Layla, what should I do first today?\n• Ines, write the advert for my newest listing.\nIf you name nobody, Omar sends it to the right person.\n\n/team lists everyone · /pending shows what waits for you.`;
+const HELP = `Your office is open. Talk to anyone by starting with their first name:\n• Karim, who owns unit 2104 in Marina Gate?\n• Layla, what should I do first today?\n• Ines, write the advert for my newest listing.\nIf you name nobody, Omar sends it to the right person.\n\n/team lists everyone · /pending shows what waits · /usage shows spend.`;
 
 export async function handleUpdate(env: Env, update: Record<string, any>): Promise<void> {
   const allowed = env.TELEGRAM_CHAT_ID ? Number(env.TELEGRAM_CHAT_ID) : null;
@@ -73,6 +73,11 @@ export async function handleUpdate(env: Env, update: Record<string, any>): Promi
     await say(env, chat, `Your team of ${ROSTER.length} (all AI):\n\n${lines.join("\n")}`);
     return;
   }
+  if (/^\/usage\b/i.test(text)) {
+    const s = await spendThisMonth(env);
+    await say(env, chat, `AI spend this month (estimate): $${s.usd.toFixed(2)} of $${budgetUsd(env)}\nCalls: ${s.calls}\nThe office stops by itself at the limit. The exact figure is on the Anthropic console.`);
+    return;
+  }
   if (/^\/pending\b/i.test(text)) {
     const waiting = (await loadProposals(env)).filter((p) => !p.decision);
     if (!waiting.length) { await say(env, chat, "Nothing is waiting for you."); return; }
@@ -99,6 +104,7 @@ export async function handleUpdate(env: Env, update: Record<string, any>): Promi
     await sayAs(env, chat, agent, reply.text);
     for (const id of reply.proposals) await sendProposal(env, chat, id);
   } catch (e) {
+    if (e instanceof Error && e.message === "budget") { await say(env, chat, `The monthly AI budget of $${budgetUsd(env)} has been reached, so the office has stopped. Raise the limit when you are ready and I will resume.`); return; }
     console.error("[telegram] failed:", e instanceof Error ? e.message : e);
     await say(env, chat, "⚠️ I could not reach the AI service just now. Nothing was done. Please try again in a minute.");
   }

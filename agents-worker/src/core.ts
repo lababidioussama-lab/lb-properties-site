@@ -10,6 +10,7 @@ export interface Env {
   TELEGRAM_WEBHOOK_SECRET: string;
   TELEGRAM_CHAT_ID?: string;
   AGENT_DAILY_CAP?: string;
+  AGENT_BUDGET_USD?: string;
 }
 
 /** The only person who may ever open the offices or give the agents orders. */

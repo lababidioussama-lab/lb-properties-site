@@ -1,6 +1,6 @@
 import { OWNER_EMAIL, audit, rest, type Env } from "./core";
 import { login, logout, signedIn } from "./auth";
-import { ask, chatsToday, dailyCap, decide, loadProposals } from "./engine";
+import { ask, budgetUsd, chatsToday, dailyCap, decide, loadProposals, spendThisMonth } from "./engine";
 import { ROSTER, byId } from "./roster";
 import { handleUpdate, secretOk } from "./telegram";
 import { agentPage, homePage, loginPage } from "./ui";
@@ -47,7 +47,8 @@ export default {
     if (path === "/" && req.method === "GET") {
       const pending = new Map<string, number>();
       for (const p of await loadProposals(env)) if (!p.decision) pending.set(p.agent, (pending.get(p.agent) ?? 0) + 1);
-      return html(homePage(pending, !!env.TELEGRAM_CHAT_ID));
+      const [spend, today] = await Promise.all([spendThisMonth(env), chatsToday(env)]);
+      return html(homePage(pending, { waiting: [...pending.values()].reduce((x, y) => x + y, 0), today, spend: spend.usd, budget: budgetUsd(env), telegram: !!env.TELEGRAM_CHAT_ID }));
     }
 
     const m = /^\/a\/([a-z0-9]+)$/.exec(path);
@@ -72,7 +73,8 @@ export default {
       try {
         const r = await ask(env, a, text, "office");
         return json({ ok: true, text: r.text, proposals: r.proposals });
-      } catch {
+      } catch (e) {
+        if (e instanceof Error && e.message === "budget") return json({ ok: false, error: "budget" }, 402);
         return json({ ok: false, error: "upstream" }, 502);
       }
     }
