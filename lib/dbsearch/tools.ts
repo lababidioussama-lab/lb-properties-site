@@ -225,10 +225,19 @@ function findArray(v: unknown): Record<string, unknown>[] {
 /* ------------------------------------------------------------ brokers */
 
 /** Registered brokers: business contacts from public listings, so shown as-is. */
+export interface BrokerContact { phone: string | null; dial: string | null; company: string | null; brn: string | null }
+
+/** DB Search's Agents tab: one card per person — a broker often holds several numbers across branches. */
 export async function brokers(db: Db, q: string) {
   const text = clip(q, 120);
   if (text.length < 2) return [];
   const { data } = await db.rpc("agents_search", { q: text, lim: 50 });
-  return ((data ?? []) as { agent_name: string; company: string | null; mobile_display: string | null; mobile_e164: string | null; nationality: string | null; brn: string | null; contact_count: number | null }[])
-    .map((a) => ({ name: a.agent_name, company: a.company, phone: a.mobile_display, dial: a.mobile_e164, nationality: a.nationality, brn: a.brn, listings: a.contact_count }));
+  type Row = { agent_name: string; company: string | null; mobile_display: string | null; mobile_e164: string | null; nationality: string | null; brn: string | null; contact_count: number | null; contacts?: { mobile_display?: string | null; mobile_e164?: string | null; company?: string | null; brn?: string | null }[] | null };
+  return ((data ?? []) as Row[]).map((a) => {
+    const cts = a.contacts?.length ? a.contacts : [{ mobile_display: a.mobile_display, mobile_e164: a.mobile_e164, company: a.company, brn: a.brn }];
+    return {
+      name: a.agent_name, company: a.company, nationality: a.nationality, brn: a.brn, contactCount: Number(a.contact_count ?? cts.length),
+      contacts: cts.map((c): BrokerContact => ({ phone: c.mobile_display ?? null, dial: String(c.mobile_e164 ?? "").replace(/\D/g, "") || null, company: c.company ?? null, brn: c.brn ?? null })),
+    };
+  });
 }

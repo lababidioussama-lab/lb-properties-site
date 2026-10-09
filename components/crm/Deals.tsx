@@ -8,6 +8,7 @@ import { api, money, shortDate, toInputDate, downloadCsv, INPUT, BTN, BTN_GHOST,
 import { Avatar } from "./Avatar";
 import type { Table } from "./useTable";
 import { CountText } from "./Motion";
+import { FileField } from "./FileField";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const BLANK = {
@@ -97,11 +98,11 @@ export function DealsView({ t, isAdmin, users, listings, contacts, kyc, userName
       </div>
 
       {notice && <Card className="border-emerald-200 bg-emerald-50/60 px-4 py-3 text-[13px] text-emerald-800">{notice}</Card>}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         {totals.map((s) => (
           <Card key={s.label} className="px-5 py-4">
             <div className="text-[12px] font-medium text-[var(--text-secondary)]">{s.label}</div>
-            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]"><CountText text={s.value} /></div>
+            <div className="figure mt-2 whitespace-nowrap text-[16px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]"><CountText text={s.value} /></div>
           </Card>
         ))}
       </div>
@@ -110,7 +111,7 @@ export function DealsView({ t, isAdmin, users, listings, contacts, kyc, userName
         <Card className="overflow-x-auto">
           <table className="w-full text-[12.5px]">
             <thead>
-              <tr className="border-b border-[var(--hairline)] text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              <tr className="border-b border-[var(--hairline)] text-[12px] font-medium text-[var(--text-muted)]">
                 {["Deal", "Type", "Agent", "Price", "Commission", "Agent share", "Closed", "Checklist", "Status"].map((h) => <th key={h} className="px-3 py-3 text-start font-semibold">{h}</th>)}
               </tr>
             </thead>
@@ -144,7 +145,7 @@ export function DealsView({ t, isAdmin, users, listings, contacts, kyc, userName
         </Card>
 
         <Card className="p-4">
-          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Quarterly slab · {thisQuarter}</h3>
+          <h3 className="mb-3 text-[12px] font-medium text-[var(--text-muted)]">Quarterly slab · {thisQuarter}</h3>
           {byAgent.length === 0 ? <Empty>—</Empty> : (
             <ul className="space-y-3">
               {byAgent.map(([agent, e]) => {
@@ -200,6 +201,7 @@ export function DealsView({ t, isAdmin, users, listings, contacts, kyc, userName
 const DEAL_ERRORS: Record<string, string> = {
   kyc_contact_required: "Choose the client. A deal needs a client with a complete KYC file.",
   kyc_incomplete: "The client's KYC file is not complete. Finish it on the contact, or (admin) override with a reason.",
+  kyc_needs_approval: "This client's file needs the admin's approval first (possible sanctions match, PEP or high risk). The admin approves it on the contact.",
 };
 
 /** Steps done out of the checklist for this deal type. */
@@ -277,7 +279,11 @@ function DealForm({ deal, isAdmin, users, listings, contacts, kyc, error, onClos
         <label><Label>Agent split %</Label><input type="number" value={f.agent_split_pct} onChange={set("agent_split_pct")} disabled={!isAdmin} className={`${INPUT} figure`} /></label>
         {isAdmin && (
           <label><Label>Agent</Label>
-            <select value={f.agent_id} onChange={set("agent_id")} className={INPUT}>
+            <select value={f.agent_id} onChange={(e) => {
+              // Picking the agent fills in their slab; the admin can still type another split.
+              const slab = users.find((u) => u.id === e.target.value)?.slab_pct;
+              setF((cur) => ({ ...cur, agent_id: e.target.value, ...(slab != null ? { agent_split_pct: String(slab) } : {}) }));
+            }} className={INPUT}>
               <option value="">Me</option>
               {users.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
             </select>
@@ -346,11 +352,15 @@ function DealForm({ deal, isAdmin, users, listings, contacts, kyc, error, onClos
             const done = milestones[s.key];
             return (
               <li key={s.key}>
-                <label className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-[12.5px] ${done ? "border-emerald-200 bg-emerald-50/60" : "border-[var(--hairline)]"}`}>
-                  <input type="checkbox" checked={!!done} onChange={() => setMilestones({ ...milestones, [s.key]: done ? null : today() })} className="h-4 w-4 accent-[var(--accent)]" />
-                  <span className="flex-1">{s.label}</span>
-                  {done && <span className="text-[11px] text-emerald-700">{shortDate(done)}</span>}
-                </label>
+                <div className={`flex flex-wrap items-center gap-3 rounded-lg border px-3 py-2 text-[12.5px] ${done ? "border-[var(--ok-bd)] bg-[var(--ok-bg)]" : "border-[var(--hairline)]"}`}>
+                  <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                    <input type="checkbox" checked={!!done} onChange={() => setMilestones({ ...milestones, [s.key]: done ? null : today() })} className="h-4 w-4 accent-[var(--accent)]" />
+                    <span className="flex-1">{s.label}</span>
+                    {done && <span className="text-[11px] text-[var(--ok)]">{shortDate(done)}</span>}
+                  </label>
+                  {/* The signed paper itself, kept next to the tick (stored with the checklist). */}
+                  <FileField value={milestones[`${s.key}__file`]} label="Attach" onChange={(u) => setMilestones({ ...milestones, [`${s.key}__file`]: u })} />
+                </div>
               </li>
             );
           })}
@@ -402,7 +412,7 @@ function DealForm({ deal, isAdmin, users, listings, contacts, kyc, error, onClos
                     <input type="number" value={p.pct || ""} onChange={(e) => upd({ pct: Number(e.target.value) })} placeholder="%" className={`${INPUT} figure`} />
                     <input type="date" value={p.due ?? ""} onChange={(e) => upd({ due: e.target.value || null })} className={INPUT} />
                     <label className="flex items-center gap-1 text-[11px]"><input type="checkbox" checked={!!p.paid_at} onChange={() => upd({ paid_at: p.paid_at ? null : today() })} className="accent-[var(--accent)]" /> Paid</label>
-                    <button onClick={() => setPlan(plan.filter((_, j) => j !== i))} aria-label="Remove" className="text-[var(--text-muted)] hover:text-[#c0392b]"><Trash2 size={13} /></button>
+                    <button onClick={() => setPlan(plan.filter((_, j) => j !== i))} aria-label="Remove" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>
                   </li>
                 );
               })}
@@ -413,7 +423,7 @@ function DealForm({ deal, isAdmin, users, listings, contacts, kyc, error, onClos
       )}
 
       <label className="block"><Label>Notes</Label><textarea rows={3} value={f.notes} onChange={set("notes")} className={`${INPUT} resize-none`} /></label>
-      {error && <p className="text-[12px] text-[#c0392b]">{DEAL_ERRORS[error] ?? error}</p>}
+      {error && <p className="text-[12px] text-[var(--bad)]">{DEAL_ERRORS[error] ?? error}</p>}
       <div className="flex flex-wrap gap-2">
         <button onClick={() => onSave(body())} disabled={!f.title.trim()} className={BTN}>Save deal</button>
         {onTogglePaid && <button onClick={onTogglePaid} className={BTN_GHOST}>{deal?.paid_at ? "Mark unpaid" : "Mark commission paid"}</button>}

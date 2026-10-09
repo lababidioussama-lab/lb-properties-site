@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import Image from "next/image";
-import { ShieldCheck } from "lucide-react";
+import { Lock, ShieldCheck } from "lucide-react";
 
 import { ds } from "./api";
+import { DS_GO, DS_INPUT } from "./ui";
 
 const MESSAGES: Record<string, string> = {
   invalid_credentials: "Email or password is not right. Use your CRM sign-in.",
@@ -22,13 +23,23 @@ const MESSAGES: Record<string, string> = {
   account_disabled: "Your account is switched off.",
 };
 
-const INPUT = "h-11 w-full rounded-lg border border-[var(--hairline-strong)] bg-white px-3.5 text-[14px] text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[rgb(11_42_74/0.12)]";
+const INPUT = DS_INPUT;
+const LABEL = "ds-label mb-1.5 block";
 
 /**
  * The DB Search sign-in: the same email and password as the CRM, then a
- * code emailed as a "DB Search sign-in". Same look as the CRM login page.
+ * code emailed as a "DB Search sign-in". Drawn as dbsearchdubai.com draws its
+ * sign-in card: one glass card in the middle, the logo on top, the gradient
+ * button. The Lababidi logo is the only mark.
  */
-export function DsSignIn({ email: meEmail, onDone, expired = false }: { email: string; onDone: () => void; expired?: boolean }) {
+export function DsSignIn({ email: meEmail, onDone, expired = false, theme, topBar }: {
+  email: string;
+  onDone: () => void;
+  expired?: boolean;
+  theme: "light" | "dark";
+  /** DB Search's brand bar, with Back to CRM. */
+  topBar?: ReactNode;
+}) {
   const demo = typeof window !== "undefined" && !!(window as { __CRM_DEMO__?: boolean }).__CRM_DEMO__;
   const [email, setEmail] = useState(meEmail);
   const [password, setPassword] = useState("");
@@ -72,70 +83,54 @@ export function DsSignIn({ email: meEmail, onDone, expired = false }: { email: s
   }
 
   return (
-    <div className="grid min-h-[620px] overflow-hidden rounded-xl border border-[var(--hairline)] bg-[var(--surface)] shadow-[var(--shadow-card)] lg:grid-cols-[1.05fr_1fr]">
-      <section className="relative hidden overflow-hidden bg-[#0b1a2b] lg:block">
-        <Image src="/brand/reception.jpg" alt="" fill sizes="45vw" className="object-cover opacity-55" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgb(11_26_43/0.55),rgb(11_26_43/0.2)_40%,rgb(11_26_43/0.94))]" />
-        <div className="relative flex h-full flex-col justify-end p-10 text-white">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d4b87f]">DB Search · secure access</p>
-          <h2 className="mt-4 max-w-[15ch] font-[family-name:var(--font-display)] text-[42px] font-medium leading-[1.05]">
-            Owner data, <em className="text-[#e3cc9f]">behind its own key</em>.
-          </h2>
-          <p className="mt-4 max-w-[44ch] text-[13.5px] leading-[1.8] text-white/75">
-            Your CRM email and password, then a code emailed as a “DB Search sign-in”. The session ends after two hours, or twenty minutes without activity.
-          </p>
-        </div>
-      </section>
-
-      <section className="flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-[380px]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gold)]">{step === "password" ? "Step 1 of 2" : "Step 2 of 2"}</p>
-          <h1 className="mt-2 font-[family-name:var(--font-display)] text-[36px] font-semibold leading-none text-[var(--text-primary)]">
-            {step === "password" ? "DB Search sign-in" : "Check your email"}
-          </h1>
-          <p className="mt-3 text-[13.5px] leading-relaxed text-[var(--text-muted)]">
-            {step === "password"
-              ? "Use the same email and password as the CRM. We will then email you a code marked “DB Search sign-in”."
-              : "Enter the code from the email marked “DB Search sign-in”."}
+    <div className="relative z-10 flex min-h-[100dvh] flex-col px-4">
+      {topBar}
+      <div className="flex flex-1 items-center justify-center pb-16 pt-4">
+        <div className="panel crm-title w-full max-w-[430px] px-7 py-8 !shadow-[var(--shadow-lift)] sm:px-8">
+          <Image src={theme === "dark" ? "/logo-icon-white.png" : "/logo-icon.png"} alt="Lababidi Properties" width={52} height={52} priority />
+          <h1 className="display mt-4 text-[30px]">DB <em className="text-[var(--accent)]">Search</em></h1>
+          <p className="mt-1 text-[12.5px] text-[var(--text-muted)]">
+            {step === "password" ? "Sign in with your CRM email and password." : <>We sent a 6-digit code to <span className="font-semibold text-[var(--text-primary)]">{hint}</span>. It expires in 10 minutes.</>}
           </p>
 
-          <form onSubmit={submit} className="mt-7 space-y-5">
+          <div className="mt-5 grid grid-cols-2 gap-1 rounded-[12px] border border-[var(--hairline)] bg-[var(--input-bg)] p-1 text-center text-[12.5px] font-bold">
+            <span className={`rounded-[9px] py-2 ${step === "password" ? "bg-[image:var(--grad)] text-white" : "text-[var(--text-muted)]"}`}>1. Password</span>
+            <span className={`rounded-[9px] py-2 ${step === "otp" ? "bg-[image:var(--grad)] text-white" : "text-[var(--text-muted)]"}`}>2. Email code</span>
+          </div>
+
+          <form onSubmit={submit} className="mt-5 space-y-4">
             {step === "password" ? (
               <>
-                <label className="block"><span className="mb-1.5 block text-[12px] font-semibold text-[var(--text-secondary)]">Email</span>
+                <label className="block"><span className={LABEL}>Email</span>
                   <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT} /></label>
-                <label className="block"><span className="mb-1.5 block text-[12px] font-semibold text-[var(--text-secondary)]">Password</span>
+                <label className="block"><span className={LABEL}>Password</span>
                   <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={INPUT} autoFocus /></label>
               </>
             ) : (
-              <>
-                <div className="rounded-xl border border-[var(--hairline)] bg-white p-4 text-[13px] leading-[1.6] text-[var(--text-secondary)]">
-                  We emailed a 6-digit code to <span className="font-semibold text-[var(--text-primary)]">{hint}</span>. It expires in 10 minutes.
-                </div>
-                <label className="block"><span className="mb-1.5 block text-[12px] font-semibold text-[var(--text-secondary)]">Security code</span>
-                  <input inputMode="numeric" autoComplete="one-time-code" autoFocus value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="••••••"
-                    className={`${INPUT} figure text-center !text-[22px] tracking-[0.5em]`} /></label>
-              </>
+              <label className="block"><span className={LABEL}>Security code</span>
+                <input inputMode="numeric" autoComplete="one-time-code" autoFocus value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000"
+                  className={`${INPUT} mono !h-14 text-center !text-[22px] tracking-[0.3em]`} /></label>
             )}
-            {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[12.5px] text-[#a3261e]">{error}</p>}
-            {note && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[12.5px] text-emerald-700">{note}</p>}
-            <button type="submit" disabled={busy || (step === "password" ? !email || !password : code.length !== 6)}
-              className="h-11 w-full rounded-lg bg-[var(--accent-solid)] text-[14px] font-semibold text-white transition hover:bg-[var(--accent-solid-hover)] disabled:opacity-50">
-              {busy ? "Checking…" : step === "password" ? "Continue" : "Open DB Search"}
+            {error && <p role="alert" className="rounded-[10px] border border-[var(--bad-bd)] bg-[var(--bad-bg)] px-3 py-2 text-[12.5px] text-[var(--bad)]">{error}</p>}
+            {note && <p className="rounded-[10px] border border-[var(--ok-bd)] bg-[var(--ok-bg)] px-3 py-2 text-[12.5px] text-[var(--ok)]">{note}</p>}
+            <button type="submit" disabled={busy || (step === "password" ? !email || !password : code.length !== 6)} className={DS_GO}>
+              <Lock size={15} /> {busy ? "Checking\u2026" : step === "password" ? "Continue" : "Open DB Search"}
             </button>
             {step === "otp" && (
               <div className="flex items-center justify-between text-[12.5px]">
-                <button type="button" onClick={resend} disabled={busy} className="font-medium text-[var(--accent)] hover:underline">Send a new code</button>
+                <button type="button" onClick={resend} disabled={busy} className="font-semibold text-[var(--accent)] hover:underline">Send a new code</button>
                 <button type="button" onClick={() => { setStep("password"); setError(null); setNote(null); }} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">Start again</button>
               </div>
             )}
           </form>
-          <p className="mt-8 flex gap-2 text-[12px] leading-relaxed text-[var(--text-muted)]">
-            <ShieldCheck size={15} className="mt-0.5 shrink-0" /> Every search and every revealed number is recorded against your name.
+
+          <p className="mt-6 flex gap-2 border-t border-[var(--hairline)] pt-4 text-[11.5px] leading-relaxed text-[var(--text-muted)]">
+            <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+            Sessions end after two hours, or twenty minutes without activity. Every search and revealed number is recorded against your name.
           </p>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

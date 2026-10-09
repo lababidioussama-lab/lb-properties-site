@@ -15,7 +15,7 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
   const requests = useTable<CrmAgentRequest>("requests");
   const documents = useTable<CrmAgentDocument>("agent_documents");
   const [f, setF] = useState({
-    phone: me.phone ?? "", languages: me.languages ?? "", specialties: me.specialties ?? "",
+    full_name: me.full_name ?? "", phone: me.phone ?? "", languages: me.languages ?? "", specialties: me.specialties ?? "",
     bio: me.bio ?? "", avatar_url: me.avatar_url ?? "",
   });
   const [saved, setSaved] = useState(false);
@@ -43,8 +43,10 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
 
   async function save() {
     setSaved(false);
-    const { avatar_url: _photo, ...fields } = f;
-    const r = await api<{ user: CrmUser }>("PATCH", "users", { id: me.id, ...fields });
+    const { avatar_url: _photo, full_name, ...fields } = f;
+    // The name is the admin's to change; it is left out for an agent, whose name the admin sets under Team.
+    const name = full_name.trim();
+    const r = await api<{ user: CrmUser }>("PATCH", "users", { id: me.id, ...fields, ...(isAdmin && name ? { full_name: name } : {}) });
     if (r.user) { setSaved(true); onMeUpdate?.(r.user as CrmUser); }
   }
 
@@ -77,9 +79,10 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
           </div>
           <input ref={picker} type="file" accept="image/jpeg,image/png,image/webp,image/heic" hidden onChange={(e) => onPhoto(e.target.files?.[0])} />
         </div>
-        {photoError && <p className="mt-2 text-[12px] text-[#c0392b]">{photoError}</p>}
+        {photoError && <p className="mt-2 text-[12px] text-[var(--bad)]">{photoError}</p>}
 
         <div className="mt-5 grid grid-cols-2 gap-3">
+          {isAdmin && <label className="col-span-2"><Label>Your name</Label><input value={f.full_name} maxLength={80} onChange={(e) => setF({ ...f, full_name: e.target.value })} className={INPUT} /></label>}
           <label><Label>Phone</Label><input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} className={INPUT} /></label>
           <label><Label>Languages</Label><input value={f.languages} onChange={(e) => setF({ ...f, languages: e.target.value })} placeholder="English, Arabic" className={INPUT} /></label>
           <label className="col-span-2"><Label>Specialises in</Label><input value={f.specialties} onChange={(e) => setF({ ...f, specialties: e.target.value })} placeholder="Dubai Marina, JVC" className={INPUT} /></label>
@@ -92,7 +95,7 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
       </Card>
 
       <Card className="p-5">
-        <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">This quarter · {thisQuarter}</h3>
+        <h3 className="mb-3 text-[12px] font-medium text-[var(--text-muted)]">This quarter · {thisQuarter}</h3>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div><div className="figure text-[24px] font-semibold text-[var(--text-primary)]">{stats.deals}</div><div className="text-[11px] text-[var(--text-muted)]">Deals</div></div>
           <div><div className="figure text-[24px] font-semibold text-[var(--text-primary)]">{money(stats.earned)}</div><div className="text-[11px] text-[var(--text-muted)]">Earned</div></div>
@@ -102,8 +105,42 @@ export function AgentProfileView({ me, isAdmin, deals, listings, onMeUpdate }: {
         {!isAdmin && <p className="mt-2 text-center text-[11px] text-[var(--text-muted)]">Slab % and quarterly target are set by an admin, under Team.</p>}
       </Card>
 
-      <AgentDocuments t={documents} onlyUserId={me.id} />
+      <ChangePassword meId={me.id} />
+      <AgentDocuments t={documents} onlyUserId={me.id} canDelete={isAdmin} />
       <MyRequests t={requests} listings={listings} onlyUserId={me.id} />
     </div>
+  );
+}
+
+/** Anyone changes their own password by proving the current one. Other
+ *  devices are signed out; this one stays in. */
+function ChangePassword({ meId }: { meId: string }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [again, setAgain] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const problem = next && next.length < 10 ? "Use at least 10 characters." : again && next !== again ? "The two new passwords do not match." : null;
+
+  async function save() {
+    setBusy(true); setNote(null);
+    const r = await api("PATCH", "users", { id: meId, current_password: current, password: next });
+    setBusy(false);
+    if (!r.ok) return setNote({ ok: false, text: r.error === "current_password_wrong" ? "The current password is not right." : r.error === "password_too_short" ? "Use at least 10 characters." : `Could not change it (${r.error ?? "unknown error"}).` });
+    setCurrent(""); setNext(""); setAgain("");
+    setNote({ ok: true, text: "Password changed. Your other devices have been signed out." });
+  }
+
+  return (
+    <Card className="p-5">
+      <h3 className="mb-3 text-[14.5px] font-bold">Change password</h3>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label><Label>Current password</Label><input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} className={INPUT} /></label>
+        <label><Label>New password</Label><input type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} className={INPUT} /></label>
+        <label><Label>New password again</Label><input type="password" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} className={INPUT} /></label>
+      </div>
+      {(problem || note) && <p role="status" className={`mt-2 text-[12.5px] ${note?.ok ? "text-[var(--ok)]" : "text-[var(--bad)]"}`}>{problem ?? note?.text}</p>}
+      <button onClick={() => void save()} disabled={busy || !current || next.length < 10 || next !== again} className={`${BTN} mt-3`}>{busy ? "Saving…" : "Change password"}</button>
+    </Card>
   );
 }

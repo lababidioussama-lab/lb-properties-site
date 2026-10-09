@@ -81,7 +81,7 @@ export function RentalsView({ t, isAdmin, users, contacts, listings, deals, user
 
       {rentDeals.length > 0 && (
         <Card className="p-4">
-          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Rental deals without a tenancy record</h3>
+          <h3 className="mb-2 text-[12px] font-medium text-[var(--text-muted)]">Rental deals without a tenancy record</h3>
           <div className="flex flex-wrap gap-2">
             {rentDeals.slice(0, 6).map((d) => (
               <button
@@ -106,7 +106,7 @@ export function RentalsView({ t, isAdmin, users, contacts, listings, deals, user
       <Card className="overflow-x-auto">
         <table className="w-full text-[12.5px]">
           <thead>
-            <tr className="border-b border-[var(--hairline)] text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <tr className="border-b border-[var(--hairline)] text-[12px] font-medium text-[var(--text-muted)]">
               {["Property", "Tenant", "Rent / year", "Ends", "Renewal", "Ejari", "Cheques", ...(isAdmin ? ["Agent"] : [])].map((h) => <th key={h} className="px-3 py-3 text-start font-semibold">{h}</th>)}
             </tr>
           </thead>
@@ -245,7 +245,7 @@ function TenancyForm({ tenancy, prefill, isAdmin, users, contacts, listings, err
                 <select value={c.status} onChange={(e) => upd({ status: e.target.value as Cheque["status"] })} className={`${INPUT} ${CHEQUE_TONE[c.status]}`}>
                   <option value="pending">Pending</option><option value="deposited">Deposited</option><option value="cleared">Cleared</option><option value="bounced">Bounced</option>
                 </select>
-                <button onClick={() => setCheques(cheques.filter((_, j) => j !== i))} aria-label="Remove" className="text-[var(--text-muted)] hover:text-[#c0392b]"><Trash2 size={13} /></button>
+                <button onClick={() => setCheques(cheques.filter((_, j) => j !== i))} aria-label="Remove" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>
               </li>
             );
           })}
@@ -266,7 +266,7 @@ function TenancyForm({ tenancy, prefill, isAdmin, users, contacts, listings, err
       )}
 
       <label className="block"><Label>Notes</Label><textarea rows={2} value={f.notes} onChange={set("notes")} className={`${INPUT} resize-none`} /></label>
-      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--bad)]">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button onClick={() => onSave(body())} disabled={!f.property_label.trim() || !f.start_date || !f.end_date} className={BTN}>Save tenancy</button>
         {onDelete && <button onClick={() => window.confirm("Delete this tenancy?") && onDelete()} className={BTN_GHOST}>Delete</button>}

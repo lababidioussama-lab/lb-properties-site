@@ -60,7 +60,7 @@ export function OwnerRequestsView({ isAdmin, users, userName, onCreateListing }:
       <Card className="overflow-x-auto">
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="border-b border-[var(--hairline)] text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <tr className="border-b border-[var(--hairline)] text-[12px] font-medium text-[var(--text-muted)]">
               {["Owner", "Wants to", "Property", "Asking", "Status", "Agent", "Added", ""].map((h) => <th key={h} className="px-4 py-3 text-start font-semibold">{h}</th>)}
             </tr>
           </thead>
@@ -75,7 +75,7 @@ export function OwnerRequestsView({ isAdmin, users, userName, onCreateListing }:
                   <select
                     value={r.status}
                     onChange={(e) => t.update(r.id, { status: e.target.value })}
-                    className={`rounded-full border-0 px-2 py-0.5 text-[10.5px] font-medium ${OWNER_REQUEST_TONE[r.status]}`}
+                    className={`h-8 cursor-pointer rounded-full border-0 px-2.5 text-[11.5px] font-semibold ${OWNER_REQUEST_TONE[r.status]}`}
                   >
                     {OWNER_REQUEST_STATUSES.map((s) => <option key={s} value={s}>{OWNER_REQUEST_LABEL[s]}</option>)}
                   </select>
@@ -84,7 +84,7 @@ export function OwnerRequestsView({ isAdmin, users, userName, onCreateListing }:
                 <td className="px-4 py-3 text-[var(--text-muted)]">{shortDate(r.created_at)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <a href={whatsapp(r.phone)} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="text-[var(--text-muted)] hover:text-[var(--accent)]"><Phone size={14} /></a>
+                    <a href={whatsapp(r.phone)} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--accent)]"><Phone size={14} /></a>
                     {!r.listing_id && (
                       <button onClick={() => onCreateListing(r)} className={BTN_GHOST}>Create listing <ArrowRight size={12} /></button>
                     )}

@@ -45,7 +45,7 @@ export function DsUnit({ initial, onExpired, onUsage, onOpenOwner }: {
         </label>
         <button disabled={busy} className="bg-[var(--accent-solid)] px-7 text-[13px] font-semibold text-white disabled:opacity-60">{busy ? "Looking…" : "Look up"}</button>
       </form>
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[#a3261e]">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-[var(--bad)]">{error}</p>}
       {busy && <div className="h-56 animate-pulse rounded-xl bg-[rgb(15_23_42/0.06)]" />}
 
       {unit && !busy && !unit.chosen && (
@@ -64,7 +64,7 @@ export function DsUnit({ initial, onExpired, onUsage, onOpenOwner }: {
       {unit && !busy && unit.chosen && (
         <div className="grid items-start gap-5 lg:grid-cols-[1.15fr_1fr]">
           <Card className="p-5">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#9a7a44]">{unit.chosen}</p>
+            <p className="text-[12px] font-medium text-[var(--violet)]">{unit.chosen}</p>
             <h2 className="mt-1 font-[family-name:var(--font-display)] text-[32px] font-semibold leading-none">Unit {unit.code}</h2>
             {unit.places.length > 1 && <button onClick={() => look(unit.code)} className="mt-2 text-[12.5px] font-semibold text-[var(--accent)] hover:underline">Different building</button>}
 
@@ -74,13 +74,13 @@ export function DsUnit({ initial, onExpired, onUsage, onOpenOwner }: {
                 {events.map((e, i) => (
                   <li key={i} className="flex gap-4">
                     <div className="flex flex-col items-center">
-                      <span className={`mt-1 h-3.5 w-3.5 rounded-full border-[3px] ${e.role === "Buyer" && i === 0 ? "border-[#e8f3ec] bg-[#285f3f]" : "border-[#f1f0ed] bg-[#9aa1aa]"}`} />
+                      <span className={`mt-1 h-3.5 w-3.5 rounded-full border-[3px] ${e.role === "Buyer" && i === 0 ? "border-[var(--ok-bg)] bg-[var(--ok)]" : "border-[var(--neutral-bg)] bg-[var(--text-muted)]"}`} />
                       {i < events.length - 1 && <span className="w-0.5 flex-1 bg-[rgb(15_23_42/0.1)]" />}
                     </div>
                     <div className="flex-1 pb-5">
                       <div className="flex items-center justify-between gap-3"><strong className="text-[14px]">{e.name}</strong><span className="figure text-[12.5px] text-[var(--text-secondary)]">{fullDate(e.date) ?? "No date"}</span></div>
                       <div className="mt-1 flex items-center gap-2 text-[12.5px] text-[var(--text-secondary)]">
-                        <span className="rounded-full border border-[#e1dfda] bg-[#f1f0ed] px-2 py-0.5 text-[11px] font-semibold text-[#62615b]">{e.role === "Buyer" ? "Bought" : e.role === "Seller" ? "Sold" : e.role === "Mortgage" ? "Bank (mortgage)" : "Side not recorded"}</span>
+                        <span className="rounded-full border border-[var(--neutral-bd)] bg-[var(--neutral-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--neutral)]">{e.role === "Buyer" ? "Bought" : e.role === "Seller" ? "Sold" : e.role === "Mortgage" ? "Bank (mortgage)" : "Side not recorded"}</span>
                         {e.amount ? <span className="figure">{aed(e.amount)}</span> : null}
                       </div>
                     </div>
@@ -96,7 +96,7 @@ export function DsUnit({ initial, onExpired, onUsage, onOpenOwner }: {
             {!unit.current ? <Empty>unit_current_owner has no owner for this unit.</Empty> : (
               <>
                 <div className="mt-3 text-[18px] font-bold">{unit.current.names.join(" & ") || "Name not recorded"}</div>
-                <span className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold ${unit.current.confidence === "confirmed" ? "border-[#bfdcca] bg-[#e8f3ec] text-[#285f3f]" : "border-[#d3dde9] bg-[#eef2f7] text-[#3d5a7a]"}`}>
+                <span className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold ${unit.current.confidence === "confirmed" ? "border-[var(--ok-bd)] bg-[var(--ok-bg)] text-[var(--ok)]" : "border-[var(--info-bd)] bg-[var(--info-bg)] text-[var(--info)]"}`}>
                   {unit.current.confidence === "confirmed" ? `Confirmed by sale${unit.current.date ? `, ${fullDate(unit.current.date)}` : ""}` : "Likely current — no dated sale to check against"}
                 </span>
                 <dl className="mt-4 space-y-2 text-[13px]">

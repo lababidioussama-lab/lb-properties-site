@@ -15,6 +15,8 @@ export function TeamView({ users, meId, onUser }: {
   const [error, setError] = useState<string | null>(null);
 
   const [done, setDone] = useState<string | null>(null);
+  /* A save is confirmed on the row it happened on, since the top of the page is out of sight. */
+  const [saved, setSaved] = useState<{ id: string; text: string } | null>(null);
 
   async function create() {
     setError(null);
@@ -36,11 +38,13 @@ export function TeamView({ users, meId, onUser }: {
     }
   }
 
-  async function patch(id: string, change: Record<string, unknown>) {
+  async function patch(id: string, change: Record<string, unknown>, what?: string) {
     setError(null);
     const r = await api<{ user: CrmUser }>("PATCH", "users", { id, ...change });
-    if (r.user) onUser(r.user as CrmUser);
-    else setError(r.error === "cannot_demote_self" ? "You cannot remove your own admin access." : "Could not save.");
+    if (r.user) {
+      onUser(r.user as CrmUser);
+      if (what) { setSaved({ id, text: `${what} saved` }); window.setTimeout(() => setSaved((c) => (c?.id === id ? null : c)), 3000); }
+    } else setError(r.error === "cannot_demote_self" ? "You cannot remove your own admin access." : `Could not save${what ? ` ${what}` : ""} (${r.error ?? "unknown error"}). Try again.`);
   }
 
   async function resetPassword(u: CrmUser) {
@@ -62,7 +66,7 @@ export function TeamView({ users, meId, onUser }: {
           </select>
           <button onClick={create} className={BTN}><Plus size={14} /> Add</button>
         </div>
-        {error && <p className="mt-2 text-[12px] text-[#c0392b]">{error}</p>}
+        {error && <p className="mt-2 text-[12px] text-[var(--bad)]">{error}</p>}
         {done && <p className="mt-2 text-[12px] font-medium text-emerald-700">{done}</p>}
       </Card>
 
@@ -71,8 +75,17 @@ export function TeamView({ users, meId, onUser }: {
           <div key={u.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
             <Avatar name={u.full_name} url={u.avatar_url} />
             <div className="min-w-[180px] flex-1">
-              <div className="text-[13px] font-medium text-[var(--text-primary)]">
-                {u.full_name} {u.id === meId && <span className="text-[11px] text-[var(--text-muted)]">(you)</span>}
+              <div className="flex items-center gap-1.5">
+                {/* The name is a field: change it and press Enter or click away. */}
+                <input defaultValue={u.full_name} aria-label={`Name of ${u.full_name}`} maxLength={80}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = u.full_name; e.currentTarget.blur(); } }}
+                  onBlur={(e) => {
+                    const name = e.target.value.trim();
+                    if (!name) { e.target.value = u.full_name; return; }
+                    if (name !== u.full_name) void patch(u.id, { full_name: name }, "Name");
+                  }}
+                  className="h-8 min-w-0 flex-1 rounded-[8px] border border-transparent bg-transparent px-1.5 text-[13px] font-medium text-[var(--text-primary)] outline-none transition hover:border-[var(--hairline)] focus:border-[var(--accent)] focus:bg-[var(--input-bg)]" />
+                {u.id === meId && <span className="shrink-0 text-[11px] text-[var(--text-muted)]">(you)</span>}
               </div>
               <div className="text-[12px] text-[var(--text-muted)]">{u.email}</div>
             </div>
@@ -95,34 +108,28 @@ export function TeamView({ users, meId, onUser }: {
               />
             </label>
             <span className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${u.active ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
-              {u.active ? "Can sign in" : "Switched off"}
+              {u.active ? "Allowed" : "Blocked"}
             </span>
-            {u.id !== meId && (
-              <button
-                onClick={() => {
-                  if (u.active && !window.confirm(`Switch off ${u.full_name}? They will not be able to sign in until you turn them back on.`)) return;
-                  void patch(u.id, { active: !u.active });
-                }}
-                className={BTN_GHOST}
-              >
-                {u.active ? "Switch off" : "Turn on"}
-              </button>
-            )}
             <button onClick={() => resetPassword(u)} className={BTN_GHOST}>Reset password</button>
             <div className="basis-full ps-12">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${licenceValid(u) ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
-                  {licenceValid(u) ? "Licensed" : u.role === "admin" ? "No BRN" : "No valid BRN — gets no leads"}
+                  {/* Say which it is: no number, no expiry date, or an expired card. "No BRN" beside a filled-in number read as a fault. */}
+                  {licenceValid(u) ? "Licensed" : `${!u.brn_no ? "No BRN" : !u.brn_expiry ? "BRN expiry date missing" : "Not licensed: BRN expired"}${u.role === "admin" ? "" : " — gets no leads"}`}
                 </span>
+                {saved?.id === u.id && <span role="status" className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">{saved.text}</span>}
                 {licenceAlerts(u).filter((a) => a.level !== "missing").map((a) => (
                   <span key={a.text} className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${a.level === "expired" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{a.text}</span>
                 ))}
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                <label><Label>BRN (broker card)</Label><input defaultValue={u.brn_no ?? ""} onBlur={(e) => e.target.value !== (u.brn_no ?? "") && patch(u.id, { brn_no: e.target.value })} className={INPUT} /></label>
+                <label><Label>BRN (broker card)</Label><input defaultValue={u.brn_no ?? ""} onBlur={(e) => e.target.value !== (u.brn_no ?? "") && patch(u.id, { brn_no: e.target.value }, "BRN")} className={INPUT} /></label>
                 {([["brn_expiry", "BRN expiry"], ["visa_expiry", "Visa expiry"], ["emirates_id_expiry", "Emirates ID expiry"], ["rera_cert_date", "RERA exam passed"]] as const).map(([k, label]) => (
                   <label key={k}><Label>{label}</Label>
-                    <input type="date" defaultValue={u[k] ?? ""} onBlur={(e) => e.target.value !== (u[k] ?? "") && patch(u.id, { [k]: e.target.value || null })} className={INPUT} />
+                    {/* Saved the moment a whole date is chosen (picking from the calendar never "leaves" the field, so waiting for that left it unsaved); clearing a date still saves on leaving. */}
+                    <input type="date" defaultValue={u[k] ?? ""}
+                      onChange={(e) => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && e.target.value !== (u[k] ?? "") && patch(u.id, { [k]: e.target.value }, label)}
+                      onBlur={(e) => e.target.value !== (u[k] ?? "") && patch(u.id, { [k]: e.target.value || null }, label)} className={INPUT} />
                   </label>
                 ))}
               </div>

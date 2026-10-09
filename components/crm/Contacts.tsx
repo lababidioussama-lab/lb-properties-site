@@ -28,8 +28,11 @@ export function ContactsView({ contacts, kyc, isAdmin, users, userName, onContac
     return q ? contacts.filter((c) => `${c.full_name} ${c.phone ?? ""} ${c.email ?? ""}`.toLowerCase().includes(q)) : contacts;
   }, [contacts, query]);
 
-  async function create() {
-    const r = await api<{ contact: CrmContact }>("POST", "contacts", { ...form, owner_id: form.owner_id || null });
+  const [dup, setDup] = useState<string | null>(null);
+  async function create(force = false) {
+    const r = await api<{ contact: CrmContact; existing: { id: string; full_name: string; mine: boolean } }>("POST", "contacts", { ...form, owner_id: form.owner_id || null, ...(force ? { allow_duplicate: true } : {}) });
+    if (r.error === "duplicate_contact") return setDup(r.existing?.full_name ?? "another contact");
+    setDup(null);
     if (r.contact) {
       onContact(r.contact as CrmContact);
       setForm({ full_name: "", phone: "", email: "", kind: "buyer", owner_id: "" });
@@ -73,7 +76,12 @@ export function ContactsView({ contacts, kyc, isAdmin, users, userName, onContac
                 {users.filter((u) => u.active).map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
               </select>
             )}
-            <button onClick={create} disabled={!form.full_name.trim()} className={BTN}>Save</button>
+            <button onClick={() => void create()} disabled={!form.full_name.trim()} className={BTN}>Save</button>
+            {dup && (
+              <p role="alert" className="basis-full text-[13px] text-[var(--warn)]">
+                This number is already saved as <b>{dup}</b>. <button onClick={() => void create(true)} className="font-semibold underline">Add anyway</button>
+              </p>
+            )}
           </div>
         </Card>
       )}
@@ -81,7 +89,7 @@ export function ContactsView({ contacts, kyc, isAdmin, users, userName, onContac
       <Card className="overflow-x-auto">
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="border-b border-[var(--hairline)] text-start text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <tr className="border-b border-[var(--hairline)] text-start text-[12px] font-medium text-[var(--text-muted)]">
               {["Name", "Type", "Status", "KYC", "Phone", "Email", "Agent", "Added"].map((h) => <th key={h} className="px-4 py-3 text-start font-semibold">{h}</th>)}
             </tr>
           </thead>
@@ -237,12 +245,12 @@ export function ContactPanel({ contact, kyc, listings, leads, tasks, users, isAd
           <ul className="mb-3 space-y-1.5">
             {properties.map((p) => (
               <li key={p.id} className="flex items-center gap-3 rounded-lg border border-[var(--hairline)] px-3 py-2 text-[12.5px]">
-                <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${p.relation === "owns" ? "bg-emerald-50 text-emerald-700" : "bg-sky-50 text-sky-700"}`}>{p.relation}</span>
+                <span className={`rounded px-1.5 py-0.5 text-[12px] font-medium ${p.relation === "owns" ? "bg-emerald-50 text-emerald-700" : "bg-sky-50 text-sky-700"}`}>{p.relation}</span>
                 <span className="flex-1 text-[var(--text-primary)]">
                   {[p.community, p.building, p.unit && `Unit ${p.unit}`, p.bedrooms].filter(Boolean).join(" · ") || "—"}
                 </span>
                 <span className="figure text-[var(--text-secondary)]">{money(p.price_aed)}</span>
-                <button onClick={() => removeProperty(p.id)} aria-label="Remove" className="text-[var(--text-muted)] hover:text-[#c0392b]"><Trash2 size={13} /></button>
+                <button onClick={() => removeProperty(p.id)} aria-label="Remove" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>
               </li>
             ))}
           </ul>

@@ -93,7 +93,7 @@ export function InvoicesView({ t, deals, contacts }: { t: Table<CrmInvoice>; dea
         {kpis.map((k) => (
           <Card key={k.label} className="px-5 py-4">
             <div className="text-[12px] font-medium text-[var(--text-secondary)]">{k.label}</div>
-            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none text-[var(--accent)] sm:text-[22px]"><CountText text={k.value} /></div>
+            <div className="figure mt-2 whitespace-nowrap text-[16px] font-semibold leading-none text-[var(--accent)] sm:text-[22px]"><CountText text={k.value} /></div>
           </Card>
         ))}
       </div>
@@ -106,15 +106,15 @@ export function InvoicesView({ t, deals, contacts }: { t: Table<CrmInvoice>; dea
 
       <div className="grid gap-5 lg:grid-cols-[3fr_2fr]">
         <Card className="overflow-x-auto p-5">
-          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Who owes commission</h3>
+          <h3 className="mb-3 text-[12px] font-medium text-[var(--text-muted)]">Who owes commission</h3>
           {debtors.length === 0 ? <Empty>Nobody owes anything right now.</Empty> : (
             <table className="w-full text-[12.5px]">
-              <thead><tr className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">{["Payer", ...BUCKETS.map((b) => b.label), "Total"].map((h) => <th key={h} className="pb-2 pe-3 text-start font-semibold">{h}</th>)}</tr></thead>
+              <thead><tr className="text-[12px] font-medium text-[var(--text-muted)]">{["Payer", ...BUCKETS.map((b) => b.label), "Total"].map((h) => <th key={h} className="pb-2 pe-3 text-start font-semibold">{h}</th>)}</tr></thead>
               <tbody>
                 {debtors.map((d) => (
                   <tr key={d.name} className="border-t border-[var(--hairline)]">
                     <td className="py-2 pe-3 font-medium">{d.name}</td>
-                    {d.b.map((v, i) => <td key={i} className={`figure py-2 pe-3 ${v && i >= 2 ? "text-[#c0392b]" : v && i === 1 ? "text-amber-700" : ""}`}>{v ? money(v) : "—"}</td>)}
+                    {d.b.map((v, i) => <td key={i} className={`figure py-2 pe-3 ${v && i >= 2 ? "text-[var(--bad)]" : v && i === 1 ? "text-amber-700" : ""}`}>{v ? money(v) : "—"}</td>)}
                     <td className="figure py-2 pe-3 font-semibold">{money(d.total)}</td>
                   </tr>
                 ))}
@@ -124,7 +124,7 @@ export function InvoicesView({ t, deals, contacts }: { t: Table<CrmInvoice>; dea
         </Card>
 
         <Card className="p-5">
-          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Deals not invoiced yet ({toInvoice.length})</h3>
+          <h3 className="mb-3 text-[12px] font-medium text-[var(--text-muted)]">Deals not invoiced yet ({toInvoice.length})</h3>
           {toInvoice.length === 0 ? <Empty>Every unpaid deal has an invoice.</Empty> : (
             <ul className="space-y-1.5">
               {toInvoice.slice(0, 8).map((d) => (
@@ -142,7 +142,7 @@ export function InvoicesView({ t, deals, contacts }: { t: Table<CrmInvoice>; dea
       <Card className="overflow-x-auto">
         <table className="w-full text-[12.5px]">
           <thead>
-            <tr className="border-b border-[var(--hairline)] text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <tr className="border-b border-[var(--hairline)] text-[12px] font-medium text-[var(--text-muted)]">
               {["Invoice", "Bill to", "Issued", "Due", "Net", "VAT", "Total", "Balance", "Status"].map((h) => <th key={h} className="px-3 py-3 text-start font-semibold">{h}</th>)}
             </tr>
           </thead>
@@ -154,7 +154,7 @@ export function InvoicesView({ t, deals, contacts }: { t: Table<CrmInvoice>; dea
                   <td className="figure px-3 py-2.5 font-medium">{i.number}</td>
                   <td className="px-3 py-2.5">{i.bill_to_name}</td>
                   <td className="px-3 py-2.5 text-[var(--text-muted)]">{shortDate(i.issue_date)}</td>
-                  <td className={`px-3 py-2.5 ${late ? "font-medium text-[#c0392b]" : "text-[var(--text-muted)]"}`}>{shortDate(i.due_date)}{late && ` · ${daysOverdue(i)}d late`}</td>
+                  <td className={`px-3 py-2.5 ${late ? "font-medium text-[var(--bad)]" : "text-[var(--text-muted)]"}`}>{shortDate(i.due_date)}{late && ` · ${daysOverdue(i)}d late`}</td>
                   <td className="figure px-3 py-2.5">{money(i.net_aed)}</td>
                   <td className="figure px-3 py-2.5">{money(i.vat_aed)}</td>
                   <td className="figure px-3 py-2.5">{money(i.total_aed)}</td>
@@ -235,7 +235,7 @@ function InvoiceForm({ invoice, prefill, deals, error, onClose, onSave }: {
         <div><Label>Total</Label><div className="figure text-[14px] font-semibold">{money(net + vat)}</div></div>
       </Card>
       <label className="block"><Label>Notes (bank details, terms)</Label><textarea rows={2} value={f.notes} onChange={set("notes")} className={`${INPUT} resize-none`} /></label>
-      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--bad)]">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => onSave({
@@ -261,16 +261,16 @@ function printInvoice(i: CrmInvoice) {
   const w = window.open("", "_blank", "width=820,height=1000");
   if (!w) return;
   w.document.write(`<!doctype html><html><head><title>${esc(i.number)}</title><style>
-    body{font-family:Helvetica,Arial,sans-serif;color:#1c2330;margin:48px;font-size:13px}
-    .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0b1a2b;padding-bottom:18px}
-    h1{font-size:26px;letter-spacing:.08em;margin:0;color:#0b1a2b} .brand{font-size:18px;letter-spacing:.18em;color:#0b1a2b}
-    .muted{color:#6b7280} table{width:100%;border-collapse:collapse;margin-top:28px} th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left}
+    body{font-family:Helvetica,Arial,sans-serif;color:#0b2a4a;margin:48px;font-size:13px}
+    .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0b2a4a;padding-bottom:18px}
+    h1{font-size:26px;letter-spacing:.08em;margin:0;color:#0b2a4a} .brand{font-size:18px;letter-spacing:.18em;color:#0b2a4a}
+    .muted{color:#6b7280} table{width:100%;border-collapse:collapse;margin-top:28px} th,td{padding:10px;border-bottom:1px solid #d9dde3;text-align:left}
     th{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#6b7280} td.n,th.n{text-align:right}
-    .tot td{border:none;padding:6px 10px} .grand td{font-size:16px;font-weight:700;border-top:2px solid #0b1a2b}
+    .tot td{border:none;padding:6px 10px} .grand td{font-size:16px;font-weight:700;border-top:2px solid #0b2a4a}
     .cols{display:flex;gap:40px;margin-top:24px} .cols div{flex:1}
     @media print{body{margin:24px}}
   </style></head><body>
-    <div class="top"><div><div class="brand">LABABIDI <small style="color:#b8975a;font-size:10px;letter-spacing:.3em">PROPERTIES</small></div>
+    <div class="top"><div><div class="brand">LABABIDI <small style="color:#4f6b9a;font-size:10px;letter-spacing:.3em">PROPERTIES</small></div>
       <div class="muted" style="margin-top:8px">${esc(COMPANY.address)}${COMPANY.orn ? `<br>ORN ${esc(COMPANY.orn)}` : ""}<br>TRN ${esc(COMPANY.trn || "—")}</div></div>
       <div style="text-align:right"><h1>TAX INVOICE</h1><div style="margin-top:8px">No. <b>${esc(i.number)}</b><br>Date ${esc(i.issue_date)}${i.due_date ? `<br>Due ${esc(i.due_date)}` : ""}</div></div></div>
     <div class="cols"><div><div class="muted" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase">Bill to</div>

@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, BedDouble, Ruler, BadgeCheck, ShieldAlert, ShieldCheck, Key } from "lucide-react";
-import { LISTING_STATUSES, PROPERTY_TYPES, KEY_STATUSES, complianceIssues, daysLeft, adTitleIssues, type CrmContact, type CrmListing, type CrmUser } from "@/lib/crm";
-import { money, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
+import { LISTING_STATUSES, PROPERTY_TYPES, KEY_STATUSES, complianceIssues, daysLeft, adTitleIssues, type CrmContact, type CrmLead, type CrmListing, type CrmUser } from "@/lib/crm";
+import { money, whatsapp, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
+import { matchLeads } from "./LeadLifecycle";
 import type { Table } from "./useTable";
+import { PhotoPicker } from "./FileField";
 
 const STATUS_STYLE: Record<string, string> = {
   available: "bg-emerald-50 text-emerald-700",
@@ -29,7 +31,11 @@ const APPROVAL_STYLE: Record<string, string> = {
   rejected: "bg-red-50 text-red-700",
 };
 
-export function ListingsView({ t, isAdmin, users, contacts, userName, prefill, onPrefillUsed }: {
+export function ListingsView({ t, isAdmin, users, contacts, userName, prefill, onPrefillUsed, leads = [], meId, onOpenLead }: {
+  /** For "Buyers who fit this listing". */
+  leads?: CrmLead[];
+  meId?: string;
+  onOpenLead?: (id: string) => void;
   t: Table<CrmListing>;
   isAdmin: boolean;
   users: CrmUser[];
@@ -79,18 +85,18 @@ export function ListingsView({ t, isAdmin, users, contacts, userName, prefill, o
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((l) => (
-            <button key={l.id} onClick={() => setEditing(l)} className="overflow-hidden rounded-xl border border-[var(--hairline)] bg-[var(--surface-raised)] text-start transition-colors hover:border-[var(--accent)]">
+            <button key={l.id} onClick={() => setEditing(l)} className="crm-card overflow-hidden rounded-xl border border-[var(--hairline)] bg-[var(--surface-raised)] text-start">
               <div className="relative aspect-[16/10] bg-[var(--surface-sunken)]">
                 {l.photos?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={l.photos[0]} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <div className="grid h-full place-items-center text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)]">No photo</div>
+                  <div className="grid h-full place-items-center text-[12px] font-medium text-[var(--text-muted)]">No photo</div>
                 )}
                 <span className={`absolute start-3 top-3 rounded-full px-2 py-0.5 text-[10.5px] font-semibold capitalize ${STATUS_STYLE[l.status]}`}>
                   {l.status.replace("_", " ")}
                 </span>
-                <span className="absolute end-3 top-3 rounded-full bg-black/60 px-2 py-0.5 text-[10.5px] font-semibold uppercase text-white">
+                <span className="absolute end-3 top-3 rounded-full bg-black/60 px-2 py-0.5 text-[12px] font-medium text-white">
                   For {l.purpose}
                 </span>
                 <span className={`absolute bottom-3 start-3 rounded-full px-2 py-0.5 text-[10.5px] font-semibold capitalize ${APPROVAL_STYLE[l.approval]}`}>
@@ -135,6 +141,9 @@ export function ListingsView({ t, isAdmin, users, contacts, userName, prefill, o
           isAdmin={isAdmin}
           users={users}
           contacts={contacts}
+          leads={leads}
+          meId={meId}
+          onOpenLead={onOpenLead}
           error={t.error}
           onClose={() => { setEditing(null); onPrefillUsed?.(); }}
           onSave={async (body) => {
@@ -149,7 +158,10 @@ export function ListingsView({ t, isAdmin, users, contacts, userName, prefill, o
   );
 }
 
-function ListingForm({ listing, prefill, isAdmin, users, contacts, error, onClose, onSave, onDelete, onApprove }: {
+function ListingForm({ listing, prefill, isAdmin, users, contacts, error, onClose, onSave, onDelete, onApprove, leads = [], meId, onOpenLead }: {
+  leads?: CrmLead[];
+  meId?: string;
+  onOpenLead?: (id: string) => void;
   listing: CrmListing | null;
   prefill?: Record<string, string> | null;
   isAdmin: boolean;
@@ -187,6 +199,7 @@ function ListingForm({ listing, prefill, isAdmin, users, contacts, error, onClos
 
   return (
     <SidePanel title={listing ? listing.title : "New listing"} subtitle={listing ? `Added ${new Date(listing.created_at).toLocaleDateString("en-GB")}` : "Property details"} onClose={onClose}>
+      {listing && <Buyers listing={listing} leads={leads} meId={meId} isAdmin={isAdmin} onOpenLead={onOpenLead} />}
       <label className="block"><Label>Title *</Label><input value={f.title} onChange={set("title")} placeholder="e.g. Upgraded 2BR with Marina view" className={INPUT} /></label>
       <div className="grid grid-cols-2 gap-3">
         <label><Label>Purpose</Label><select value={f.purpose} onChange={set("purpose")} className={INPUT}><option value="sale">Sale</option><option value="rent">Rent</option></select></label>
@@ -270,9 +283,27 @@ function ListingForm({ listing, prefill, isAdmin, users, contacts, error, onClos
         </div>
       )}
 
-      <label className="block"><Label>Photo links (one per line)</Label><textarea rows={3} value={f.photo} onChange={set("photo")} placeholder="https://…" className={`${INPUT} resize-none`} /></label>
+      <div>
+        <Label>Photos</Label>
+        {f.photo.trim() && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {f.photo.split(/\s+/).filter(Boolean).map((u) => (
+              <span key={u} className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={u} alt="" className="h-16 w-20 rounded-md border border-[var(--hairline)] object-cover" />
+                <button type="button" aria-label="Remove photo" onClick={() => setF((c) => ({ ...c, photo: c.photo.split(/\s+/).filter((x) => x && x !== u).join("\n") }))}
+                  className="absolute -end-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[var(--bad)] text-[11px] font-bold text-white">×</button>
+              </span>
+            ))}
+          </div>
+        )}
+        <PhotoPicker onAdd={(urls) => setF((c) => ({ ...c, photo: [...c.photo.split(/\s+/).filter(Boolean), ...urls].join("\n") }))} />
+        <details className="mt-2 [&_summary]:cursor-pointer"><summary className="text-[12px] text-[var(--text-muted)]">Or paste photo links</summary>
+          <textarea rows={3} value={f.photo} onChange={set("photo")} placeholder="https://…" className={`${INPUT} mt-1.5 resize-none`} />
+        </details>
+      </div>
       <label className="block"><Label>Description</Label><textarea rows={5} value={f.description} onChange={set("description")} className={`${INPUT} resize-none`} /></label>
-      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--bad)]">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button onClick={submit} disabled={!f.title.trim()} className={BTN}>Save listing</button>
         {onDelete && <button onClick={() => window.confirm("Delete this listing?") && onDelete()} className={BTN_GHOST}>Delete</button>}
@@ -303,5 +334,35 @@ function ListingForm({ listing, prefill, isAdmin, users, contacts, error, onClos
         <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]"><Key size={12} /> {listing.key_status || "Key status not set"}</div>
       )}
     </SidePanel>
+  );
+}
+
+/** Who to send this listing to: open leads whose brief it fits. An agent can
+ *  message their own; others are shown by name so the owner can pass it on. */
+function Buyers({ listing, leads, meId, isAdmin, onOpenLead }: { listing: CrmListing; leads: CrmLead[]; meId?: string; isAdmin: boolean; onOpenLead?: (id: string) => void }) {
+  const fit = matchLeads(listing, leads).slice(0, 12);
+  const price = listing.price_aed ? `AED ${Number(listing.price_aed).toLocaleString("en-US")}` : "";
+  const text = (name: string) => `Hi ${name.split(" ")[0]}, a new ${[listing.bedrooms, listing.property_type].filter(Boolean).join(" ")} just came up in ${[listing.building, listing.community].filter(Boolean).join(", ") || "Dubai"}${price ? ` at ${price}` : ""}. It fits what you asked for. Shall I send the details or book a viewing?`;
+  return (
+    <section className="rounded-lg border border-[var(--accent-dim)] bg-[var(--accent-wash)] p-3">
+      <p className="ds-label !text-[var(--accent)]">Buyers who fit this listing · {fit.length}</p>
+      {fit.length === 0 ? <p className="mt-1.5 text-[12.5px] text-[var(--text-secondary)]">No open lead has asked for this yet. Leads match on sale or rent, area, bedrooms and budget.</p> : (
+        <ul className="mt-2 space-y-1.5">
+          {fit.map((l) => {
+            const mine = isAdmin || l.owner_id === meId;
+            return (
+              <li key={l.id} className="flex items-center gap-2 text-[13px]">
+                <button type="button" onClick={() => onOpenLead?.(l.id)} className="min-w-0 flex-1 truncate text-start font-semibold hover:underline">{l.full_name}
+                  <span className="ms-2 font-normal text-[var(--text-muted)]">{[l.beds, l.location, l.budget_aed ? `up to AED ${Number(l.budget_aed).toLocaleString("en-US")}` : null].filter(Boolean).join(", ")}</span>
+                </button>
+                {mine && l.owner_id && l.phone
+                  ? <a href={whatsapp(l.phone, text(l.full_name))} target="_blank" rel="noopener noreferrer" className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md border border-[var(--ok-bd)] bg-[var(--ok-bg)] px-2 text-[12px] font-semibold text-[var(--ok)]">WhatsApp</a>
+                  : <span className="shrink-0 text-[11.5px] text-[var(--text-muted)]">{l.owner_id ? "another agent's lead" : "open pool"}</span>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }

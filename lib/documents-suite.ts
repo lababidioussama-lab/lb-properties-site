@@ -8,10 +8,11 @@ import { gunzipSync } from "node:zlib";
  *
  * The file in the repository stays encrypted (AES-256-GCM over gzip, key from
  * PBKDF2-SHA256) — the same format the page has always used — so the repo and
- * any copy of it never hold the documents in the clear. With
- * DOCUMENTS_PASSWORD set on the server, the admin's email-password-code
- * sign-in is the only lock: the server decrypts and serves the suite itself.
- * Without it, the encrypted page is served and asks for the password as before.
+ * any copy of it never hold the documents in the clear. The admin's
+ * email-password-code sign-in is the only lock: the server decrypts the suite
+ * itself with DOCUMENTS_PASSWORD, or with ADMIN_PASSWORD when the suite is
+ * locked with the admin's password. If neither opens it, the encrypted page
+ * is served and asks for its password as before.
  */
 
 export const SUITE_FILE = path.join(process.cwd(), "private", "documents", "suite.html");
@@ -36,17 +37,22 @@ export function decryptSuite(page: string, password: string): string | null {
 
 export async function loadSuite(): Promise<{ html: string; unlocked: boolean }> {
   const page = await readFile(SUITE_FILE, "utf8");
-  const password = process.env.DOCUMENTS_PASSWORD;
-  if (!password) return { html: page, unlocked: false };
+  /* The key that opens the file: DOCUMENTS_PASSWORD when it is set, and
+     otherwise the admin's own setup password, since the suite is locked with
+     the same one. Either way the admin never types it a second time. */
+  const keys = [process.env.DOCUMENTS_PASSWORD, process.env.ADMIN_PASSWORD].filter((k): k is string => !!k);
+  if (!keys.length) return { html: page, unlocked: false };
 
   const salt = /var S="([^"]+)"/.exec(page)?.[1] ?? "";
   if (cache?.salt === salt) return { html: cache.html, unlocked: true };
 
-  const html = decryptSuite(page, password);
-  if (!html) {
-    console.error("[documents] DOCUMENTS_PASSWORD does not open the suite; serving the locked page.");
-    return { html: page, unlocked: false };
+  for (const key of keys) {
+    const html = decryptSuite(page, key);
+    if (html) {
+      cache = { salt, html };
+      return { html, unlocked: true };
+    }
   }
-  cache = { salt, html };
-  return { html, unlocked: true };
+  console.error("[documents] neither DOCUMENTS_PASSWORD nor ADMIN_PASSWORD opens the suite; serving the locked page.");
+  return { html: page, unlocked: false };
 }

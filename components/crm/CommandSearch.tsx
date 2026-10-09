@@ -65,9 +65,9 @@ export function CommandSearch({ leads, contacts, listings, screens = [], onPick 
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="flex w-full items-center gap-2 rounded-lg border border-[var(--hairline)] px-3 py-2 text-[12.5px] text-[var(--text-muted)] transition-colors hover:border-[var(--hairline-strong)]">
-        <Search size={14} /> Search anything
-        <kbd className="figure ms-auto rounded border border-[var(--hairline)] px-1.5 text-[10.5px]">Ctrl K</kbd>
+      <button onClick={() => setOpen(true)} aria-label="Search anything (Ctrl K)" title="Search anything (Ctrl K)"
+        className="grid h-9 w-9 place-items-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+        <Search size={16} strokeWidth={1.5} />
       </button>
 
       {open && createPortal(

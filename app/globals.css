@@ -772,66 +772,378 @@ select {
 }
 
 /* ============================================================================
-   CRM SHELL — a light, calm workspace for a data app read for hours:
-   white cards on warm grey, brand navy for actions, gold only as a marker.
+   CRM SHELL
    ========================================================================= */
+/* CRM theme: the "Relay" look the owner chose (6 Oct 2026). Near-black with
+   green light sweeping across it, one accent (the blue of the Lababidi logo), glass panels, pill
+   buttons, a grotesk for everything with one italic serif word in a heading,
+   and small monospaced labels. Light is the same idea on soft paper, with a
+   the logo navy for text and fills. Switched in the top bar and
+   remembered per browser (localStorage "crm:theme"). */
 html.crm-shell {
   color-scheme: light;
-  --surface: #f4f3ef;
-  --surface-raised: #ffffff;
-  --surface-sunken: #f8f7f4;
-  --glass-bg: rgb(255 255 255 / 0.9);
-  --glass-bg-strong: rgb(255 255 255 / 0.97);
-  --glass-border: rgb(15 23 42 / 0.08);
-  --hairline: rgb(15 23 42 / 0.08);
-  --hairline-strong: rgb(15 23 42 / 0.15);
-  --text-primary: #14171c;
-  --text-secondary: #464c55;
-  --text-muted: #7b8089;
-  --accent: #0b2a4a;
-  --accent-bright: #1f4e7a;
-  --accent-wash: rgb(11 42 74 / 0.06);
-  --accent-dim: rgb(11 42 74 / 0.2);
-  --accent-solid: #0b2a4a;
-  --accent-solid-hover: #173f68;
-  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 1px rgb(15 23 42 / 0.02);
-  --shadow-lift: 0 12px 40px -12px rgb(15 23 42 / 0.25);
-  --gold: #b8955a;
-}
-html.crm-shell body { font-size: 14px; }
+  --canvas: #f1f4f8;
+  --sheet: #ffffff;
+  --ink: #0b1b2e;
+  --graphite: #56637a;
+  --rule: rgb(11 27 46 / 0.13);
+  --lime: #0b2a4a;      /* the brand fill: logo navy on paper, logo blue at night */
+  --on-accent: #ffffff;
 
-/* CRM motion: quick and quiet. It is a working tool, so nothing here is
-   slower than ~0.45s and nothing moves more than 10px. */
-@keyframes crm-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  --surface: var(--canvas);
+  --surface-raised: var(--sheet);
+  --surface-solid: var(--sheet);
+  --surface-sunken: #e6ebf2;
+  --surface-hover: rgb(16 20 13 / 0.045);
+  --glass-bg: var(--sheet);
+  --glass-bg-strong: var(--sheet);
+  --glass-border: var(--rule);
+  --hairline: var(--rule);
+  --hairline-soft: rgb(16 20 13 / 0.08);
+  --hairline-strong: rgb(16 20 13 / 0.22);
+  --text-primary: var(--ink);
+  --text-secondary: #2b3a4e;
+  --text-muted: var(--graphite);
+  --text-disabled: #9aa6b6;
+  --input-bg: #ffffff;
+  /* accent = the colour of accent TEXT and lines; accent-solid = the lime fill */
+  --accent: #0b2a4a;
+  --accent-bright: #2f6fd6;
+  --accent-wash: rgb(47 111 214 / 0.09);
+  --accent-dim: rgb(47 111 214 / 0.38);
+  --accent-solid: var(--lime);
+  --accent-solid-hover: #123a63;
+  --accent-glow: rgb(47 111 214 / 0.45);
+  --violet: var(--accent); --violet-bg: var(--accent-wash); --violet-bd: var(--accent-dim);
+  --emerald: #2f6fd6;
+  --grad: linear-gradient(135deg, #1c4d86 0%, #0b2a4a 60%, #082038 100%);
+  --shadow-card: 0 1px 2px rgb(16 20 13 / 0.05), 0 18px 36px -28px rgb(16 20 13 / 0.6);
+  --shadow-pop: 0 20px 50px rgb(16 20 13 / 0.14);
+  --shadow-lift: 0 30px 70px rgb(16 20 13 / 0.2);
+  --side-bg: rgb(255 255 255 / 0.6);
+  --side-border: var(--rule);
+  --side-fg: var(--ink);
+  --side-muted: #3b4a5f;
+  --side-faint: var(--graphite);
+  --side-hover: rgb(16 20 13 / 0.05);
+  --side-active: var(--accent-wash);
+  --side-active-fg: var(--accent);
+  --side-field: var(--sheet);
+  --ok: #1c7c3c; --ok-bg: rgb(28 124 60 / 0.1); --ok-bd: rgb(28 124 60 / 0.32);
+  --warn: #8a5a00; --warn-bg: rgb(214 140 0 / 0.13); --warn-bd: rgb(214 140 0 / 0.4);
+  --bad: #c62a1c; --bad-bg: rgb(198 42 28 / 0.08); --bad-bd: rgb(198 42 28 / 0.3);
+  --info: var(--accent); --info-bg: var(--accent-wash); --info-bd: var(--accent-dim);
+  --neutral: var(--graphite); --neutral-bg: rgb(16 20 13 / 0.055); --neutral-bd: rgb(16 20 13 / 0.11);
+  --wa: #0f7a3d;
+  --serif: var(--font-cormorant), "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-display: var(--font-jakarta), "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-body: var(--font-sans);
+  --font-numeric: var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius-panel: 20px;
+  --radius-control: 10px;
+  --radius-sm: 5px;
+  --radius-md: 9px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+  --radius-2xl: 22px;
+  --glass-edge: none;
+  --page-glow: radial-gradient(900px 520px at 85% -12%, rgb(79 143 240 / 0.22), transparent 62%), radial-gradient(800px 600px at -8% 108%, rgb(11 42 74 / 0.14), transparent 60%);
+  --stars-opacity: 0.6;
+  --snap: 140ms cubic-bezier(0.3, 0.9, 0.3, 1);
+  --cine: 520ms cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+html.crm-shell[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #000103;
+  --sheet: rgb(14 17 23 / 0.66);
+  --ink: #eef2f8;
+  --graphite: #8a97aa;
+  --rule: rgb(255 255 255 / 0.085);
+
+  /* Restated here on purpose: the public site's own dark theme sets these
+     same names with a stronger selector, and would otherwise win. */
+  --surface: var(--canvas);
+  --surface-raised: var(--sheet);
+  --glass-border: var(--rule);
+  --hairline: var(--rule);
+  --text-primary: var(--ink);
+  --text-muted: var(--graphite);
+  --lime: #2f6fd6;
+  --accent-solid: var(--lime);
+  --violet: var(--accent); --violet-bg: var(--accent-wash); --violet-bd: var(--accent-dim);
+  --info: var(--accent); --info-bg: var(--accent-wash); --info-bd: var(--accent-dim);
+  --neutral: var(--graphite);
+  --side-border: var(--rule);
+  --side-fg: var(--ink);
+  --side-faint: var(--graphite);
+  --side-active: var(--accent-wash);
+  --side-active-fg: var(--accent);
+  --grad: linear-gradient(135deg, #5b9bff 0%, #2f6fd6 55%, #1d4fae 100%);
+  --surface-solid: #0c1118;
+  --surface-sunken: rgb(255 255 255 / 0.035);
+  --surface-hover: rgb(255 255 255 / 0.055);
+  --glass-bg: rgb(17 23 33 / 0.8);
+  --glass-bg-strong: rgb(12 17 24 / 0.95);
+  --hairline-soft: rgb(255 255 255 / 0.05);
+  --hairline-strong: rgb(255 255 255 / 0.17);
+  --text-secondary: #c2ccda;
+  --text-disabled: #586579;
+  --input-bg: rgb(0 0 0 / 0.42);
+  --accent: #7fb0ff;
+  --accent-bright: #a9caff;
+  --accent-wash: rgb(79 143 240 / 0.13);
+  --accent-dim: rgb(79 143 240 / 0.42);
+  --accent-solid-hover: #3f80e8;
+  --accent-glow: rgb(79 143 240 / 0.6);
+  --emerald: #7fb0ff;
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 24px 48px -28px rgb(0 0 0 / 0.9);
+  --shadow-pop: 0 20px 50px rgb(0 0 0 / 0.65);
+  --shadow-lift: 0 30px 70px rgb(0 0 0 / 0.75);
+  --side-bg: rgb(7 11 17 / 0.6);
+  --side-muted: #a7b3c4;
+  --side-hover: rgb(255 255 255 / 0.05);
+  --side-field: rgb(0 0 0 / 0.42);
+  --ok: #5fd98a; --ok-bg: rgb(95 217 138 / 0.12); --ok-bd: rgb(95 217 138 / 0.38);
+  --warn: #f5c14a; --warn-bg: rgb(245 193 74 / 0.12); --warn-bd: rgb(245 193 74 / 0.4);
+  --bad: #ff7a66; --bad-bg: rgb(255 122 102 / 0.12); --bad-bd: rgb(255 122 102 / 0.4);
+  --neutral-bg: rgb(255 255 255 / 0.065); --neutral-bd: rgb(255 255 255 / 0.12);
+  --wa: #3ddc84;
+  --glass-edge: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  /* the ribbons carry the light; only a faint breath of blue stays in the corners */
+  --page-glow: radial-gradient(900px 480px at 100% -10%, rgb(47 111 214 / 0.10), transparent 62%), radial-gradient(800px 520px at -10% 110%, rgb(11 42 74 / 0.35), transparent 62%);
+  --stars-opacity: 0.9;
+}
+html.crm-shell body {
+  background: var(--page-glow), var(--canvas);
+  background-attachment: fixed;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 1, "cv11" 1;
+}
+
+
+/* Type roles, as DB Search sets them: serif titles, mono labels and figures. */
+html.crm-shell .display { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.032em; line-height: 1.04; }
+/* The one italic serif word in a heading. */
+html.crm-shell .display em, html.crm-shell .serif-em { font-family: var(--serif); font-style: italic; font-weight: 500; letter-spacing: -0.01em; font-size: 1.08em; }
+html.crm-shell .mono, html.crm-shell .figure { font-family: var(--font-numeric); font-variant-numeric: tabular-nums; letter-spacing: -0.015em; }
+html.crm-shell .figure { font-weight: 500; }
+html.crm-shell .ds-label { font-family: var(--font-numeric); font-size: 12px; font-weight: 400; letter-spacing: -0.01em; text-transform: lowercase; color: var(--text-muted); }
+
+/* Glass: one recipe for everything that floats over the ground. */
+html.crm-shell .panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius-panel); box-shadow: var(--shadow-card); }
+html.crm-shell[data-theme="dark"] .panel { backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2); }
+html.crm-shell :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+html.crm-shell ::selection { background: var(--lime); color: var(--on-accent); }
+/* Anything filled with the brand colour carries the text colour that reads on it. */
+html.crm-shell [class^="bg-[var(--accent-solid)]"], html.crm-shell [class*=" bg-[var(--accent-solid)]"],
+html.crm-shell [class*="bg-[image:var(--grad)]"], html.crm-shell [class*="hover:bg-[var(--accent-solid)]"]:hover { color: var(--on-accent) !important; }
+html.crm-shell [class*="accent-[var(--accent"] { accent-color: #2f6fd6; }
+html.crm-shell[data-theme="dark"] main .rounded-lg.border,
+html.crm-shell[data-theme="dark"] main .rounded-xl.border { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+html.crm-shell .bg-white { background-color: var(--sheet); }
+html.crm-shell input, html.crm-shell select, html.crm-shell textarea { color: var(--text-primary); }
+html.crm-shell[data-theme="dark"] input, html.crm-shell[data-theme="dark"] select, html.crm-shell[data-theme="dark"] textarea { background-color: var(--input-bg); }
+html.crm-shell[data-theme="dark"] input:focus, html.crm-shell[data-theme="dark"] select:focus, html.crm-shell[data-theme="dark"] textarea:focus { border-color: var(--accent-dim); box-shadow: 0 0 0 3px var(--accent-wash); }
+html.crm-shell[data-theme="dark"] option { background: #172033; }
+html.crm-shell .crm-stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: var(--stars-opacity); transition: opacity 0.4s ease; }
+
+/* The one main action on a screen: DB Search's emerald-to-blue gradient. */
+html.crm-shell .btn-go { background-image: var(--grad); background-size: 180% 100%; background-position: 0 0; color: var(--on-accent); border-color: transparent; box-shadow: 0 0 0 1px rgb(91 155 255 / 0.3), 0 10px 26px -12px rgb(47 111 214 / 0.75); transition: background-position 0.35s ease, transform 0.15s ease, box-shadow 0.25s ease; }
+html.crm-shell .btn-go:hover { background-position: 100% 0; box-shadow: 0 0 0 1px rgb(127 176 255 / 0.5), 0 14px 34px -10px rgb(47 111 214 / 0.9); }
+html.crm-shell:not([data-theme="dark"]) .btn-go { box-shadow: 0 8px 20px -10px rgb(11 42 74 / 0.6); }
+
+/* Page head, as DB Search's section header: left aligned, a rule with a
+   short accent segment. */
+html.crm-shell .page-title { font-size: clamp(2.3rem, 5vw, 4rem); }
+html.crm-shell .page-head { position: relative; border-bottom: 1px solid var(--rule); }
+html.crm-shell .page-head::after { content: ""; position: absolute; left: 0; bottom: -1px; width: 64px; height: 1px; background: var(--accent); }
+/* The light behind everything. */
+html.crm-shell .crm-ribbons { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+/* The small labelled pill: a dot and a line of lowercase mono. */
+html.crm-shell .crm-status { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 13px; border: 1px solid var(--hairline-strong); border-radius: 999px; background: color-mix(in srgb, var(--canvas) 55%, transparent); font-family: var(--font-numeric); font-size: 12px; letter-spacing: -0.01em; text-transform: lowercase; color: var(--text-secondary); white-space: nowrap; }
+html.crm-shell .crm-status i { width: 6px; height: 6px; border-radius: 999px; flex: none; }
+
+/* Motion: DB Search's two speeds. */
+@keyframes crm-rise { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: none; } }
 @keyframes crm-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes crm-slide-in { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes crm-pop { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
-/* Each screen's top-level blocks arrive one after another. */
-html.crm-shell .crm-stagger > * { animation: crm-rise 0.45s var(--ease-lux) both; }
+html.crm-shell .crm-title { animation: crm-rise 0.46s cubic-bezier(0.16, 0.9, 0.28, 1) both; }
+html.crm-shell .crm-title-after { animation: crm-fade 0.46s ease 0.1s both; }
+html.crm-shell .crm-stagger > * { animation: crm-rise 0.46s cubic-bezier(0.16, 0.9, 0.28, 1) both; }
 html.crm-shell .crm-stagger > *:nth-child(2) { animation-delay: 0.05s; }
 html.crm-shell .crm-stagger > *:nth-child(3) { animation-delay: 0.1s; }
-html.crm-shell .crm-stagger > *:nth-child(4) { animation-delay: 0.15s; }
-html.crm-shell .crm-stagger > *:nth-child(n + 5) { animation-delay: 0.2s; }
+html.crm-shell .crm-stagger > *:nth-child(n + 4) { animation-delay: 0.15s; }
 html.crm-shell .crm-panel { animation: crm-slide-in 0.38s var(--ease-lux) both; }
 html.crm-shell .crm-backdrop { animation: crm-fade 0.3s ease both; }
 html.crm-shell .crm-pop { animation: crm-pop 0.22s var(--ease-lux) both; }
 html.crm-shell .crm-sheet { animation: crm-rise 0.3s var(--ease-lux) both; }
+html.crm-shell .row-actions { opacity: 0; transition: opacity var(--snap); }
+html.crm-shell .row:hover .row-actions, html.crm-shell .row:focus-within .row-actions { opacity: 1; }
+@media (hover: none) { html.crm-shell .row-actions { opacity: 1; } }
+html.crm-shell button:not(:disabled):active, html.crm-shell a.btn:active { transform: scale(0.975); }
 @media (prefers-reduced-motion: reduce) {
   html.crm-shell .crm-stagger > *, html.crm-shell .crm-panel, html.crm-shell .crm-backdrop,
-  html.crm-shell .crm-pop, html.crm-shell .crm-sheet { animation: none; }
+  html.crm-shell .crm-pop, html.crm-shell .crm-sheet, html.crm-shell .crm-title, html.crm-shell .crm-title-after { animation: none; }
+  html.crm-shell button:active { transform: none; }
 }
-html.crm-shell ::-webkit-scrollbar { width: 10px; height: 10px; }
-html.crm-shell ::-webkit-scrollbar-thumb { background: rgb(15 23 42 / 0.15); border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
+
+/* ---- Motion, second layer: cards, scrolling, live signals -------------------
+   Entrances move with `translate` and `scale` (their own properties), so a
+   card can still lift on hover with `transform` while its entrance holds. */
+@keyframes crm-in { from { opacity: 0; translate: 0 22px; scale: 0.985; } to { opacity: 1; translate: none; scale: none; } }
+@keyframes crm-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes crm-bar-in { from { border-bottom-color: transparent; box-shadow: none; } to { border-bottom-color: var(--rule); box-shadow: 0 10px 30px -18px rgb(2 6 23 / 0.6); } }
+@keyframes crm-ping { 0% { box-shadow: 0 0 0 0 currentColor; } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
+@keyframes crm-sheen { from { background-position: -140% 0; } to { background-position: 240% 0; } }
+
+/* A card you can open: it lifts, its edge lights, an accent bar draws down
+   its side, and a soft sheen crosses it once. */
+html.crm-shell .crm-card {
+  position: relative; overflow: hidden;
+  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), border-color var(--snap), box-shadow 0.24s ease;
+}
+html.crm-shell .crm-card::before {
+  content: ""; position: absolute; inset-block: 0; inset-inline-start: 0; width: 2px; background: var(--grad);
+  transform: scaleY(0); transform-origin: top; transition: transform 0.35s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+html.crm-shell .crm-card::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.07) 50%, transparent 65%) no-repeat; background-size: 60% 100%;
+}
+@media (hover: hover) {
+  html.crm-shell .crm-card:hover { transform: translateY(-3px); border-color: var(--accent-dim); box-shadow: 0 18px 34px -20px rgb(2 6 23 / 0.75); }
+  html.crm-shell:not([data-theme="dark"]) .crm-card:hover { box-shadow: 0 16px 30px -20px rgb(26 18 20 / 0.5); }
+  html.crm-shell .crm-card:hover::before { transform: scaleY(1); }
+  html.crm-shell .crm-card:hover::after { opacity: 1; animation: crm-sheen 0.9s ease both; }
+}
+html.crm-shell .crm-card:active { transform: translateY(-1px) scale(0.99); }
+
+/* Cards in a column or grid arrive one after another. */
+html.crm-shell .crm-cards > * { animation: crm-in 0.5s cubic-bezier(0.16, 0.9, 0.28, 1) both; }
+html.crm-shell .crm-cards > *:nth-child(2) { animation-delay: 0.04s; }
+html.crm-shell .crm-cards > *:nth-child(3) { animation-delay: 0.08s; }
+html.crm-shell .crm-cards > *:nth-child(4) { animation-delay: 0.12s; }
+html.crm-shell .crm-cards > *:nth-child(5) { animation-delay: 0.16s; }
+html.crm-shell .crm-cards > *:nth-child(n + 6) { animation-delay: 0.2s; }
+
+/* Panels answer the pointer quietly. */
+html.crm-shell main .panel { transition: border-color 0.2s ease, box-shadow 0.25s ease; }
+@media (hover: hover) { html.crm-shell main .panel:hover { border-color: var(--hairline-strong); } }
+
+/* Something waiting on you breathes. */
+html.crm-shell .crm-pulse { animation: crm-ping 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite; }
+
+/* The thin line at the very top shows how far down the page you are. */
+html.crm-shell .crm-progress { position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 60; pointer-events: none; background: var(--grad); transform: scaleX(0); transform-origin: 0 50%; }
+html.crm-shell .crm-topbar { border-bottom: 1px solid transparent; }
+
+/* Scrolling: panels and cards rise into place as they enter the screen, the
+   top bar gains its edge once the page moves, and the progress line grows.
+   Browsers without scroll-driven animation simply show everything in place. */
+@supports (animation-timeline: view()) {
+  html.crm-shell main .panel, html.crm-shell main .crm-card {
+    animation: crm-in linear both; animation-timeline: view(); animation-range: entry 0% entry 32%;
+  }
+  html.crm-shell .crm-cards > * { animation: crm-in linear both; animation-timeline: view(); animation-range: entry 0% entry 40%; animation-delay: 0s; }
+  html.crm-shell .crm-progress { animation: crm-grow linear both; animation-timeline: scroll(root); }
+  html.crm-shell .crm-topbar { animation: crm-bar-in linear both; animation-timeline: scroll(root); animation-range: 0 140px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.crm-shell .crm-card, html.crm-shell .crm-card::before { transition: none; }
+  html.crm-shell .crm-card:hover { transform: none; }
+  html.crm-shell .crm-card:hover::after, html.crm-shell .crm-cards > *, html.crm-shell .crm-pulse,
+  html.crm-shell main .panel, html.crm-shell main .crm-card, html.crm-shell .crm-topbar { animation: none; }
+  html.crm-shell .crm-progress { display: none; }
+}
+
+/* ---- Motion, third layer: every part of the app ---------------------------
+   Rows, lists, the sidebar, side panels, the page head and the background all
+   move, each a little, so the whole workspace feels alive without shouting. */
+@keyframes crm-row { from { opacity: 0; translate: -10px 0; } to { opacity: 1; translate: none; } }
+@keyframes crm-draw { from { width: 0; } to { width: 64px; } }
+@keyframes crm-side { from { opacity: 0; translate: -8px 0; } to { opacity: 1; translate: none; } }
+@keyframes crm-pop-in { from { opacity: 0; scale: 0.9; } to { opacity: 1; scale: none; } }
+
+/* The page head: the accent segment draws itself under the title. */
+html.crm-shell .page-head::after { animation: crm-draw 0.7s cubic-bezier(0.3, 0.7, 0.2, 1) 0.15s both; }
+
+
+/* Sidebar: items arrive in turn, and nudge towards you on hover. */
+html.crm-shell aside nav > * { animation: crm-side 0.4s cubic-bezier(0.16, 0.9, 0.28, 1) both; }
+html.crm-shell aside nav > *:nth-child(2) { animation-delay: 0.03s; }
+html.crm-shell aside nav > *:nth-child(3) { animation-delay: 0.06s; }
+html.crm-shell aside nav > *:nth-child(4) { animation-delay: 0.09s; }
+html.crm-shell aside nav > *:nth-child(5) { animation-delay: 0.12s; }
+html.crm-shell aside nav > *:nth-child(6) { animation-delay: 0.15s; }
+html.crm-shell aside nav > *:nth-child(7) { animation-delay: 0.18s; }
+html.crm-shell aside nav > *:nth-child(n + 8) { animation-delay: 0.21s; }
+html.crm-shell aside nav a > svg:first-child, html.crm-shell aside nav button > svg:first-of-type { transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (hover: hover) {
+  html.crm-shell aside nav a:hover > svg:first-child, html.crm-shell aside nav button:hover > svg:first-of-type { transform: translateX(2px) scale(1.08); }
+}
+
+/* Rows in a table or a list slide in from the side, and lean on hover. */
+html.crm-shell main table tbody tr, html.crm-shell main .panel > ul > li, html.crm-shell main .panel > div > ul > li { animation: crm-row 0.42s cubic-bezier(0.16, 0.9, 0.28, 1) both; }
+html.crm-shell main table tbody tr:nth-child(2), html.crm-shell main .panel ul > li:nth-child(2) { animation-delay: 0.03s; }
+html.crm-shell main table tbody tr:nth-child(3), html.crm-shell main .panel ul > li:nth-child(3) { animation-delay: 0.06s; }
+html.crm-shell main table tbody tr:nth-child(4), html.crm-shell main .panel ul > li:nth-child(4) { animation-delay: 0.09s; }
+html.crm-shell main table tbody tr:nth-child(5), html.crm-shell main .panel ul > li:nth-child(5) { animation-delay: 0.12s; }
+html.crm-shell main table tbody tr:nth-child(n + 6), html.crm-shell main .panel ul > li:nth-child(n + 6) { animation-delay: 0.15s; }
+html.crm-shell main table tbody tr td:first-child { transition: padding-inline-start 0.2s ease; }
+
+/* Side panels (a lead, a contact, a record): the body arrives after the panel. */
+html.crm-shell .crm-panel > div > *, html.crm-shell .crm-panel > div > div > * { animation: crm-in 0.42s cubic-bezier(0.16, 0.9, 0.28, 1) 0.08s both; }
+
+/* Chips and badges pop in; icon buttons answer the pointer. */
+html.crm-shell main .rounded-full.inline-flex { animation: crm-pop-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) 0.12s both; }
+html.crm-shell button svg, html.crm-shell a svg { transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (hover: hover) { html.crm-shell main button:hover > svg:only-child, html.crm-shell main a:hover > svg:only-child { transform: scale(1.12); } }
+
+/* Inputs: the field you are in glows softly. */
+html.crm-shell input, html.crm-shell select, html.crm-shell textarea { transition: border-color 0.18s ease, box-shadow 0.25s ease, background-color 0.2s ease; }
+
+/* Rows also rise as they scroll into view where the browser supports it. */
+@supports (animation-timeline: view()) {
+  html.crm-shell main table tbody tr, html.crm-shell main .panel > ul > li, html.crm-shell main .panel > div > ul > li {
+    animation: crm-row linear both; animation-timeline: view(); animation-range: entry 0% entry 60%; animation-delay: 0s;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.crm-shell .page-head::after, html.crm-shell aside nav > *,
+  html.crm-shell main table tbody tr, html.crm-shell main .panel ul > li, html.crm-shell .crm-panel > div > *,
+  html.crm-shell .crm-panel > div > div > *, html.crm-shell main .rounded-full.inline-flex { animation: none; }
+  html.crm-shell button svg, html.crm-shell a svg { transition: none; }
+}
+html.crm-shell ::-webkit-scrollbar { width: 8px; height: 8px; }
+html.crm-shell ::-webkit-scrollbar-thumb { background: rgb(148 163 184 / 0.25); border-radius: 8px; }
+html.crm-shell ::-webkit-scrollbar-track { background: transparent; }
 html.crm-shell select { cursor: pointer; }
 
-/* Tables: one treatment everywhere. */
-html.crm-shell main table thead tr { background: var(--surface-sunken); }
-html.crm-shell main table thead th { color: var(--text-muted); font-weight: 600; font-size: 10.5px; letter-spacing: 0.08em; }
-html.crm-shell main table tbody tr { transition: background-color 0.15s; }
-html.crm-shell main table tbody tr:hover { background: rgb(11 42 74 / 0.025); }
+/* Tables: DB Search's mono column heads. */
+html.crm-shell main table thead tr { background: transparent; }
+html.crm-shell main table thead th { color: var(--text-muted); font-family: var(--font-numeric); font-weight: 400; font-size: 12px; letter-spacing: -0.01em; text-transform: lowercase; }
+html.crm-shell main table tbody tr { transition: background-color var(--snap); }
+html.crm-shell main table tbody tr:hover { background: var(--surface-hover); }
+/* On a phone a table is a stack of cards: the first cell is the title, the
+   rest sit two to a row under their column name (copied from the header by
+   the app), so nothing scrolls sideways. */
 @media (max-width: 767px) {
-  html.crm-shell main table th,
-  html.crm-shell main table td { white-space: nowrap; }
+  html.crm-shell main table, html.crm-shell main table tbody { display: block; width: 100%; }
+  html.crm-shell main table thead { display: none; }
+  html.crm-shell main table tbody tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; padding: 12px 14px; border-bottom: 1px solid var(--rule); }
+  html.crm-shell main table tbody tr:last-child { border-bottom: 0; }
+  html.crm-shell main table tbody td { display: block; min-width: 0; padding: 0 !important; white-space: normal; text-align: start !important; overflow-wrap: anywhere; }
+  html.crm-shell main table tbody td:first-child { grid-column: 1 / -1; font-size: 14px; font-weight: 600; }
+  html.crm-shell main table tbody td:empty { display: none; }
+  html.crm-shell main table tbody td[data-label]:not(:first-child)::before {
+    content: attr(data-label); display: block; margin-bottom: 2px;
+    font-family: var(--font-numeric); font-size: 11px; font-weight: 400; text-transform: lowercase; color: var(--text-muted);
+  }
 }
 
 /* ============================================================================
@@ -927,3 +1239,23 @@ html.crm-shell main table tbody tr:hover { background: rgb(11 42 74 / 0.025); }
 @keyframes marquee-rtl { from { transform: translateX(0); } to { transform: translateX(50%); } }
 [dir="rtl"] .marquee { animation-name: marquee-rtl; }
 .marquee:hover { animation-play-state: paused; }
+
+/* Status colours written as Tailwind pastels (bg-emerald-50, text-amber-700…)
+   were made for paper and glare as white chips on the dark canvas. Inside the
+   CRM they follow the theme's own status tokens instead, in both themes.
+   Whole class names only, so solid dots (bg-emerald-500) and hover: variants
+   keep their own colour. */
+html.crm-shell [class~="bg-emerald-50"], html.crm-shell [class~="bg-emerald-50/60"], html.crm-shell [class~="bg-emerald-100"] { background-color: var(--ok-bg); }
+html.crm-shell [class~="text-emerald-600"], html.crm-shell [class~="text-emerald-700"], html.crm-shell [class~="text-emerald-800"] { color: var(--ok); }
+html.crm-shell [class~="border-emerald-200"], html.crm-shell [class~="border-emerald-300"] { border-color: var(--ok-bd); }
+html.crm-shell [class~="bg-amber-50"], html.crm-shell [class~="bg-amber-50/50"] { background-color: var(--warn-bg); }
+html.crm-shell [class~="text-amber-600"], html.crm-shell [class~="text-amber-700"], html.crm-shell [class~="text-amber-800"] { color: var(--warn); }
+html.crm-shell [class~="border-amber-200"] { border-color: var(--warn-bd); }
+html.crm-shell [class~="bg-red-50"], html.crm-shell [class~="bg-red-50/50"], html.crm-shell [class~="bg-red-50/60"] { background-color: var(--bad-bg); }
+html.crm-shell [class~="text-red-600"], html.crm-shell [class~="text-red-700"] { color: var(--bad); }
+html.crm-shell [class~="border-red-200"], html.crm-shell [class~="border-red-300"] { border-color: var(--bad-bd); }
+html.crm-shell [class~="bg-sky-50"], html.crm-shell [class~="bg-indigo-50"] { background-color: var(--info-bg); }
+html.crm-shell [class~="text-sky-700"], html.crm-shell [class~="text-indigo-700"] { color: var(--info); }
+html.crm-shell [class~="border-sky-200"], html.crm-shell [class~="border-indigo-200"] { border-color: var(--info-bd); }
+html.crm-shell [class~="bg-zinc-100"] { background-color: var(--surface-hover); }
+html.crm-shell [class~="text-zinc-400"], html.crm-shell [class~="text-zinc-500"], html.crm-shell [class~="text-zinc-600"] { color: var(--text-muted); }

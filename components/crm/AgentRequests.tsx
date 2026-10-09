@@ -24,7 +24,7 @@ export function MyRequests({ t, listings, onlyUserId }: { t: Table<CrmAgentReque
   return (
     <Card className="p-5">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">My requests</h3>
+        <h3 className="text-[12px] font-medium text-[var(--text-muted)]">My requests</h3>
         <button onClick={() => setAdding((v) => !v)} className={BTN}><Plus size={14} /> New request</button>
       </div>
 
@@ -76,7 +76,7 @@ export function RequestsQueue({ t, userName }: { t: Table<CrmAgentRequest>; user
     <Card className="overflow-x-auto">
       <table className="w-full text-[13px]">
         <thead>
-          <tr className="border-b border-[var(--hairline)] text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+          <tr className="border-b border-[var(--hairline)] text-[12px] font-medium text-[var(--text-muted)]">
             {["Agent", "Type", "Title", "Details", "Status", "Added"].map((h) => <th key={h} className="px-4 py-3 text-start font-semibold">{h}</th>)}
           </tr>
         </thead>
@@ -88,7 +88,7 @@ export function RequestsQueue({ t, userName }: { t: Table<CrmAgentRequest>; user
               <td className="px-4 py-3 text-[var(--text-secondary)]">{r.title}</td>
               <td className="px-4 py-3 text-[var(--text-muted)]">{r.details ?? "—"}</td>
               <td className="px-4 py-3">
-                <select value={r.status} onChange={(e) => t.update(r.id, { status: e.target.value })} className={`rounded-full border-0 px-2 py-0.5 text-[10.5px] font-medium ${REQUEST_STATUS_TONE[r.status]}`}>
+                <select value={r.status} onChange={(e) => t.update(r.id, { status: e.target.value })} className={`h-8 cursor-pointer rounded-full border-0 px-2.5 text-[11.5px] font-semibold ${REQUEST_STATUS_TONE[r.status]}`}>
                   {REQUEST_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </td>

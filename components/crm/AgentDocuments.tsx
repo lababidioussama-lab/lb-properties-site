@@ -8,7 +8,7 @@ import type { Table } from "./useTable";
 
 /** Real file upload into private CRM storage. An admin's GET returns every agent's documents
     (needed for team management), so "My documents" filters to the signed-in person via `onlyUserId`. */
-export function AgentDocuments({ t, onlyUserId }: { t: Table<CrmAgentDocument>; onlyUserId?: string }) {
+export function AgentDocuments({ t, onlyUserId, canDelete = false }: { t: Table<CrmAgentDocument>; onlyUserId?: string; /** Only the admin removes compliance documents. */ canDelete?: boolean }) {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ title: "", kind: "id" });
   const [file, setFile] = useState<File | null>(null);
@@ -30,7 +30,7 @@ export function AgentDocuments({ t, onlyUserId }: { t: Table<CrmAgentDocument>; 
   return (
     <Card className="p-5">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">My documents</h3>
+        <h3 className="text-[12px] font-medium text-[var(--text-muted)]">My documents</h3>
         <button onClick={() => setAdding((v) => !v)} className={BTN}><Upload size={14} /> Upload</button>
       </div>
 
@@ -50,7 +50,7 @@ export function AgentDocuments({ t, onlyUserId }: { t: Table<CrmAgentDocument>; 
         </div>
       )}
 
-      {(error || t.error) && <p className="mb-2 text-[12px] text-[#c0392b]">{error ?? t.error}</p>}
+      {(error || t.error) && <p className="mb-2 text-[12px] text-[var(--bad)]">{error ?? t.error}</p>}
 
       {rows.length === 0 ? <Empty>No documents uploaded yet.</Empty> : (
         <ul className="space-y-1.5">
@@ -60,7 +60,7 @@ export function AgentDocuments({ t, onlyUserId }: { t: Table<CrmAgentDocument>; 
               <a href={d.url} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 truncate text-[12.5px] text-[var(--accent)] hover:underline">{d.title}</a>
               <span className="shrink-0 text-[10.5px] capitalize text-[var(--text-muted)]">{DOC_KIND_LABEL[d.kind]}</span>
               <span className="shrink-0 text-[10.5px] text-[var(--text-muted)]">{shortDate(d.created_at)}</span>
-              <button onClick={() => window.confirm(`Delete "${d.title}"?`) && t.remove(d.id)} aria-label="Delete" className="shrink-0 text-[var(--text-muted)] hover:text-[#c0392b]"><Trash2 size={13} /></button>
+              {canDelete && <button onClick={() => window.confirm(`Delete "${d.title}"?`) && t.remove(d.id)} aria-label="Delete" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--bad)]"><Trash2 size={13} /></button>}
             </li>
           ))}
         </ul>

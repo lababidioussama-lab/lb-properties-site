@@ -19,9 +19,20 @@ export function TempLeadsView({ isAdmin, users, userName, onPromote }: {
   isAdmin: boolean;
   users: CrmUser[];
   userName: (id: string | null) => string;
-  onPromote: (t: CrmTempLead) => void;
+  /** Creates the real lead; resolves to a message when it could not. */
+  onPromote: (t: CrmTempLead) => Promise<string | null>;
 }) {
   const t = useTable<CrmTempLead>("temp_leads");
+  const [note, setNote] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  async function promote(row: CrmTempLead) {
+    setBusyId(row.id); setNote(null);
+    const problem = await onPromote(row);
+    setBusyId(null);
+    if (problem) return setNote(problem);
+    // "Pre-exist" = now a real lead in the CRM, so it leaves the calling list.
+    await t.update(row.id, { status: "pre_exist" });
+  }
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState(BLANK);
 
@@ -46,10 +57,11 @@ export function TempLeadsView({ isAdmin, users, userName, onPromote }: {
         </Card>
       )}
 
+      {note && <p role="alert" className="rounded-[10px] border border-[var(--warn-bd)] bg-[var(--warn-bg)] px-3 py-2 text-[13px] text-[var(--warn)]">{note}</p>}
       <Card className="overflow-x-auto">
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="border-b border-[var(--hairline)] text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <tr className="border-b border-[var(--hairline)] text-[12px] font-medium text-[var(--text-muted)]">
               {["Name", "Phone", "Source", "Status", "Agent", "Added", ""].map((h) => <th key={h} className="px-4 py-3 text-start font-semibold">{h}</th>)}
             </tr>
           </thead>
@@ -63,7 +75,7 @@ export function TempLeadsView({ isAdmin, users, userName, onPromote }: {
                   <select
                     value={row.status}
                     onChange={(e) => t.update(row.id, { status: e.target.value })}
-                    className={`rounded-full border-0 px-2 py-0.5 text-[10.5px] font-medium ${TONE[row.status]}`}
+                    className={`h-8 cursor-pointer rounded-full border-0 px-2.5 text-[11.5px] font-semibold ${TONE[row.status]}`}
                   >
                     {TEMP_LEAD_STATUSES.map((s) => <option key={s} value={s}>{TEMP_LEAD_LABEL[s]}</option>)}
                   </select>
@@ -72,7 +84,7 @@ export function TempLeadsView({ isAdmin, users, userName, onPromote }: {
                 <td className="px-4 py-3 text-[var(--text-muted)]">{shortDate(row.created_at)}</td>
                 <td className="px-4 py-3">
                   {row.status === "interested" && (
-                    <button onClick={() => onPromote(row)} className={BTN_GHOST}>Promote <ArrowUpRight size={12} /></button>
+                    <button disabled={busyId === row.id} onClick={() => void promote(row)} className={BTN_GHOST}>{busyId === row.id ? "Creating…" : "Promote"} <ArrowUpRight size={12} /></button>
                   )}
                 </td>
               </tr>

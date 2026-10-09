@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     headers: {
       "Content-Type": data.type || "application/octet-stream",
       "Content-Disposition": "inline",
-      "Cache-Control": file.folder === "avatars" ? "private, max-age=86400" : "private, no-store",
+      "Cache-Control": file.folder === "docs" ? "private, no-store" : "private, max-age=86400",
       // Only sniff-checked images and PDFs are ever stored, so nothing here can run script.
       "X-Content-Type-Options": "nosniff",
     },

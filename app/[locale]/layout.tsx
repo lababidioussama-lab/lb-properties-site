@@ -14,6 +14,7 @@ import { MobileDock } from "@/components/layout/MobileDock";
 import { LeadDrawer } from "@/components/ui/LeadDrawer";
 import { SupportAgent } from "@/components/ui/SupportAgent";
 import { SmoothScroll, ScrollProgress } from "@/components/motion";
+import { VisitBeacon } from "@/components/VisitBeacon";
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
@@ -155,6 +156,7 @@ export default async function LocaleLayout({
           <MobileDock />
           <LeadDrawer />
           <SupportAgent />
+          <VisitBeacon />
         </SiteProvider>
       </body>
     </html>

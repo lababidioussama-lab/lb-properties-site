@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, MapPin } from "lucide-react";
 import type { CrmEvent, CrmLead, CrmListing, CrmUser } from "@/lib/crm";
-import { toInputDate, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
+import { toInputDate, whatsapp, INPUT, BTN, BTN_GHOST, Label, Card, SidePanel, Empty } from "./shared";
 import { useTable } from "./useTable";
 
 const KIND_STYLE: Record<CrmEvent["kind"], string> = {
@@ -65,7 +65,7 @@ export function CalendarView({ isAdmin, users, leads, listings, userName }: {
         </div>
 
         <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-[var(--hairline)] bg-[var(--hairline)]">
-          {WEEKDAYS.map((d) => <div key={d} className="bg-[var(--surface-sunken)] py-2 text-center text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{d}</div>)}
+          {WEEKDAYS.map((d) => <div key={d} className="bg-[var(--surface-sunken)] py-2 text-center text-[12px] font-medium text-[var(--text-muted)]">{d}</div>)}
           {days.map((d) => {
             const inMonth = d.getMonth() === cursor.getMonth();
             const dayEvents = events.filter((e) => sameDay(new Date(e.starts_at), d));
@@ -74,7 +74,7 @@ export function CalendarView({ isAdmin, users, leads, listings, userName }: {
                 <div className={`mb-1 grid h-6 w-6 place-items-center rounded-full text-[11.5px] ${sameDay(d, new Date()) ? "bg-[var(--accent-solid)] text-white" : "text-[var(--text-secondary)]"}`}>{d.getDate()}</div>
                 <div className="space-y-1">
                   {dayEvents.slice(0, 3).map((e) => (
-                    <button key={e.id} onClick={() => setEditing(e)} className={`block w-full truncate rounded border px-1.5 py-0.5 text-start text-[10.5px] ${KIND_STYLE[e.kind]} ${e.status === "done" ? "line-through opacity-60" : ""}`}>
+                    <button key={e.id} onClick={() => setEditing(e)} className={`block w-full truncate rounded-md border px-1.5 py-1 text-start text-[11px] font-medium ${KIND_STYLE[e.kind]} ${e.status === "done" ? "line-through opacity-60" : ""}`}>
                       {time(e.starts_at)} {e.title}
                     </button>
                   ))}
@@ -88,7 +88,7 @@ export function CalendarView({ isAdmin, users, leads, listings, userName }: {
       </Card>
 
       <Card className="p-4">
-        <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Coming up</h3>
+        <h3 className="mb-3 text-[12px] font-medium text-[var(--text-muted)]">Coming up</h3>
         {upcoming.length === 0 ? <Empty>No upcoming appointments.</Empty> : (
           <ul className="space-y-2.5">
             {upcoming.map((e) => (
@@ -104,6 +104,19 @@ export function CalendarView({ isAdmin, users, leads, listings, userName }: {
                   {e.location && <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--text-muted)]"><MapPin size={11} /> {e.location}</div>}
                   <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">{userName(e.agent_id)}</div>
                 </button>
+                {(() => {
+                  const l = e.lead_id ? leads.find((x) => x.id === e.lead_id) : null;
+                  if (!l?.phone || !l.owner_id) return null;
+                  const when = `${new Date(e.starts_at).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })} at ${time(e.starts_at)}`;
+                  return (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[12px]">
+                      <span className="font-semibold">{l.full_name}</span>
+                      <a href={`tel:${l.phone.replace(/\s/g, "")}`} className="rounded-md border border-[var(--hairline)] px-2 py-0.5 font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Call</a>
+                      <a href={whatsapp(l.phone, `Hi ${l.full_name.split(" ")[0]}, confirming our ${e.kind} on ${when}${e.location ? ` at ${e.location}` : ""}. See you then.`)} target="_blank" rel="noopener noreferrer"
+                        className="rounded-md border border-[var(--ok-bd)] bg-[var(--ok-bg)] px-2 py-0.5 font-semibold text-[var(--ok)]">Confirm on WhatsApp</a>
+                    </div>
+                  );
+                })()}
               </li>
             ))}
           </ul>
@@ -188,7 +201,7 @@ function EventForm({ event, defaultStart, isAdmin, users, leads, listings, error
         )}
       </div>
       <label className="block"><Label>Notes</Label><textarea rows={3} value={f.notes} onChange={set("notes")} className={`${INPUT} resize-none`} /></label>
-      {error && <p className="text-[12px] text-[#c0392b]">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--bad)]">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button onClick={() => save()} disabled={!f.title.trim() || !f.starts_at} className={BTN}>Save</button>
         {event && event.status === "scheduled" && <button onClick={() => save({ status: "done" })} className={BTN_GHOST}>Mark done</button>}

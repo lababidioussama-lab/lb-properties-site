@@ -32,13 +32,19 @@ export function ImportLeads({ isAdmin, users, onImported, onClose }: {
   async function submit() {
     setBusy(true);
     setStatus(null);
-    const r = await api<{ rows: CrmLead[]; skipped: number }>("POST", "data/leads", {
+    type Dup = { full_name: string; phone: string; existing: string };
+    const r = await api<{ rows: CrmLead[]; skipped: number; duplicates: Dup[]; unlicensed: number }>("POST", "data/leads", {
       rows: rows.map((x) => ({ ...x, source, owner_id: owner || null })),
     });
     setBusy(false);
-    if (!r.rows) return setStatus(r.error === "no_valid_rows" ? "Each row needs a name and a phone number." : r.error ?? "Import failed");
+    const dups = (r.duplicates ?? []) as Dup[];
+    const dupText = dups.length ? ` ${dups.length} already in the CRM and not added: ${dups.slice(0, 5).map((d) => `${d.full_name} (as ${d.existing})`).join(", ")}${dups.length > 5 ? "…" : ""}.` : "";
+    if (!r.rows) {
+      return setStatus(r.error === "no_valid_rows" ? "Each row needs a name and a phone number."
+        : r.error === "all_duplicates" ? `Nothing added.${dupText}` : r.error ?? "Import failed");
+    }
     onImported(r.rows as CrmLead[]);
-    setStatus(`Added ${(r.rows as CrmLead[]).length} lead(s)${r.skipped ? `, skipped ${r.skipped}` : ""}.`);
+    setStatus(`Added ${(r.rows as CrmLead[]).length} lead(s)${r.skipped ? `, skipped ${r.skipped}` : ""}.${dupText}${r.unlicensed ? ` ${r.unlicensed} went to the open pool because the chosen agent's broker card has expired.` : ""}`);
     setOne({ full_name: "", phone: "", email: "", notes: "" });
     setBulk("");
   }

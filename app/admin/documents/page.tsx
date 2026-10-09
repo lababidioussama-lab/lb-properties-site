@@ -6,7 +6,8 @@ import { CrmLogin } from "@/components/crm/CrmLogin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** The Documents sign-in: the CRM's own login page, worded for the suite. */
+/** The Documents sign-in: the CRM's own login page, worded for the suite.
+ *  Email and password, then its own emailed "Documents sign-in" code. */
 export default async function DocumentsSignIn() {
   const session = await liveUser(readDocsSession((await cookies()).get(DOCS_COOKIE)?.value));
   if (session?.role === "admin") redirect("/documents");

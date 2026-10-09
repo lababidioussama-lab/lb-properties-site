@@ -165,6 +165,22 @@ const single: Record<string, string> = {
   leads: "lead", contacts: "contact", tasks: "task", users: "user", properties: "property", activities: "activity",
 };
 
+/* Access & activity (admin): each person's CRM account, DB Search access and usage. */
+const control: Row[] = [
+  { id: "u1", full_name: "Oussama Lababidi", email: "owner@example.com", role: "admin", active: true,
+    ds: { access: true, searches: 200, reveals: 40, lists: 50, lockedAt: null, lockReason: null, kickedAt: null },
+    today: { searches: 23, reveals: 7, lists: 25 }, week: { searches: 140, reveals: 31, lists: 60 }, lastSeen: new Date(Date.now() - 2 * 60_000).toISOString(), lastLogin: new Date(Date.now() - 9 * 60_000).toISOString() },
+  { id: "u2", full_name: "Sara Haddad", email: "sara@example.com", role: "agent", active: true,
+    ds: { access: true, searches: 200, reveals: 40, lists: 50, lockedAt: null, lockReason: null, kickedAt: null },
+    today: { searches: 41, reveals: 12, lists: 25 }, week: { searches: 212, reveals: 58, lists: 75 }, lastSeen: new Date(Date.now() - 4 * 60_000).toISOString(), lastLogin: new Date(Date.now() - 47 * 60_000).toISOString() },
+  { id: "u3", full_name: "Omar Nasser", email: "omar@example.com", role: "agent", active: true,
+    ds: { access: true, searches: 150, reveals: 30, lists: 25, lockedAt: new Date(Date.now() - 31 * 60_000).toISOString(), lockReason: "More than 15 numbers revealed within 10 minutes", kickedAt: null },
+    today: { searches: 88, reveals: 30, lists: 0 }, week: { searches: 301, reveals: 96, lists: 0 }, lastSeen: new Date(Date.now() - 31 * 60_000).toISOString(), lastLogin: new Date(Date.now() - 52 * 60 * 60_000).toISOString() },
+  { id: "u4", full_name: "Priya Nair", email: "priya@example.com", role: "agent", active: false,
+    ds: { access: false, searches: 200, reveals: 40, lists: 50, lockedAt: null, lockReason: null, kickedAt: null },
+    today: { searches: 0, reveals: 0, lists: 0 }, week: { searches: 0, reveals: 0, lists: 0 }, lastSeen: new Date(Date.now() - 9 * 86_400_000).toISOString(), lastLogin: new Date(Date.now() - 9 * 86_400_000).toISOString() },
+];
+
 export async function demoApi(method: string, resource: string, body?: Row, query?: string): Promise<Row> {
   if (resource === "data/leads" && method === "POST") {
     const added = ((body?.rows as Row[]) ?? []).map((r) => {
@@ -176,6 +192,69 @@ export async function demoApi(method: string, resource: string, body?: Row, quer
     return { ok: true, rows: added, skipped: 0 };
   }
   if (resource === "audit") return { ok: true, entries: tables.audit };
+  if (resource === "security") {
+    const at = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+    const ua = "Mozilla/5.0 (Windows NT 10.0) Chrome/126.0";
+    return {
+      ok: true, days: 7,
+      totals: { wrongPasswords: 31, wrongCodes: 0, refused: 2, blocked: 1, addresses: 3, lockedNow: 0 },
+      lockedNow: [],
+      addresses: [
+        { ip: "185.220.101.47", country: "Frankfurt, Germany", fails: 22, codes: 0, accounts: ["owner@example.com", "admin@lababidiproperties.com", "info@lababidiproperties.com"], last: at(190) },
+        { ip: "91.74.12.203", country: "Dubai, United Arab Emirates", fails: 6, codes: 0, accounts: ["sara@example.com"], last: at(900) },
+        { ip: "102.89.33.10", country: "Lagos, Nigeria", fails: 3, codes: 0, accounts: ["owner@example.com"], last: at(2600) },
+      ],
+      targets: [
+        { email: "owner@example.com", known: true, passwords: 14, codes: 0, last: at(190) },
+        { email: "admin@lababidiproperties.com", known: false, passwords: 9, codes: 0, last: at(195) },
+        { email: "sara@example.com", known: true, passwords: 6, codes: 0, last: at(900) },
+        { email: "info@lababidiproperties.com", known: false, passwords: 2, codes: 0, last: at(200) },
+      ],
+      events: [
+        { id: "s1", at: at(12), action: "login", account: "owner@example.com", name: "Oussama Lababidi", ip: "94.200.18.6", place: "Dubai, United Arab Emirates", agent: ua, reason: null },
+        { id: "s2", at: at(188), action: "blocked_address", account: null, name: null, ip: "185.220.101.47", place: "Frankfurt, Germany", agent: "python-requests/2.31", reason: null },
+        { id: "s3", at: at(190), action: "login_failed", account: "owner@example.com", name: null, ip: "185.220.101.47", place: "Frankfurt, Germany", agent: "python-requests/2.31", reason: null },
+        { id: "s4", at: at(195), action: "login_failed", account: "admin@lababidiproperties.com", name: null, ip: "185.220.101.47", place: "Frankfurt, Germany", agent: "python-requests/2.31", reason: null },
+        { id: "s5", at: at(640), action: "docs_denied", account: "sara@example.com", name: "Sara Haddad", ip: "91.74.12.203", place: "Dubai, United Arab Emirates", agent: ua, reason: null },
+        { id: "s6", at: at(900), action: "login_failed", account: "sara@example.com", name: null, ip: "91.74.12.203", place: "Dubai, United Arab Emirates", agent: ua, reason: null },
+        { id: "s7", at: at(2600), action: "login_failed", account: "owner@example.com", name: null, ip: "102.89.33.10", place: "Lagos, Nigeria", agent: "Mozilla/5.0 (Linux; Android 13) Chrome/125.0 Mobile", reason: null },
+      ],
+      alerts: [{ at: at(188), title: "An address is attacking the CRM sign-in" }, { at: at(192), title: "Repeated wrong passwords for owner@example.com" }],
+    };
+  }
+  if (resource === "visitors") {
+    const days = Number(new URLSearchParams(query ?? "").get("days") ?? 7) || 7;
+    const crm = new URLSearchParams(query ?? "").get("where") === "crm";
+    const k = crm ? 0.08 : 1;
+    const n = (v: number) => Math.max(1, Math.round(v * k * (days / 7)));
+    const line = (name: string, v: number) => ({ name, visitors: n(v), views: n(v * 2.6) });
+    const shape = [0.7, 0.85, 1, 0.9, 1.15, 1.4, 1.05];
+    const series = Array.from({ length: days }, (_, i) => {
+      const v = Math.round(46 * k * shape[i % 7]);
+      return { day: new Date(Date.now() - (days - 1 - i) * 86_400_000 + 4 * 3_600_000).toISOString().slice(0, 10), visitors: v, views: Math.round(v * 2.6) };
+    });
+    const visitors = series.reduce((t, s) => t + s.visitors, 0);
+    const at = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+    return {
+      ok: true, days, where: crm ? "crm" : "site", truncated: false,
+      totals: { visitors, views: series.reduce((t, s) => t + s.views, 0), todayVisitors: series[days - 1].visitors, todayViews: series[days - 1].views },
+      series,
+      sources: crm ? [line("Direct (typed, bookmark or app)", 300)] : [line("Instagram", 118), line("Google search", 96), line("Direct (typed, bookmark or app)", 61), line("WhatsApp", 34), line("Facebook", 19), line("Bayut", 11), line("ChatGPT", 6)],
+      referrers: crm ? [] : [line("bayut.com", 11), line("linktr.ee", 7), line("chatgpt.com", 6)],
+      countries: [line("United Arab Emirates", 171), line("United Kingdom", 44), line("India", 38), line("Russia", 27), line("Saudi Arabia", 21), line("Germany", 14), line("China", 12)],
+      cities: [line("Dubai, United Arab Emirates", 139), line("Abu Dhabi, United Arab Emirates", 22), line("London, United Kingdom", 24), line("Mumbai, India", 17), line("Moscow, Russia", 15)],
+      pages: crm ? [line("/admin", 300), line("/admin/db-search", 120)] : [line("/en", 190), line("/en/projects", 88), line("/en/mortgage", 52), line("/ar", 41), line("/en/contact", 33), line("/ru", 19)],
+      devices: [line("Phone · iPhone / iPad", 158), line("Phone · Android", 92), line("Computer · Windows", 61), line("Computer · Mac", 28), line("Tablet · iPhone / iPad", 6)],
+      browsers: [line("Safari", 150), line("Chrome", 164), line("Samsung Internet", 18), line("Edge", 9)],
+      campaigns: crm ? [] : [line("october-offplan", 37), line("lagoons-reel", 22)],
+      recent: [
+        { at: at(3), path: crm ? "/admin" : "/en/projects", source: crm ? "Direct (typed, bookmark or app)" : "Instagram", ref: null, country: "United Arab Emirates", city: "Dubai", device: "Phone · iPhone / iPad", browser: "Safari", team: crm },
+        { at: at(11), path: crm ? "/admin/db-search" : "/en", source: crm ? "Direct (typed, bookmark or app)" : "Google search", ref: crm ? null : "google.com", country: "United Kingdom", city: "London", device: "Computer · Windows", browser: "Chrome", team: crm },
+        { at: at(26), path: crm ? "/admin" : "/en/mortgage", source: crm ? "Direct (typed, bookmark or app)" : "WhatsApp", ref: null, country: "India", city: "Mumbai", device: "Phone · Android", browser: "Chrome", team: false },
+        { at: at(48), path: crm ? "/admin" : "/ru", source: "Direct (typed, bookmark or app)", ref: null, country: "Russia", city: "Moscow", device: "Computer · Mac", browser: "Safari", team: false },
+      ],
+    };
+  }
   if (resource === "integrations") {
     const at = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
     return {
@@ -193,6 +272,34 @@ export async function demoApi(method: string, resource: string, body?: Row, quer
     Object.assign(row, { source: portal, phone: "+971500000000", owner_id: "u2", created_at: new Date().toISOString() });
     tables.leads.unshift(row);
     return { ok: true, id: row.id, assigned_to: "u2" };
+  }
+  if (resource === "control") {
+    const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+    if (method === "PATCH") {
+      const p = control.find((x) => x.id === body?.userId);
+      if (!p) return { ok: false, error: "not_found" };
+      const ds = p.ds as Row;
+      if (typeof body?.ds_access === "boolean") ds.access = body.ds_access;
+      for (const k of ["searches", "reveals", "lists"] as const) if (typeof body?.[k] === "number") ds[k] = body[k];
+      if (body?.unlock) { ds.lockedAt = null; ds.lockReason = null; }
+      if (body?.lock) { ds.lockedAt = at(0); ds.lockReason = "Locked by the admin"; }
+      if (body?.kick) ds.kickedAt = at(0);
+      return { ok: true, ds, today: p.today };
+    }
+    if ((query ?? "").includes("view=activity")) {
+      const rows: Row[] = [
+        { id: 1, at: at(2), user_id: "u2", source: "dbsearch", action: "search", query: "Marina Gate 1405", target: null, reason: null, ip: "5.195.44.21", device: null, email: null },
+        { id: 2, at: at(4), user_id: "u2", source: "dbsearch", action: "reveal", query: null, target: "d1", reason: "owner_outreach", ip: "5.195.44.21", device: null, email: null },
+        { id: 3, at: at(9), user_id: "u1", source: "session", action: "login", query: null, target: null, reason: null, ip: "94.200.12.8", device: "Windows, Chrome", email: null },
+        { id: 4, at: at(31), user_id: "u3", source: "dbsearch", action: "locked", query: null, target: null, reason: null, ip: "188.12.4.9", device: null, email: null },
+        { id: 5, at: at(33), user_id: "u3", source: "dbsearch", action: "reveal", query: null, target: "d4", reason: "buyer_match", ip: "188.12.4.9", device: null, email: null },
+        { id: 6, at: at(47), user_id: "u2", source: "dbsearch", action: "signin", query: null, target: null, reason: null, ip: "5.195.44.21", device: "iPhone, Safari", email: null },
+        { id: 7, at: at(95), user_id: null, source: "session", action: "login_failed", query: null, target: null, reason: null, ip: "188.12.4.9", device: null, email: "omar@lababidi.ae" },
+        { id: 8, at: at(140), user_id: "u3", source: "dbsearch", action: "area", query: "area: Damac Hills 2", target: null, reason: null, ip: "188.12.4.9", device: null, email: null },
+      ];
+      return { ok: true, rows };
+    }
+    return { ok: true, people: control };
   }
   if (resource === "team_activity") {
     const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();

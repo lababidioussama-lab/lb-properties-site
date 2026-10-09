@@ -40,10 +40,9 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
     const open = visible.filter((l) => l.stage !== "won" && l.stage !== "lost");
     return [
       { label: "New this week", value: String(visible.filter((l) => new Date(l.created_at).getTime() > weekAgo).length) },
-      { label: "Open deals", value: String(open.length) },
       { label: "Pipeline value", value: money(open.reduce((s, l) => s + (Number(l.deal_value_aed) || 0), 0)) },
       { label: "Won value", value: money(visible.filter((l) => l.stage === "won").reduce((s, l) => s + (Number(l.deal_value_aed) || 0), 0)) },
-      { label: "Overdue follow-ups", value: String(open.filter((l) => isOverdue(l.next_follow_up_at)).length + tasks.filter((t) => !t.done_at && isOverdue(t.due_at)).length) },
+      { label: "Overdue follow-ups", value: String(open.filter((l) => isOverdue(l.next_follow_up_at)).length + tasks.filter((t) => !t.done_at && isOverdue(t.due_at)).length), late: true },
     ];
   }, [visible, tasks]);
 
@@ -57,14 +56,16 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
 
   return (
     <div className="flex h-full flex-col gap-5">
-      <div className="hidden grid-cols-2 gap-3 sm:grid md:grid-cols-5">
-        {stats.map((s) => (
-          <Card key={s.label} className="px-5 py-4">
-            <div className="text-[12px] font-medium text-[var(--text-secondary)]">{s.label}</div>
-            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]"><CountText text={s.value} /></div>
-          </Card>
+      {/* The figures as one ruled strip, set in ink: colour is kept for
+          what needs acting on (overdue), not for hierarchy. */}
+      <dl className="hidden grid-cols-4 border-y border-[var(--hairline)] sm:grid">
+        {stats.map((s, i) => (
+          <div key={s.label} className={`py-4 ${i ? "border-s border-[var(--hairline)] ps-6" : ""}`}>
+            <dt className="text-[12px] text-[var(--text-muted)]">{s.label}</dt>
+            <dd className={`figure mt-1.5 whitespace-nowrap text-[22px] leading-none ${"late" in s && s.value !== "0" ? "text-[var(--bad)]" : "text-[var(--text-primary)]"}`}><CountText text={s.value} /></dd>
+          </div>
         ))}
-      </div>
+      </dl>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">
@@ -127,7 +128,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
                       <div className="truncate text-[12px] text-[var(--text-muted)]">
                         {SOURCE_LABEL[sourceKey(l.source)]} · {l.owner_id ? userName(l.owner_id) : "Open pool"}
                         {l.stage === "new" && Date.now() - new Date(l.created_at).getTime() > 3_600_000 && (
-                          <span className="font-semibold text-[#c0392b]"> · {Math.floor((Date.now() - new Date(l.created_at).getTime()) / 3_600_000)}h no reply</span>
+                          <span className="font-semibold text-[var(--bad)]"> · {Math.floor((Date.now() - new Date(l.created_at).getTime()) / 3_600_000)}h no reply</span>
                         )}
                       </div>
                     </button>
@@ -184,7 +185,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
                     draggable
                     onDragStart={() => setDragging(l.id)}
                     onClick={() => onOpen(l.id)}
-                    className="rounded-lg border border-[var(--hairline)] bg-[var(--surface-raised)] p-3 text-start transition-colors hover:border-[var(--accent)]"
+                    className="crm-card rounded-lg border border-[var(--hairline)] bg-[var(--surface-raised)] p-3 text-start"
                   >
                     <div className="flex items-center gap-1.5">
                       {l.starred && <Star size={12} className="shrink-0 fill-amber-300 text-amber-700" />}
@@ -192,7 +193,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
                     </div>
                     <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">{SOURCE_LABEL[sourceKey(l.source)]} · {serviceLabel(l.service)} · {shortDate(l.created_at)}</div>
                     {l.stage === "new" && Date.now() - new Date(l.created_at).getTime() > 3_600_000 && (
-                      <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-[#c0392b]">
+                      <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-[var(--bad)]">
                         <Timer size={12} /> No reply for {Math.floor((Date.now() - new Date(l.created_at).getTime()) / 3_600_000)}h
                       </div>
                     )}
@@ -200,7 +201,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
                       <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-amber-700"><Hand size={12} /> Open pool: claim it</div>
                     )}
                     {l.expires_at && (
-                      <div className={`mt-1.5 flex items-center gap-1 text-[11px] ${new Date(l.expires_at).getTime() - Date.now() < 12 * 3_600_000 ? "text-[#c0392b]" : "text-[var(--text-muted)]"}`}>
+                      <div className={`mt-1.5 flex items-center gap-1 text-[11px] ${new Date(l.expires_at).getTime() - Date.now() < 12 * 3_600_000 ? "text-[var(--bad)]" : "text-[var(--text-muted)]"}`}>
                         <Timer size={12} /> {Math.max(0, Math.floor((new Date(l.expires_at).getTime() - Date.now()) / 3_600_000))}h to update
                       </div>
                     )}
@@ -209,7 +210,7 @@ export function Pipeline({ leads, tasks, users, isAdmin, userName, onLead, onOpe
                       {l.deal_value_aed != null && <span className="figure text-[var(--text-secondary)]">{money(l.deal_value_aed)}</span>}
                     </div>
                     {l.next_follow_up_at && (
-                      <div className={`mt-1.5 flex items-center gap-1 text-[11px] ${isOverdue(l.next_follow_up_at) ? "text-[#c0392b]" : "text-[var(--text-muted)]"}`}>
+                      <div className={`mt-1.5 flex items-center gap-1 text-[11px] ${isOverdue(l.next_follow_up_at) ? "text-[var(--bad)]" : "text-[var(--text-muted)]"}`}>
                         <CalendarClock size={12} /> {shortDate(l.next_follow_up_at)}
                       </div>
                     )}

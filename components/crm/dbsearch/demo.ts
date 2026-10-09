@@ -2,7 +2,7 @@
  * Sample-data DB Search for the local preview (/admin?demo). Every name and
  * number here is invented; nothing touches the owner database.
  */
-import type { DsHit, DsOwner, DsUnitResult } from "./api";
+import type { CcModel, DsCard, DsHit, DsOwner, DsResults, DsUnitResult } from "./api";
 
 let signedIn = false;
 const usage = { searches: 23, reveals: 7, lists: 25 };
@@ -46,23 +46,82 @@ const UNIT: DsUnitResult = {
   ],
 };
 
+/* ---------------- DB Search's own Search tab, in its card format */
+
+const model = (m: Partial<CcModel>): CcModel => ({
+  community: null, building: null, badge: null, lines: [], size: null, plotArea: null, beds: null, ptype: null,
+  tx: { date: null, proc: null, value: null, party: null, label: "", noConsideration: false },
+  nat: null, more: [], notes: [], nRec: 1, gaps: [], unreadable: [], pMatch: false, ...m,
+});
+const tx = (date: string | null, value: number | null, party: "buyer" | "seller" | "owner" | null, proc = "Sell") =>
+  ({ date, proc, value, party, label: party === "buyer" ? "Bought for" : party === "seller" ? "Sold for" : "", noConsideration: false });
+const card = (c: Partial<DsCard> & { name: string; model: CcModel }): DsCard => ({
+  ref: `c-${c.name}`, buildingRecord: false, email: null, phoneCount: 0, inCrm: null, match: null, sold: null,
+  comm: c.model.community ?? "", find: [c.name, c.model.badge?.v, c.model.building, c.model.community].join(" | ").toLowerCase(), ...c,
+});
+
+const CARDS: DsCard[] = [
+  card({ name: "KHALID RAHMAN", phoneCount: 2, email: "k•••@example.com", inCrm: HITS[0].inCrm,
+    model: model({ community: "Dubai Marina", building: "Marina Gate 2", badge: { k: "unit", label: "Unit", v: "1405" }, nat: "United Kingdom", nRec: 2,
+      lines: [{ k: "dm", label: "DM no / sub no", parts: [{ v: "392-6789", shared: null }] }],
+      size: { v: 119.3, u: "sqm" }, beds: "2 B/R", ptype: "Flat", tx: tx("2019-03-14", 2100000, "buyer"), more: [{ label: "Floor", v: "14", suffix: "" }, { label: "Parking", v: "B2-118", suffix: "" }] }) }),
+  card({ name: "ELENA PETROVA", phoneCount: 1,
+    model: model({ community: "Dubai Marina", building: "Marina Gate 2", badge: { k: "unit", label: "Unit", v: "2203" }, nat: "Russia",
+      size: { v: 1318, u: "sq ft" }, beds: "2 B/R", ptype: "Flat", tx: tx("2021-06-02", 2360000, "buyer"), gaps: [] }) }),
+  card({ name: "RASHID AL SUWAIDI", phoneCount: 1,
+    model: model({ community: "Dubai Marina", building: "Marina Gate 2", badge: { k: "unit", label: "Unit", v: "908" }, nat: "United Arab Emirates",
+      lines: [{ k: "plotcode", label: "Building / plot code", parts: [{ v: "392-6789", shared: { n_units: null } }] }],
+      beds: "2 B/R", tx: tx(null, null, "owner"), gaps: ["size", "transaction"] }) }),
+  card({ name: "PRIYA SHARMA", phoneCount: 0, email: "p•••@example.com",
+    model: model({ community: "Dubai Marina", building: "Marina Gate 2", badge: { k: "unit", label: "Unit", v: "3110" }, nat: "India",
+      size: { v: 120.9, u: "sqm" }, tx: tx("2022-11-20", 2480000, "buyer"), notes: ["Other unit values on this record: 3111 — source columns disagree, verify"] }) }),
+  card({ name: "CHEN WEI", phoneCount: 3,
+    model: model({ community: "Dubai Marina", building: "Marina Gate 2", badge: { k: "unit", label: "Unit", v: "2605" }, nat: "China",
+      size: { v: 1322, u: "" }, tx: tx("2020-02-11", 2050000, "buyer"), gaps: ["transaction value"] }) }),
+  card({ name: "JAMES WHITMORE", phoneCount: 1,
+    model: model({ community: "Dubai Marina", building: "Marina Gate 2", badge: { k: "unit", label: "Unit", v: "1405" }, nat: "United Kingdom",
+      size: { v: 119.3, u: "sqm" }, tx: tx("2019-03-14", 2100000, "seller") }) }),
+  card({ name: "SAMPLE OWNER SEVEN", phoneCount: 1, sold: { unit: "BL474", date: "2026-05-15", price: 3300000, gain: 0.22, stale: true },
+    model: model({ community: "Damac Lagoons", building: "Portofino", badge: { k: "villa", label: "Villa no", v: "BL474" }, nat: "Egypt",
+      lines: [{ k: "plotland", label: "Plot / Land no", parts: [{ pre: "Plot ", v: "DL-P474" }, { pre: "Land ", v: "6734-1201" }] }],
+      plotArea: { v: 2952, u: "sq ft" }, beds: "4 B/R", ptype: "Villa", tx: tx("2022-08-10", 2720000, "buyer") }) }),
+  card({ name: "MARINA GATE 2", buildingRecord: true,
+    model: model({ community: "Dubai Marina", badge: { k: "unit", label: "Unit", v: "4501" }, size: { v: 3380, u: "sq ft" }, ptype: "Penthouse", gaps: ["transaction", "nationality"] }) }),
+];
+
+const DEMO_RESULTS: DsResults = {
+  cards: CARDS,
+  strict: { entries: CARDS.map((_, i) => (i === 0 ? { c: i, also: ["Jumeirah Village Circle", "Business Bay"] } : { c: i })), notes: [{ kind: "contact_only", n: 37 }], capped: 0 },
+  loose: { entries: CARDS.map((_, i) => ({ c: i })), notes: [{ kind: "showing_all", n: 8, hidden: 0 }], capped: 0 },
+};
+
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const ok = (b: Record<string, unknown>) => ({ ok: true, ...b, session: { endsAt: endsAt(), idleMinutes: 20 } });
 
 export async function demoDs(method: string, action: string, body?: Record<string, unknown>) {
   await wait(action === "search" ? 450 : 200);
-  if (action === "session" && method === "GET") return ok({ signedIn, user: { name: "Oussama Lababidi", role: "admin" }, limits, usage: signedIn ? usage : null });
+  if (action === "session" && method === "GET") return ok({ signedIn, user: typeof location !== "undefined" && new URLSearchParams(location.search).get("demo") === "agent" ? { name: "Sara Haddad", role: "agent" } : { name: "Oussama Lababidi", role: "admin" }, limits, usage: signedIn ? usage : null });
   if (action === "session" && method === "DELETE") { signedIn = false; return { ok: true }; }
   if (action === "demo_signin") { signedIn = true; return { ok: true }; }
   if (!signedIn) return { ok: false, error: "ds_signin_required" };
 
   switch (action) {
-    case "search": usage.searches++; return ok({ hits: HITS, total: 212, hiddenPast: 46, usage });
+    case "search": usage.searches++; return ok({ ...DEMO_RESULTS, communities: [{ community: "Dubai Marina", ct: 212 }, { community: "Marina Gate", ct: 96 }, { community: "Damac Lagoons", ct: 4 }], hiddenEmpty: 58, damac: String(body?.q ?? "").toUpperCase().includes("BL") ? [{ villa: "BL474", sub_project: "Portofino", sale_type: "Title Deed", sale_date: "2026-05-15", price: 3300000, bua_sqft: 2952, payment_method: "cash", mortgage_amount: null, times_sold: 2 }] : [], usage });
+    case "community": usage.searches++; return ok({ ...DEMO_RESULTS, hiddenEmpty: 12, usage });
+    case "phone": usage.searches++; return ok({ cards: CARDS.slice(0, 1), strict: { entries: [{ c: 0 }], notes: [], capped: 0 }, loose: { entries: [{ c: 0 }], notes: [], capped: 0 }, agent: String(body?.q ?? "").endsWith("0000") ? { name: "Sample Broker", company: "Sample Realty LLC", phone: "+971 50 000 0000", nationality: "United Kingdom", brn: "00000" } : null, usage });
+    case "sold": return ok({ found: [] });
+    case "stats": return ok({ stats: { owners: 16742311, properties: 1015530, projects: 4210, phones: 9120442 } });
     case "owner": return ok({ owner: body?.ref === "d1" ? OWNER : { ...OWNER, ...HITS.find((h) => h.ref === body?.ref), properties: [{ ref: String(body?.ref), status: HITS.find((h) => h.ref === body?.ref)?.status ?? "likely", statusDate: null, property: HITS.find((h) => h.ref === body?.ref)?.property ?? OWNER.properties[0].property }] } });
+    case "dnc": return ok({ blocked: ((body?.phones as string[]) ?? []).filter((p) => String(p).endsWith("0000")) });
     case "reveal":
       if (!body?.reason) return { ok: false, error: "reason_required" };
       usage.reveals++;
-      return ok(body.kind === "email" ? { kind: "email", value: "sample.owner@example.com" } : { kind: "phone", value: "+971 50 555 0112", dial: "971505550112", usage });
+      if (body.kind === "email") return ok({ kind: "email", value: "sample.owner@example.com", usage });
+      if (body.kind === "phones") return ok({ kind: "phones", usage, numbers: [
+        { index: 0, value: "+971 50 555 0112", dial: "971505550112", dnc: false, inCrm: null },
+        { index: 1, value: "+971 55 ••• ••40", dial: null, dnc: true, inCrm: null },
+      ] });
+      return ok({ kind: "phone", value: "+971 50 555 0112", dial: "971505550112", usage });
     case "unit": usage.searches++; return ok({ unit: UNIT });
     case "add": return body?.ref === "d1" ? { ok: false, error: "already_in_crm", link: HITS[0].inCrm } : ok({ created: { as: body?.as, id: "new" } });
     case "portfolio": return ok({ owners: [
@@ -99,7 +158,12 @@ export async function demoDs(method: string, action: string, body?: Record<strin
     case "permit": return ok({ permits: [{ permit_number: "7117000000", bayut_listing_id: "10000001", zone_name_en: "Marsa Dubai", property_type_name_en: "Unit", developer_name_en: "Sample Developer", authority_name_en: "DLD", property_name_en: "Marina Gate 2", property_value: 2450000, validation_url: null, fetched_at: "2026-09-20T10:00:00Z" }], tabu: null });
     case "pnumber": return ok({ rows: [{ ref: "d1", name: "Khalid Rahman", side: "Bought", date: "2019-03-14", amount: 2100000, place: "Unit 1405 · Marina Gate 2 · Dubai Marina", numbers: { plot: "392", reg: null, property: String(body?.q) }, phones: [{ masked: "+971 50 ••• ••12" }] }] });
     case "listed": return ok({ listings: [{ title: "2 BR · Marina Gate 2 · high floor, sea view", price: 2450000, agency: "Sample Realty LLC", agent: "Sample Broker", url: null, beds: 2 }] });
-    case "brokers": return ok({ brokers: [{ name: "Sample Broker", company: "Sample Realty LLC", phone: "+971 50 000 0000", dial: "971500000000", nationality: "United Kingdom", brn: "00000", listings: 42 }] });
+    case "brokers": return ok({ brokers: [
+      { name: "Sample Broker", company: "Sample Realty LLC", nationality: "United Kingdom", brn: "00000", contactCount: 2, contacts: [
+        { phone: "+971 50 000 0000", dial: "971500000000", company: "Sample Realty LLC — Marina", brn: "00000" },
+        { phone: "+971 55 000 0000", dial: "971550000000", company: "Sample Realty LLC — Downtown", brn: "00000" }] },
+      { name: "Another Sample Agent", company: "Example Homes", nationality: "India", brn: null, contactCount: 1, contacts: [{ phone: "+971 52 000 0000", dial: "971520000000", company: null, brn: null }] },
+    ] });
     case "admin":
       if (method === "PATCH") return ok({ updated: body });
       return ok({

@@ -20,6 +20,8 @@ export type Role = "admin" | "agent";
 export interface SessionUser {
   id: string;
   role: Role;
+  /** When the session was opened (ms). Absent on a user made in code. */
+  iat?: number;
 }
 
 /* A dedicated secret only. Falling back to ADMIN_PASSWORD would let anyone
@@ -76,7 +78,7 @@ export function readSession(value: string | undefined | null): SessionUser | nul
   if (!safeEqual(mac, sign(`${id}.${role}.${expiry}.${nonce}`, key))) return null;
   if (!(Number(expiry) > Date.now())) return null;
   if (role !== "admin" && role !== "agent") return null;
-  return { id, role };
+  return { id, role, iat: Number(expiry) - SESSION_MS };
 }
 
 /** Reject state-changing requests sent from another site (CSRF defence on top of SameSite). */
@@ -102,9 +104,53 @@ export async function liveUser(session: SessionUser | null): Promise<SessionUser
   if (!session) return null;
   const db = getSupabaseAdmin();
   if (!db) return null;
-  const { data } = await db.from("crm_users").select("role, active").eq("id", session.id).maybeSingle();
-  if (!data || !data.active) return null;
-  return { id: session.id, role: data.role === "admin" ? "admin" : "agent" };
+  /* A page load makes a dozen requests at once, each needing this answer.
+     The role and active flag are remembered for a few seconds, so they cost
+     one database round trip together instead of one each. Blocking someone
+     or ending their sessions forgets it at once on this server, and takes at
+     most LIVE_USER_MS on any other. */
+  let row = liveRows.get(session.id);
+  if (!row || Date.now() - row.read > LIVE_USER_MS) {
+    const { data } = await db.from("crm_users").select("role, active").eq("id", session.id).maybeSingle();
+    row = { read: Date.now(), role: data?.role === "admin" ? "admin" : "agent", active: !!data?.active, exists: !!data };
+    if (liveRows.size > 500) liveRows.clear();
+    liveRows.set(session.id, row);
+  }
+  if (!row.exists || !row.active) return null;
+  // "Sign out everywhere" and password changes end every session opened before them.
+  const cut = await sessionCut(session.id);
+  if (cut && session.iat != null && session.iat < cut) return null;
+  return { id: session.id, role: row.role };
+}
+
+const LIVE_USER_MS = 8_000;
+const liveRows = new Map<string, { read: number; role: Role; active: boolean; exists: boolean }>();
+/** Drop what is remembered about a person, after they are blocked, demoted or signed out everywhere. */
+export function forgetUser(id: string) { liveRows.delete(id); cuts.delete(id); }
+
+/* "Sign out everywhere": a moment per person, kept in crm_audit (entity
+   "session_cut") like the DB Search settings, so nothing new is stored in the
+   schema. Sessions opened before it stop working. Cached briefly so a page
+   load does not ask for it on every request. */
+const cuts = new Map<string, { read: number; cut: number }>();
+async function sessionCut(userId: string): Promise<number> {
+  const hit = cuts.get(userId);
+  if (hit && Date.now() - hit.read < 20_000) return hit.cut;
+  const { data } = await getSupabaseAdmin()!.from("crm_audit").select("created_at")
+    .eq("entity", "session_cut").eq("entity_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const cut = data?.created_at ? new Date(data.created_at as string).getTime() : 0;
+  if (cuts.size > 500) cuts.clear();
+  cuts.set(userId, { read: Date.now(), cut });
+  return cut;
+}
+
+/** End every CRM, DB Search and Documents session this person has open. */
+export async function cutSessions(userId: string, actorId: string | null, why: string) {
+  // The moment is ours, not the database's, so a session made a few ms later is safely after it.
+  const at = new Date();
+  await getSupabaseAdmin()?.from("crm_audit").insert({ user_id: actorId, entity: "session_cut", entity_id: userId, action: "cut", detail: { why }, created_at: at.toISOString() });
+  cuts.set(userId, { read: Date.now(), cut: at.getTime() });
+  liveRows.delete(userId);
 }
 
 export async function sessionFromCookies(): Promise<SessionUser | null> {
@@ -132,7 +178,7 @@ export function readDocsSession(value: string | undefined | null): SessionUser |
   const [, id, expiry, nonce, mac] = parts;
   if (!safeEqual(mac, sign(`docs.${id}.${expiry}.${nonce}`, key))) return null;
   if (!(Number(expiry) > Date.now())) return null;
-  return { id, role: "admin" };
+  return { id, role: "admin", iat: Number(expiry) - DOCS_MS };
 }
 
 export const SESSION_COOKIE_OPTIONS = {
@@ -153,16 +199,29 @@ export async function authenticate(email: string, password: string): Promise<Ses
 
   const ownerEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const ownerPassword = process.env.ADMIN_PASSWORD;
-  if (ownerEmail && ownerPassword && normalized === ownerEmail && safeEqual(password, ownerPassword)) {
-    /* Update in place when the row exists: an upsert rewrote full_name to
-       "Owner" on every sign-in, wiping the name set in My profile (and the
-       login greeting then said "Good evening, Owner"). */
-    const fields = { role: "admin", active: true, password_hash: hashPassword(ownerPassword) };
-    const { data: existing } = await supabase.from("crm_users").select("id").eq("email", ownerEmail).maybeSingle();
-    const { data } = existing
-      ? await supabase.from("crm_users").update(fields).eq("id", existing.id).select("id").single()
-      : await supabase.from("crm_users").insert({ email: ownerEmail, full_name: "Owner", ...fields }).select("id").single();
-    return data ? { id: data.id as string, role: "admin" } : null;
+  if (ownerEmail && ownerPassword && normalized === ownerEmail) {
+    /* The setup password (ADMIN_PASSWORD) is the owner's FIRST key, not a
+       permanent one: it creates the owner's account, and keeps working only
+       until he changes his password in the CRM. After that only the new
+       password opens the account, so anyone who once learned the setup
+       password is locked out. ADMIN_PASSWORD_RESET=true is the break-glass:
+       set it on the server to let the setup password in again. */
+    const { data: existing } = await supabase.from("crm_users").select("id, password_hash").eq("email", ownerEmail).maybeSingle();
+    const stored = (existing as { password_hash?: string | null } | null)?.password_hash ?? null;
+    const stillSetup = !stored || verifyPassword(ownerPassword, stored);
+    const breakGlass = process.env.ADMIN_PASSWORD_RESET === "true";
+    if ((stillSetup || breakGlass || !existing) && safeEqual(password, ownerPassword)) {
+      /* Update in place when the row exists: an upsert rewrote full_name to
+         "Owner" on every sign-in, wiping the name set in My profile. The hash
+         is written only when there is none or on break-glass, so signing in
+         never overwrites a password he has since changed. */
+      const fields: Record<string, unknown> = { role: "admin", active: true };
+      if (!stored || breakGlass) fields.password_hash = hashPassword(ownerPassword);
+      const { data } = existing
+        ? await supabase.from("crm_users").update(fields).eq("id", (existing as { id: string }).id).select("id").single()
+        : await supabase.from("crm_users").insert({ email: ownerEmail, full_name: "Owner", ...fields, password_hash: hashPassword(ownerPassword) }).select("id").single();
+      return data ? { id: data.id as string, role: "admin" } : null;
+    }
   }
 
   const { data } = await supabase

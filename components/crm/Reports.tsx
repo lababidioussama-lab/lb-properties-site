@@ -48,13 +48,15 @@ function Bars({ rows, format = String }: { rows: { label: string; value: number 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Card className="p-5">
-      <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{title}</h3>
+      <h3 className="mb-4 text-[12px] font-medium text-[var(--text-muted)]">{title}</h3>
       {children}
     </Card>
   );
 }
 
-export function ReportsView({ leads, deals, users, userName, spend }: {
+export function ReportsView({ leads, deals, users, userName, spend, meId }: {
+  /** An agent sees only their own row. */
+  meId: string;
   leads: CrmLead[];
   spend: Table<CrmSourceSpend> | null;
   deals: CrmDeal[];
@@ -123,7 +125,7 @@ export function ReportsView({ leads, deals, users, userName, spend }: {
         {kpis.map((k) => (
           <Card key={k.label} className="px-5 py-4">
             <div className="text-[12px] font-medium text-[var(--text-secondary)]">{k.label}</div>
-            <div className="figure mt-2 whitespace-nowrap text-[19px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]"><CountText text={k.value} /></div>
+            <div className="figure mt-2 whitespace-nowrap text-[16px] font-semibold leading-none sm:text-[24px] text-[var(--accent)]"><CountText text={k.value} /></div>
           </Card>
         ))}
       </div>
@@ -132,15 +134,15 @@ export function ReportsView({ leads, deals, users, userName, spend }: {
         <Panel title="Leads by source"><Bars rows={bySource} /></Panel>
         <Panel title="Pipeline funnel: leads that reached each stage"><Bars rows={funnel} /></Panel>
         <Panel title="Commission by month"><Bars rows={monthly} format={money} /></Panel>
-        <Panel title="Agent leaderboard">
+        <Panel title={spend ? "Agent leaderboard" : "My numbers"}>
           <table className="w-full text-[12.5px]">
             <thead>
-              <tr className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+              <tr className="text-[12px] font-medium text-[var(--text-muted)]">
                 {["Agent", "Leads", "Won", "Overdue", "Reply time", "Deals", "Earned"].map((h) => <th key={h} className="pb-2 text-start font-semibold">{h}</th>)}
               </tr>
             </thead>
             <tbody>
-              {agents.map((a) => (
+              {agents.filter((a) => spend || a.id === meId).map((a) => (
                 <tr key={a.id} className="border-t border-[var(--hairline)]">
                   <td className="py-2 text-[var(--text-primary)]">
                     <span className="flex items-center gap-2">
@@ -150,7 +152,7 @@ export function ReportsView({ leads, deals, users, userName, spend }: {
                   </td>
                   <td className="figure py-2">{a.leads}</td>
                   <td className="figure py-2">{a.won}</td>
-                  <td className={`figure py-2 ${a.overdue ? "text-[#c0392b]" : ""}`}>{a.overdue}</td>
+                  <td className={`figure py-2 ${a.overdue ? "text-[var(--bad)]" : ""}`}>{a.overdue}</td>
                   <td className="figure py-2">{duration(a.response)}</td>
                   <td className="figure py-2">{a.deals}</td>
                   <td className="figure py-2">{money(a.earned)}</td>
@@ -190,7 +192,7 @@ function PortalRoi({ leads, deals, spend, since }: { leads: CrmLead[]; deals: Cr
     <Panel title="Portals: speed, conversion and cost">
       <div className="overflow-x-auto">
         <table className="w-full text-[12.5px]">
-          <thead><tr className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">{head.map((h) => <th key={h} className="pb-2 pe-3 text-start font-semibold">{h}</th>)}</tr></thead>
+          <thead><tr className="text-[12px] font-medium text-[var(--text-muted)]">{head.map((h) => <th key={h} className="pb-2 pe-3 text-start font-semibold">{h}</th>)}</tr></thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.key} className="border-t border-[var(--hairline)]">
@@ -204,7 +206,7 @@ function PortalRoi({ leads, deals, spend, since }: { leads: CrmLead[]; deals: Cr
                   <td className="figure py-2 pe-3">{r.cost ? money(r.cost) : "—"}</td>
                   <td className="figure py-2 pe-3">{r.cost && r.leads ? money(r.cost / r.leads) : "—"}</td>
                   <td className="figure py-2 pe-3">{r.cost && r.deals ? money(r.cost / r.deals) : "—"}</td>
-                  <td className={`figure py-2 pe-3 ${r.cost && r.commission >= r.cost ? "text-emerald-700" : r.cost ? "text-[#c0392b]" : ""}`}>{r.cost ? `${(r.commission / r.cost).toFixed(1)}×` : "—"}</td>
+                  <td className={`figure py-2 pe-3 ${r.cost && r.commission >= r.cost ? "text-emerald-700" : r.cost ? "text-[var(--bad)]" : ""}`}>{r.cost ? `${(r.commission / r.cost).toFixed(1)}×` : "—"}</td>
                 </>}
               </tr>
             ))}
@@ -234,7 +236,7 @@ function PortalRoi({ leads, deals, spend, since }: { leads: CrmLead[]; deals: Cr
             Save monthly spend
           </button>
           <span className="text-[11.5px] text-[var(--text-muted)]">Portal subscriptions and paid ads per month. Only admins see spend.</span>
-          {spend.error && <span className="text-[12px] text-[#c0392b]">{spend.error}</span>}
+          {spend.error && <span className="text-[12px] text-[var(--bad)]">{spend.error}</span>}
         </div>
       )}
     </Panel>

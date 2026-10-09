@@ -13,7 +13,7 @@ export function WhatNext({ lead }: { lead: CrmLead }) {
     <div className="flex items-start gap-2.5 rounded-lg border border-[var(--glass-border-lit)] bg-[var(--accent-wash)] p-3">
       <Lightbulb size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" />
       <div>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">What next?</div>
+        <div className="text-[12px] font-medium text-[var(--text-muted)]">What next?</div>
         <p className="mt-0.5 text-[13px] text-[var(--text-primary)]">{whatNext(lead)}</p>
       </div>
     </div>
@@ -84,6 +84,19 @@ export function matchListings(lead: CrmLead, listings: CrmListing[]) {
   );
 }
 
+/** The other way round: the open leads who asked for something like this listing. */
+export function matchLeads(listing: Pick<CrmListing, "purpose" | "community" | "building" | "bedrooms" | "price_aed">, leads: CrmLead[]) {
+  const place = `${listing.community ?? ""} ${listing.building ?? ""}`.toLowerCase();
+  return leads.filter((l) =>
+    l.stage !== "won" && l.stage !== "lost" &&
+    (l.deal_kind || l.location || l.beds || l.budget_aed) &&
+    (!l.deal_kind || l.deal_kind === listing.purpose) &&
+    (!l.location || (place.trim() && place.includes(l.location.trim().toLowerCase()))) &&
+    (!l.beds || (listing.bedrooms ?? "").toLowerCase() === l.beds.toLowerCase()) &&
+    (!l.budget_aed || !listing.price_aed || Number(listing.price_aed) <= Number(l.budget_aed) * 1.15),
+  );
+}
+
 export function Matches({ lead, listings }: { lead: CrmLead; listings: CrmListing[] }) {
   const found = matchListings(lead, listings).slice(0, 6);
   const canSend = !!lead.phone && !lead.phone.includes("•");
@@ -132,12 +145,16 @@ export function ReasonForm({ mode, onSubmit, onCancel }: {
 }) {
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
-  const reasons = mode === "lost" ? LOST_REASONS : ["Can't handle this area", "Manager asked", "Too many leads", ...LOST_REASONS.slice(0, 3)];
+  /* Releasing hands a LIVE lead to a colleague. A dead lead (no answer, low
+     budget, not interested) is disqualified instead, so it never comes back
+     round the pool for someone else to waste a call on. */
+  const reasons = mode === "lost" ? LOST_REASONS : ["Can't handle this area", "Too many leads right now", "Language: better with a colleague", "On leave", "Manager asked"];
   return (
     <div className="space-y-2.5 rounded-lg border border-red-200 bg-red-50/60 p-3">
       <div className="text-[13px] font-medium text-[var(--text-primary)]">
         {mode === "lost" ? "Disqualify this lead" : "Release this lead to the open pool"}
       </div>
+      {mode === "release" && <p className="text-[12px] text-[var(--text-secondary)]">Only for a lead a colleague can still win. If the client is not interested or cannot be reached, use Disqualify.</p>}
       <select value={reason} onChange={(e) => setReason(e.target.value)} className={INPUT}>
         <option value="">Choose a reason</option>
         {reasons.map((r) => <option key={r} value={r}>{r}</option>)}
