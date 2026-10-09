@@ -201,9 +201,11 @@ export async function authenticate(email: string, password: string): Promise<Ses
        set it on the server to let the setup password in again. */
     const { data: existing } = await supabase.from("crm_users").select("id, password_hash").eq("email", ownerEmail).maybeSingle();
     const stored = (existing as { password_hash?: string | null } | null)?.password_hash ?? null;
-    const stillSetup = !stored || (await verifyPassword(ownerPassword, stored));
+    // Only worth the (slow) hash check when the typed password is the setup password at all.
+    const typedSetup = safeEqual(password, ownerPassword);
+    const stillSetup = typedSetup && (!stored || (await verifyPassword(ownerPassword, stored)));
     const breakGlass = process.env.ADMIN_PASSWORD_RESET === "true";
-    if ((stillSetup || breakGlass || !existing) && safeEqual(password, ownerPassword)) {
+    if ((stillSetup || breakGlass || !existing) && typedSetup) {
       /* Update in place when the row exists: an upsert rewrote full_name to
          "Owner" on every sign-in, wiping the name set in My profile. The hash
          is written only when there is none or on break-glass, so signing in
