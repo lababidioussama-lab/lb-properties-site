@@ -27,7 +27,7 @@ export function DsVastu() {
   return (
     <div ref={box} style={{ height: height ?? "70dvh" }}
       className="relative left-1/2 w-[calc(100vw-1.5rem)] -translate-x-1/2 overflow-hidden rounded-[16px] border border-[var(--hairline)] bg-[#05070d] md:w-[calc(100vw-3rem)]">
-      <iframe src="/vastu-map/index.html" title="Vastu Map" allow="fullscreen; geolocation" className="block h-full w-full border-0" />
+      <iframe src="/vastu-map/" title="Vastu Map" allow="fullscreen; geolocation" className="block h-full w-full border-0" />
     </div>
   );
 }

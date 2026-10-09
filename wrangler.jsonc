@@ -1,0 +1,40 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "lababidi-properties",
+	"main": ".open-next/worker.js",
+	"compatibility_date": "2026-10-01",
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"r2_buckets": [
+		{
+			// Private storage for the encrypted Documents suite. Nothing here has a
+			// web address: only this Worker can read it, and only for a signed-in
+			// admin. Create the bucket and upload the file once (see DEPLOY.md).
+			"binding": "PRIVATE_FILES",
+			"bucket_name": "lababidi-private"
+		}
+	],
+	"services": [
+		{
+			// The Worker calls itself; the service name must match "name" above.
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "lababidi-properties"
+		}
+	],
+	"images": {
+		// Image optimisation for next/image (resizing and WebP/AVIF).
+		"binding": "IMAGES"
+	},
+	// Run the Worker close to Supabase, not close to each visitor: every page
+	// and sign-in makes several database calls, and the distance to the
+	// database is what makes the CRM slow, not the distance to the browser.
+	"placement": { "mode": "smart" },
+	"observability": { "enabled": true }
+
+	// Secrets (SUPABASE_*, SESSION_SECRET, ADMIN_*, RESEND_API_KEY, ...) are not
+	// written here: set them in the Cloudflare dashboard (Settings > Variables
+	// and Secrets) or with `npx wrangler secret put NAME`.
+}

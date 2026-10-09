@@ -190,3 +190,65 @@ git status
 
 `.env.local` must **not** appear in that list. Then push and connect the repo
 in Netlify — it reads `netlify.toml` and configures itself.
+
+---
+
+## Deploying on Cloudflare instead of Netlify
+
+The site and the CRM run as one Cloudflare Worker (built with OpenNext).
+Static files and images are free and unlimited; the Worker needs the
+**Workers Paid plan ($5 a month)** because it is a little over the free
+plan's 3 MiB size limit.
+
+### One-time setup
+
+1. **Plan.** Cloudflare dashboard → Workers & Pages → Plans → Workers Paid.
+2. **Sign in the CLI.** `npx wrangler login` opens the browser; approve it.
+3. **Private storage for the Documents suite** (it has no web address; only
+   the Worker reads it):
+
+   ```
+   npx wrangler r2 bucket create lababidi-private
+   npx wrangler r2 object put lababidi-private/suite.html --file private/documents/suite.html --remote
+   ```
+
+4. **Settings.** Dashboard → the Worker → Settings → Variables and Secrets.
+   Add these as **Secrets** (or `npx wrangler secret put NAME`):
+
+   `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+   `SESSION_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RESEND_API_KEY`,
+   `GROQ_API_KEY`, `OTP_FROM`; and only if you use them: `RAPIDAPI_KEY`,
+   `PORTAL_WEBHOOK_SECRET`, `DLD_TOOL_KEY`, `DOCUMENTS_PASSWORD`.
+
+   Add as plain **Variables**: `CRM_HOST` (`crm.lababidiproperties.com`),
+   `SITE_URL`. Never set `CRM_OTP_DISABLED` or `ADMIN_PASSWORD_RESET` to true.
+   `NEXT_PUBLIC_COMPANY_ADDRESS/ORN/TRN` are read when the site is built, so
+   set them as **build** variables, not here.
+
+### Deploy
+
+```
+npm run cf:deploy
+```
+
+It builds, then publishes to `https://lababidi-properties.<your-account>.workers.dev`.
+Check the site, the CRM sign-in (code email arrives), Documents and DB Search
+there **before** moving the domain.
+
+To deploy automatically from GitHub instead: Workers & Pages → Create →
+Import a repository; build command `npm run cf:build`, deploy command
+`npx wrangler deploy`, and add the `NEXT_PUBLIC_*` values as build variables.
+
+### Moving the domains
+
+1. Add `lababidiproperties.com` to Cloudflare and let it import the existing
+   DNS records. **Keep every email record** (MX, SPF, DKIM, DMARC, and the
+   ones Resend gave you), or sign-in codes stop arriving. Email records must
+   stay "DNS only" (grey cloud).
+2. At your registrar, change the nameservers to the two Cloudflare gives you.
+3. Worker → Settings → Domains & Routes → add `lababidiproperties.com`,
+   `www.lababidiproperties.com` and `crm.lababidiproperties.com`.
+4. Only once those work, remove the domains from Netlify.
+
+Rolling back: Worker → Deployments → pick an earlier version → Roll back.
+While the domains are still on Netlify nothing here changes the live site.

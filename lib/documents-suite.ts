@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createDecipheriv, pbkdf2Sync } from "node:crypto";
 import { gunzipSync } from "node:zlib";
@@ -19,6 +18,19 @@ export const SUITE_FILE = path.join(process.cwd(), "private", "documents", "suit
 
 let cache: { salt: string; html: string } | null = null;
 
+/* The suite file: on Cloudflare it lives in a private R2 bucket that has no web
+   address; anywhere else it is read from disk. */
+async function readSuite(): Promise<string> {
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const bucket = (getCloudflareContext().env as { PRIVATE_FILES?: { get: (k: string) => Promise<{ text: () => Promise<string> } | null> } }).PRIVATE_FILES;
+    const object = await bucket?.get("suite.html");
+    if (object) return await object.text();
+  } catch { /* not running on Cloudflare */ }
+  const { readFile } = await import("node:fs/promises");
+  return readFile(SUITE_FILE, "utf8");
+}
+
 export function decryptSuite(page: string, password: string): string | null {
   const m = /var S="([^"]+)",I="([^"]+)",N=(\d+),C="([^"]+)"/.exec(page);
   if (!m) return null;
@@ -36,7 +48,7 @@ export function decryptSuite(page: string, password: string): string | null {
 }
 
 export async function loadSuite(): Promise<{ html: string; unlocked: boolean }> {
-  const page = await readFile(SUITE_FILE, "utf8");
+  const page = await readSuite();
   /* The key that opens the file: DOCUMENTS_PASSWORD when it is set, and
      otherwise the admin's own setup password, since the suite is locked with
      the same one. Either way the admin never types it a second time. */
