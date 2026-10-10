@@ -351,11 +351,12 @@ const MEETING_MIN_GAP_MS = 20 * 60_000;
  * hours so that watching the office costs nothing. It is talk only: nobody in
  * it can act, and anything worth doing still has to be proposed and approved.
  */
-export async function meeting(env: Env, force = false): Promise<Meeting | null> {
+export async function meeting(env: Env, force = false, topic = ""): Promise<Meeting | null> {
   const last = await rest(env, "crm_audit?select=created_at,detail&entity=eq.agent_meeting&order=created_at.desc&limit=1");
   const row = (Array.isArray(last.data) ? last.data[0] : null) as { created_at: string; detail: { lines: Line[] } } | null;
   const age = row ? Date.now() - Date.parse(row.created_at) : Infinity;
-  if (row && (age < (force ? MEETING_MIN_GAP_MS : MEETING_TTL_MS))) return { at: row.created_at, lines: row.detail.lines, fresh: false };
+  // A meeting on a topic he names is always held fresh; the general one is kept for six hours.
+  if (!topic && row && (age < (force ? MEETING_MIN_GAP_MS : MEETING_TTL_MS))) return { at: row.created_at, lines: row.detail.lines, fresh: false };
   if ((await spendThisMonth(env)).usd >= budgetUsd(env)) return row ? { at: row.created_at, lines: row.detail.lines, fresh: false } : null;
 
   const md = byId("md")!;
@@ -368,15 +369,28 @@ export async function meeting(env: Env, force = false): Promise<Meeting | null> 
   const safeLeads = ((leads as { leads?: Record<string, unknown>[] }).leads ?? []).map(({ phone, email, ...x }) => x);
   const facts = { today: new Date(Date.now() + 4 * 3_600_000).toISOString().slice(0, 10), crm: snap, staff: team, listings, leads: safeLeads, proposals_waiting: props.filter((p) => !p.decision).map((p) => ({ from: p.agent, title: p.title })), proposals_decided_this_week: props.filter((p) => p.decision).length };
   const cast = ROSTER.map((a) => `${a.id}: ${a.name}, ${a.title}`).join("\n");
-  const sys = `You write the working conversation heard on the office floor of Lababidi Properties, a Dubai brokerage staffed by AI colleagues who report to the owner, Oussama.\nCast (use these ids):\n${cast}\n\n${COMPANY}\n\nWrite 12 short exchanges between colleagues about the company's real situation today, using ONLY the facts given: what needs doing first, who should prepare what for Oussama's approval, gaps (for example no listings yet, a follow-up overdue, a document expiring), and sensible next steps within the rules (no cold contact with database owners; nothing happens without Oussama's approval). Each speaker talks from their own specialism, formally and concretely, one or two sentences, under 170 characters, plain text, no emojis. Vary the pairs across departments; a reply may follow a remark. Never invent numbers, names, clients or results. If the facts are thin, they discuss what is needed to get started.\nAnswer ONLY with JSON: {"lines":[{"from":"id","to":"id","text":"..."}]}`;
+  const sys = `You write a team meeting at Lababidi Properties, a Dubai brokerage staffed by AI colleagues who report to the owner, Oussama. He reads it in a group chat, so it must read like real colleagues talking: short, direct, natural.
+Cast (use these ids):
+${cast}
+
+${COMPANY}
+
+Rules:
+- ${topic ? `The meeting is about: "${topic.slice(0, 300)}". Stay on it.` : "The meeting is about the company's real situation today: what to do first, what is missing, who prepares what for Oussama's approval."}
+- Every one of the ${ROSTER.length} colleagues speaks at least once, from their own specialism. Layla (md) opens and closes with the decision points for Oussama. 22 to 26 lines in total.
+- Each line is ONE short sentence, two at most, under 130 characters, like a chat message. People react to each other: agree, disagree, ask, answer. Begin a line with the first name of the person addressed when it is a reply or a question to them. No speeches, no greetings, no repeating what was said.
+- Use ONLY the facts given. Never invent numbers, names, clients, listings or results. If the facts are thin, they say what is needed to get started.
+- Stay within the rules: nothing is sent, published or changed without Oussama's approval; no cold contact with people from the owner database.
+- Professional and plain. No emojis, no markdown.
+Answer ONLY with JSON: {"lines":[{"from":"id","to":"id","text":"..."}]}`;
   try {
-    const r = await claude(env, sys, [{ role: "user", content: JSON.stringify(facts).slice(0, 7000) }], null, 1500);
+    const r = await claude(env, sys, [{ role: "user", content: JSON.stringify(facts).slice(0, 7000) }], null, 1700, "claude-haiku-5-5");
     const text = r.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
     const a = text.indexOf("{"), b = text.lastIndexOf("}");
     const parsed = JSON.parse(text.slice(a, b + 1)) as { lines?: Line[] };
-    const lines = (parsed.lines ?? []).filter((l) => byId(l.from) && byId(l.to) && l.from !== l.to && typeof l.text === "string").map((l) => ({ from: l.from, to: l.to, text: plain(l.text).slice(0, 220) })).slice(0, 14);
+    const lines = (parsed.lines ?? []).filter((l) => byId(l.from) && byId(l.to) && l.from !== l.to && typeof l.text === "string").map((l) => ({ from: l.from, to: l.to, text: plain(l.text).slice(0, 200) })).slice(0, 28);
     if (!lines.length) throw new Error("empty");
-    await audit(env, "agent_meeting", "held", { lines });
+    await audit(env, "agent_meeting", "held", { lines, topic: topic.slice(0, 300) || null });
     return { at: new Date().toISOString(), lines, fresh: true };
   } catch (e) {
     console.error("[meeting]", e instanceof Error ? e.message : e);

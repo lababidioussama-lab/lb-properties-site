@@ -60,7 +60,7 @@ async function sendProposal(env: Env, chat: number, id: string) {
   await say(env, chat, `If you approve: ${what}${parts.length > 1 ? "\nThe full text is also in the office, where you can edit it before approving." : ""}`, { reply_markup: buttons });
 }
 
-const HELP = `Your office is open. Talk to anyone by starting with their first name:\n• Karim, who owns unit 2104 in Marina Gate?\n• Layla, what should I do first today?\n• Ines, write the advert for my newest listing.\nIf you name nobody, Omar sends it to the right person.\n\n/team lists everyone · /pending shows what waits · /usage shows spend · /meeting shows what the team is discussing.`;
+const HELP = `Your office is open. Talk to anyone by starting with their first name:\n• Karim, who owns unit 2104 in Marina Gate?\n• Layla, what should I do first today?\n• Ines, write the advert for my newest listing.\nIf you name nobody, Omar sends it to the right person.\n\n/team lists everyone · /pending shows what waits · /usage shows spend · /meeting holds a team meeting (add a subject: /meeting how do we win our first listing).`;
 
 export async function handleUpdate(env: Env, update: Record<string, any>): Promise<void> {
   const allowed = env.TELEGRAM_CHAT_ID ? Number(env.TELEGRAM_CHAT_ID) : null;
@@ -123,18 +123,20 @@ export async function handleUpdate(env: Env, update: Record<string, any>): Promi
     await say(env, chat, `Your team of ${ROSTER.length} (all AI):\n\n${lines.join("\n")}`);
     return;
   }
-  if (/^\/meeting\b/i.test(text)) {
+  const meet = /^\/meeting\b\s*([\s\S]*)$/i.exec(text) ?? /^(?:team|everyone|all of you)[,:]?\s+(?:please\s+)?(?:discuss|talk about|have a meeting (?:on|about))\s*([\s\S]*)$/i.exec(text);
+  if (meet) {
+    const topic = (meet[1] ?? "").trim();
     await tg(env, "sendChatAction", { chat_id: chat, action: "typing" });
-    const m = await meeting(env, false);
-    if (!m) { await say(env, chat, "There is no team discussion to show yet."); return; }
-    await say(env, chat, `Team discussion (from the CRM's live numbers). They only talk here; nothing is acted on without your approval.`);
-    let block = "";
+    const m = await meeting(env, false, topic);
+    if (!m) { await say(env, chat, "The team could not meet just now. Nothing was done."); return; }
+    await say(env, chat, `Team meeting${topic ? `: ${topic.slice(0, 120)}` : ""}\n${m.lines.length} messages follow. They only talk here; nothing is acted on without your approval.`);
+    // One message per speaker, a moment apart, as it would arrive in a group chat.
     for (const l of m.lines) {
-      const line = `${byId(l.from)?.name ?? l.from} to ${byId(l.to)?.name.split(" ")[0] ?? l.to}:\n${l.text}\n\n`;
-      if (block.length + line.length > 3500) { await say(env, chat, block); block = ""; }
-      block += line;
+      const who = byId(l.from);
+      await say(env, chat, `${who?.name ?? l.from} · ${who?.title ?? ""}\n${l.text}`);
+      await new Promise((r) => setTimeout(r, 700));
     }
-    if (block) await say(env, chat, block);
+    await say(env, chat, "End of meeting. To act on any point, tell that colleague by name. For another meeting on a subject: /meeting your subject");
     return;
   }
   if (/^\/usage\b/i.test(text)) {
