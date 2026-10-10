@@ -170,7 +170,8 @@ async function claude(env: Env, system: string | [string, string], messages: Msg
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-    body: JSON.stringify({ model, max_tokens: maxTokens, system: typeof system === "string" ? [{ type: "text", text: system, cache_control: { type: "ephemeral" } }] : [{ type: "text", text: system[0], cache_control: { type: "ephemeral" } }, { type: "text", text: system[1] }], messages, ...(tools?.length ? { tools, ...(noMoreTools ? { tool_choice: { type: "none" } } : {}) } : {}) }),
+    // No hidden reasoning: it was eating the whole allowance before a word was written, and he pays for it.
+    body: JSON.stringify({ model, max_tokens: maxTokens, thinking: { type: "disabled" }, system: typeof system === "string" ? [{ type: "text", text: system, cache_control: { type: "ephemeral" } }] : [{ type: "text", text: system[0], cache_control: { type: "ephemeral" } }, { type: "text", text: system[1] }], messages, ...(tools?.length ? { tools, ...(noMoreTools ? { tool_choice: { type: "none" } } : {}) } : {}) }),
     signal: AbortSignal.timeout(45_000),
   });
   if (!res.ok) {
@@ -377,23 +378,29 @@ ${COMPANY}
 
 Rules:
 - ${topic ? `The meeting is about: "${topic.slice(0, 300)}". Stay on it.` : "The meeting is about the company's real situation today: what to do first, what is missing, who prepares what for Oussama's approval."}
-- Every one of the ${ROSTER.length} colleagues speaks at least once, from their own specialism. Layla (md) opens and closes with the decision points for Oussama. 22 to 26 lines in total.
+- Every one of the ${ROSTER.length} colleagues speaks at least once, from their own specialism. Layla (md) opens and closes with the decision points for Oussama. 24 to 28 lines in total. Check before answering that all of these ids appear as "from": ${ROSTER.map((x) => x.id).join(", ")}.
 - Each line is ONE short sentence, two at most, under 130 characters, like a chat message. People react to each other: agree, disagree, ask, answer. Begin a line with the first name of the person addressed when it is a reply or a question to them. No speeches, no greetings, no repeating what was said.
-- Use ONLY the facts given. Never invent numbers, names, clients, listings or results. If the facts are thin, they say what is needed to get started.
+- Use ONLY the facts given. Never invent numbers, names, clients, listings or results, and never say a document, draft or task is ready or done unless the facts say so: say what you WILL prepare instead. If the facts are thin, they say what is needed to get started.
 - Stay within the rules: nothing is sent, published or changed without Oussama's approval; no cold contact with people from the owner database.
 - Professional and plain. No emojis, no markdown.
 Answer ONLY with JSON: {"lines":[{"from":"id","to":"id","text":"..."}]}`;
+  let debug = "";
   try {
-    const r = await claude(env, sys, [{ role: "user", content: JSON.stringify(facts).slice(0, 7000) }], null, 1700, "claude-haiku-5-5");
+    const r = await claude(env, sys, [{ role: "user", content: JSON.stringify(facts).slice(0, 7000) }], null, 3500, "claude-haiku-5-5");
     const text = r.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
-    const a = text.indexOf("{"), b = text.lastIndexOf("}");
-    const parsed = JSON.parse(text.slice(a, b + 1)) as { lines?: Line[] };
+    debug = `${r.stop_reason} | ${text}`;
+    // Take each complete line on its own, so a reply that stops short still gives a meeting.
+    const parsed: { lines: Line[] } = { lines: [] };
+    for (const m of text.matchAll(/\{\s*"from"\s*:\s*"([a-z0-9]+)"\s*,\s*"to"\s*:\s*"([a-z0-9]+)"\s*,\s*"text"\s*:\s*("(?:[^"\\]|\\.)*")\s*\}/g)) {
+      try { parsed.lines.push({ from: m[1], to: m[2], text: JSON.parse(m[3]) as string }); } catch { /* skip a damaged line */ }
+    }
     const lines = (parsed.lines ?? []).filter((l) => byId(l.from) && byId(l.to) && l.from !== l.to && typeof l.text === "string").map((l) => ({ from: l.from, to: l.to, text: plain(l.text).slice(0, 200) })).slice(0, 28);
     if (!lines.length) throw new Error("empty");
     await audit(env, "agent_meeting", "held", { lines, topic: topic.slice(0, 300) || null });
     return { at: new Date().toISOString(), lines, fresh: true };
   } catch (e) {
     console.error("[meeting]", e instanceof Error ? e.message : e);
+    await audit(env, "agent_meeting", "failed", { error: e instanceof Error ? e.message : String(e), sample: debug.slice(0, 600) });
     return row ? { at: row.created_at, lines: row.detail.lines, fresh: false } : null;
   }
 }
