@@ -47,7 +47,10 @@ export default {
     if (path === "/api/logout" && req.method === "POST") return logout();
 
     const uid = await signedIn(req, env);
-    if (!uid) return path.startsWith("/api/") ? json({ ok: false, error: "unauthorised" }, 401) : html(loginPage(), path === "/" ? 200 : 401);
+    /* Not signed in: the API says so; any page goes to the sign-in form. A page never answers 401,
+       because the browser then shows its own "access denied" screen instead of the form. */
+    const toSignIn = () => new Response(null, { status: 302, headers: { Location: "/", "Cache-Control": "no-store", "Set-Cookie": "lb_agents=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict" } });
+    if (!uid) return path.startsWith("/api/") ? json({ ok: false, error: "unauthorised" }, 401) : path === "/" ? html(loginPage()) : toSignIn();
 
     // Everything below needs the owner's session, and a same-site origin for anything that changes state.
     if (req.method === "POST") {
@@ -55,7 +58,11 @@ export default {
       if (origin && origin !== url.origin) return json({ ok: false, error: "bad_origin" }, 403);
     }
     const user = await rest(env, `crm_users?select=id&id=eq.${encodeURIComponent(uid)}&email=eq.${encodeURIComponent(OWNER_EMAIL)}&active=eq.true&role=eq.admin&limit=1`);
-    if (!Array.isArray(user.data) || !user.data.length) return json({ ok: false, error: "unauthorised" }, 401);
+    if (!Array.isArray(user.data) || !user.data.length) {
+      if (path.startsWith("/api/")) return json({ ok: false, error: "unauthorised" }, 401);
+      // The account check failed (or the database did not answer): show the sign-in form rather than an error.
+      return path === "/" ? new Response(loginPage(), { status: 200, headers: { "Content-Type": "text/html; charset=utf-8", ...SECURITY, "Set-Cookie": "lb_agents=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict" } }) : toSignIn();
+    }
 
     if (path === "/" && req.method === "GET") {
       const pending = new Map<string, number>();
@@ -67,7 +74,7 @@ export default {
     const m = /^\/a\/([a-z0-9]+)$/.exec(path);
     if (m && req.method === "GET") {
       const a = byId(m[1]);
-      if (!a) return html(loginPage(), 404);
+      if (!a) return new Response(null, { status: 302, headers: { Location: "/" } });
       const [props, chat] = await Promise.all([
         loadProposals(env).then((all) => all.filter((p) => p.agent === a.id)),
         rest(env, `crm_audit?select=detail&entity=eq.agent_chat&order=created_at.desc&limit=30`),
@@ -113,6 +120,7 @@ export default {
     }
 
     void ROSTER;
-    return json({ ok: false, error: "not_found" }, 404);
+    // An address that does not exist goes back to the office rather than to an error screen.
+    return path.startsWith("/api/") ? json({ ok: false, error: "not_found" }, 404) : new Response(null, { status: 302, headers: { Location: "/" } });
   },
 };
