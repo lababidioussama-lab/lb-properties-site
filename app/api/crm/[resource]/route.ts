@@ -489,6 +489,8 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
       // Anyone edits their own business-card fields; only an admin touches access/pay.
       if ("phone" in b) patch.phone = str(b.phone, 40);
+      // Everyone may change their own name; an admin may also change anyone's (below).
+      if (self && "full_name" in b) { const name = str(b.full_name, 200)?.trim(); if (name) patch.full_name = name; }
       if ("languages" in b) patch.languages = str(b.languages, 200);
       if ("specialties" in b) patch.specialties = str(b.specialties, 300);
       if ("bio" in b) patch.bio = str(b.bio, 1000);

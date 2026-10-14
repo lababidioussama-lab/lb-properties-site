@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { ArrowLeft, BarChart3, ChevronDown, Compass, FileSearch, Lock, LogOut, Moon, Phone, Search, Send, Sparkles, Sun, UserPlus, Wrench } from "lucide-react";
+import { ArrowLeft, BarChart3, Gem, ChevronDown, Compass, FileSearch, Lock, LogOut, Moon, Phone, Search, Send, Sparkles, Sun, UserPlus, Wrench } from "lucide-react";
 
 import { ds, dsError, type DsSessionInfo, type DsUsage } from "./api";
 import { DsSignIn } from "./DsSignIn";
@@ -16,13 +16,14 @@ import { DsCampaign } from "./DsCampaign";
 import { DsArea } from "./DsArea";
 import { DsBrokers } from "./DsBrokers";
 import { DsPortfolio } from "./DsPortfolio";
+import { DsInvestors } from "./DsInvestors";
 import { DsChecks, type CheckMode } from "./DsChecks";
 import { DsVastu } from "./DsVastu";
 
 /* Every DB Search view id. Access lives in the CRM (Team & rules); ds_home
    is kept so old links land on Search. */
-export type DsView = "ds_home" | "ds_smart" | "ds_search" | "ds_phone" | "ds_unit" | "ds_portfolio" | "ds_area" | "ds_checks" | "ds_vastu" | "ds_brokers" | "ds_access" | "ds_campaign";
-export const DS_VIEWS: DsView[] = ["ds_home", "ds_smart", "ds_search", "ds_phone", "ds_unit", "ds_area", "ds_brokers", "ds_campaign", "ds_checks", "ds_vastu", "ds_portfolio"];
+export type DsView = "ds_home" | "ds_smart" | "ds_search" | "ds_phone" | "ds_unit" | "ds_portfolio" | "ds_area" | "ds_checks" | "ds_vastu" | "ds_brokers" | "ds_access" | "ds_campaign" | "ds_investors";
+export const DS_VIEWS: DsView[] = ["ds_home", "ds_smart", "ds_search", "ds_phone", "ds_unit", "ds_area", "ds_brokers", "ds_campaign", "ds_checks", "ds_vastu", "ds_portfolio", "ds_investors"];
 
 /* The extra tools, behind one Tools menu in the bar. All of them are for
    the admin: an agent gets the four tabs, the Vastu Map and the WhatsApp
@@ -30,6 +31,7 @@ export const DS_VIEWS: DsView[] = ["ds_home", "ds_smart", "ds_search", "ds_phone
 const MORE: { id: DsView; label: string; icon: typeof Search }[] = [
   { id: "ds_checks", label: "Property checks", icon: FileSearch },
   { id: "ds_portfolio", label: "Portfolio", icon: BarChart3 },
+  { id: "ds_investors", label: "Investors", icon: Gem },
 ];
 const ADMIN_ONLY: DsView[] = MORE.map((m) => m.id);
 
@@ -237,6 +239,7 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
           {tab === "ds_area" && <DsArea {...shared} />}
           {tab === "ds_checks" && <DsChecks mode={checkMode} onMode={setCheckMode} onExpired={onExpired} onOpenOwner={setOwnerRef} />}
           {tab === "ds_vastu" && <DsVastu />}
+          {tab === "ds_investors" && <DsInvestors onExpired={onExpired} onSearchName={(name) => { setSearchQuery(name); onView("ds_search"); }} />}
           {tab === "ds_portfolio" && <DsPortfolio {...shared} onSearchName={(name) => { setSearchQuery(name); onView("ds_search"); }} />}
         </main>
       </div>

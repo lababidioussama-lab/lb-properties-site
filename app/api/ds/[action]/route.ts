@@ -6,6 +6,7 @@ import { DS_COOKIE, audit, dsGate, fail, getSettings, lockIfBurst, putSettings, 
 import { crmLinks, emailOf, ownerDetail, phoneAt, unitLookup } from "@/lib/dbsearch/search";
 import { MAX_QUERY, communityList, phoneList, phonesForRef, searchFull, soldFlags } from "@/lib/dbsearch/results";
 import { areaOwners, brokers, listedNow, permitLookup, portfolioOwners, propertyNumber, suggest } from "@/lib/dbsearch/tools";
+import * as inv from "@/lib/dbsearch/investors";
 import { formatPhone, maskPhone, phoneCore, toInternational } from "@/lib/dbsearch/model";
 import { SESSION_COOKIE_OPTIONS } from "@/lib/crm-auth";
 
@@ -30,6 +31,8 @@ export const dynamic = "force-dynamic";
  *   POST   portfolio { min }                        → owners of several units (by name)
  *   POST   area      { area }                       → a community as a masked calling list
  *   POST   area_send { refs, list }                 → put owners from it into Temp leads
+ *   POST   investors { op, … }                      → the Investors workbook (admin):
+ *            op overview | search {filters} | detail {rank} | contacts {rank} | export {filters}
  *   POST   suggest   { kind, q, scope? }            → names for the pickers
  *   POST   permit    { q }                          → cached DLD permits
  *   POST   pnumber   { q }                          → a unit from its property number
@@ -255,6 +258,45 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         case "brokers": return done({ brokers: await brokers(db, q) });
       }
       return fail("not_found", 404);
+    }
+
+    /* ---------------------------------------------------- investors */
+    case "investors": {
+      // The investors workbook is the admin's. Searching it counts as a portfolio lookup; contacts as a reveal.
+      if (user.role !== "admin") return fail("forbidden", 403);
+      const op = str(b.op, 20);
+      try {
+        if (op === "overview") return done({ overview: await inv.overview(db) });
+        if (op === "search") {
+          const q = inv.cleanQuery(b);
+          if (q.page === 1) await audit(db, user, "portfolio", { query: `investors: ${JSON.stringify({ ...q, page: undefined, size: undefined })}`.slice(0, 300), request });
+          if (await lockIfBurst(db, user, request)) return fail("locked", 423);
+          return done({ result: await inv.search(db, q) });
+        }
+        const rank = Math.trunc(Number(b.rank));
+        if ((op === "detail" || op === "contacts") && !(rank > 0)) return fail("invalid");
+        if (op === "detail") {
+          const d = await inv.detail(db, rank);
+          return d ? done({ detail: d }) : fail("not_found", 404);
+        }
+        if (op === "contacts") {
+          const c = await inv.contacts(db, rank);
+          if (!c) return fail("not_found", 404);
+          await audit(db, user, "reveal", { target: `investor:${rank}`, detail: { kind: "investor_contacts", name: c.name, count: c.mobiles.filter((m) => !m.dnc).length + (c.email ? 1 : 0) }, request });
+          if (await lockIfBurst(db, user, request)) return fail("locked", 423);
+          return done({ contacts: c });
+        }
+        if (op === "export") {
+          const q = inv.cleanQuery(b);
+          const file = await inv.exportCsv(db, q);
+          await audit(db, user, "portfolio", { query: `investors export (${file.rows} rows): ${JSON.stringify({ ...q, page: undefined, size: undefined })}`.slice(0, 300), request });
+          return new NextResponse(file.csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="investors.csv"', "Cache-Control": "no-store" } });
+        }
+      } catch (e) {
+        console.error("[investors]", e instanceof Error ? e.message : e);
+        return fail("upstream", 502);
+      }
+      return fail("invalid");
     }
 
     case "suggest": {
