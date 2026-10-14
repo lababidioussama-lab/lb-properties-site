@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ListFilter, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Check, ChevronDown, ListFilter, X } from "lucide-react";
 
 import { ds, type DsNote, type DsResults, type DsSoldFlag } from "./api";
 import { DsCardView, type CardActions } from "./DsCardView";
@@ -34,14 +34,58 @@ interface More { party: string; ptype: string; beds: string; nat: string; year: 
 const NO_MORE: More = { party: "", ptype: "", beds: "", nat: "", year: "", email: false, crm: "" };
 const PARTY: Record<string, string> = { buyer: "Current owner (bought)", seller: "Previous owner (sold)", mortgagee: "Mortgage holder" };
 
-/** One filter as a plain dropdown: "Any …" first, then the values found in these results. */
-function Pick({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: [string, string][] }) {
+/** How many of these results carry each value of one field, most common first. */
+function count(all: { c: number }[], cards: DsResults["cards"], get: (c: DsResults["cards"][number]) => string | null | undefined, numeric = false): [string, number][] {
+  const m = new Map<string, number>();
+  for (const e of all) { const v = get(cards[e.c]); if (v && v.trim()) m.set(v, (m.get(v) ?? 0) + 1); }
+  const out = [...m.entries()];
+  return numeric ? out.sort((x, y) => x[0].localeCompare(y[0], undefined, { numeric: true })) : out.sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]));
+}
+
+/** A filter button: shows its choice, opens a short list with how many records each choice leaves. */
+function FilterPill({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: [string, string, number][] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", away); document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  const chosen = options.find((o) => o[0] === value);
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}
-      className={`h-10 max-w-[220px] rounded-lg border px-3 text-[13px] outline-none focus:border-[var(--accent)] ${value ? "border-[var(--accent)] font-semibold" : "border-[var(--hairline-strong)]"} bg-white`}>
-      <option value="">{label}: any</option>
-      {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-    </select>
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open}
+        className={`inline-flex h-9 max-w-[240px] items-center gap-1.5 rounded-full border px-3.5 text-[12.5px] font-semibold transition-colors ${chosen ? "border-[var(--accent)] bg-[var(--accent-wash)] text-[var(--accent)]" : "border-[var(--hairline)] text-[var(--text-secondary)] hover:border-[var(--hairline-strong)] hover:text-[var(--text-primary)]"}`}>
+        <span className="truncate">{chosen ? chosen[1] : label}</span>
+        {chosen
+          ? <span role="button" tabIndex={0} aria-label={`Clear ${label}`} onClick={(e) => { e.stopPropagation(); onChange(""); setOpen(false); }} className="-me-1 grid h-5 w-5 place-items-center rounded-full hover:bg-[var(--surface-hover)]"><X size={12} /></span>
+          : <ChevronDown size={13} className="opacity-60" />}
+      </button>
+      {open && (
+        <div role="listbox" aria-label={label} className="crm-pop absolute start-0 top-11 z-40 max-h-72 w-64 overflow-y-auto rounded-[12px] border border-[var(--hairline)] bg-[var(--surface-solid)] p-1 shadow-[var(--shadow-pop)]">
+          <p className="px-2.5 pb-1 pt-1.5 text-[11px] font-semibold text-[var(--text-muted)]">{label}</p>
+          <button role="option" aria-selected={!value} onClick={() => { onChange(""); setOpen(false); }} className={`flex w-full items-center justify-between rounded-[8px] px-2.5 py-2 text-left text-[13px] hover:bg-[var(--surface-hover)] ${!value ? "font-semibold text-[var(--accent)]" : "text-[var(--text-primary)]"}`}>Any</button>
+          {options.map(([v, l, n]) => (
+            <button key={v} role="option" aria-selected={value === v} onClick={() => { onChange(v); setOpen(false); }}
+              className={`flex w-full items-center justify-between gap-3 rounded-[8px] px-2.5 py-2 text-left text-[13px] hover:bg-[var(--surface-hover)] ${value === v ? "font-semibold text-[var(--accent)]" : "text-[var(--text-primary)]"}`}>
+              <span className="truncate">{l}</span>
+              <span className="figure shrink-0 text-[11.5px] text-[var(--text-muted)]">{n.toLocaleString("en-US")}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Toggle({ label, n, on, onClick }: { label: string; n: number; on: boolean; onClick: () => void }) {
+  return (
+    <button type="button" aria-pressed={on} onClick={onClick}
+      className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[12.5px] font-semibold transition-colors ${on ? "border-[var(--accent)] bg-[var(--accent-wash)] text-[var(--accent)]" : "border-[var(--hairline)] text-[var(--text-secondary)] hover:border-[var(--hairline-strong)] hover:text-[var(--text-primary)]"}`}>
+      {on && <Check size={13} />}{label}<span className="figure text-[11.5px] opacity-70">{n.toLocaleString("en-US")}</span>
+    </button>
   );
 }
 
@@ -170,45 +214,24 @@ export function DsResultsList({ data, query, summary, actions, emptyText }: {
       {summary}
 
       {showBar && (
-        <div role="search" aria-label="Refine these results" className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex h-10 min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-[var(--hairline-strong)] bg-white px-3 focus-within:border-[var(--accent)]">
-              <ListFilter size={14} className="text-[var(--text-muted)]" />
-              <input type="search" value={typed} onChange={(e) => setTyped(e.target.value)} maxLength={100} placeholder="Refine these results…" aria-label="Refine these results by name, unit or building" className="h-full flex-1 bg-transparent text-[13px] outline-none" />
-            </label>
-            {showComm && (
-              <select value={comm} onChange={(e) => setComm(e.target.value)} aria-label="Community" className="h-10 max-w-[260px] rounded-lg border border-[var(--hairline-strong)] bg-white px-3 text-[13px] outline-none focus:border-[var(--accent)]">
-                <option value="">All communities ({comms.length})</option>
-                {comms.map((c) => <option key={c} value={c.toLowerCase()}>{c}</option>)}
-              </select>
-            )}
-            {opts.party.length > 1 && <Pick label="Owner" value={more.party} onChange={(v) => setMore({ ...more, party: v })} options={opts.party.map((v) => [v, PARTY[v] ?? v])} />}
-            {opts.ptype.length > 1 && <Pick label="Property type" value={more.ptype} onChange={(v) => setMore({ ...more, ptype: v })} options={opts.ptype.map((v) => [v, v])} />}
-            {opts.beds.length > 1 && <Pick label="Bedrooms" value={more.beds} onChange={(v) => setMore({ ...more, beds: v })} options={opts.beds.map((v) => [v, `${v} bed`])} />}
-            {opts.nat.length > 1 && <Pick label="Nationality" value={more.nat} onChange={(v) => setMore({ ...more, nat: v })} options={opts.nat.map((v) => [v, v])} />}
-            {opts.year.length > 1 && <Pick label="Bought in" value={more.year} onChange={(v) => setMore({ ...more, year: v })} options={opts.year.map((v) => [v, `${v} or later`])} />}
-            {opts.crm > 0 && <Pick label="CRM" value={more.crm} onChange={(v) => setMore({ ...more, crm: v as More["crm"] })} options={[["out", "Not in CRM yet"], ["in", "Already in CRM"]]} />}
-            {opts.email > 0 && (
-              <button type="button" aria-pressed={more.email} onClick={() => setMore({ ...more, email: !more.email })}
-                className={`h-10 rounded-lg border px-3 text-[13px] font-semibold ${more.email ? "border-[var(--accent-solid)] bg-[var(--accent-solid)] text-white" : "border-[var(--hairline-strong)] bg-white hover:border-[var(--accent)]"}`}>
-                Has email <span className={more.email ? "text-white/80" : "text-[var(--text-muted)]"}>{opts.email.toLocaleString("en-US")}</span>
-              </button>
-            )}
-            {showPhone && (
-              <button type="button" aria-pressed={phone} onClick={() => setPhone((v) => !v)}
-                className={`h-10 rounded-lg border px-3 text-[13px] font-semibold ${phone ? "border-[var(--accent-solid)] bg-[var(--accent-solid)] text-white" : "border-[var(--hairline-strong)] bg-white hover:border-[var(--accent)]"}`}>
-                Has phone <span className={phone ? "text-white/80" : "text-[var(--text-muted)]"}>{withPhone.toLocaleString("en-US")}</span>
-              </button>
-            )}
+        <div role="search" aria-label="Refine these results" className="panel relative z-20 space-y-3 !p-3">
+          <label className="flex h-11 items-center gap-2.5 rounded-[10px] border border-[var(--hairline)] bg-[var(--input-bg)] px-3.5 transition focus-within:border-[var(--accent)] focus-within:ring-[3px] focus-within:ring-[var(--accent-wash)]">
+            <ListFilter size={15} className="text-[var(--text-muted)]" />
+            <input type="search" value={typed} onChange={(e) => setTyped(e.target.value)} maxLength={100} placeholder="Refine by name, unit or building" aria-label="Refine these results by name, unit or building" className="h-full flex-1 bg-transparent text-[14px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]" />
+            <span className="figure shrink-0 text-[12px] text-[var(--text-muted)]">{list.length.toLocaleString("en-US")} of {all.length.toLocaleString("en-US")}</span>
+          </label>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {showComm && <FilterPill label="Community" value={comm} onChange={setComm} options={count(all, data.cards, (c) => c.comm).map(([v, n]) => [v.toLowerCase(), v, n])} />}
+            {opts.party.length > 1 && <FilterPill label="Owner" value={more.party} onChange={(v) => setMore({ ...more, party: v })} options={count(all, data.cards, (c) => c.model.tx.party).map(([v, n]) => [v, PARTY[v] ?? v, n])} />}
+            {opts.ptype.length > 1 && <FilterPill label="Type" value={more.ptype} onChange={(v) => setMore({ ...more, ptype: v })} options={count(all, data.cards, (c) => c.model.ptype).map(([v, n]) => [v, v, n])} />}
+            {opts.beds.length > 1 && <FilterPill label="Bedrooms" value={more.beds} onChange={(v) => setMore({ ...more, beds: v })} options={count(all, data.cards, (c) => c.model.beds, true).map(([v, n]) => [v, `${v} bed`, n])} />}
+            {opts.nat.length > 1 && <FilterPill label="Nationality" value={more.nat} onChange={(v) => setMore({ ...more, nat: v })} options={count(all, data.cards, (c) => c.model.nat).map(([v, n]) => [v, v, n])} />}
+            {opts.year.length > 1 && <FilterPill label="Bought" value={more.year} onChange={(v) => setMore({ ...more, year: v })} options={opts.year.map((y) => [y, `${y} or later`, all.filter((e) => (data.cards[e.c].model.tx.date ?? "").slice(0, 4) >= y).length])} />}
+            {opts.crm > 0 && <FilterPill label="CRM" value={more.crm} onChange={(v) => setMore({ ...more, crm: v as More["crm"] })} options={[["out", "Not in CRM yet", all.length - opts.crm], ["in", "Already in CRM", opts.crm]]} />}
+            {showPhone && <Toggle label="Has phone" n={withPhone} on={phone} onClick={() => setPhone((v) => !v)} />}
+            {opts.email > 0 && <Toggle label="Has email" n={opts.email} on={more.email} onClick={() => setMore({ ...more, email: !more.email })} />}
+            {active.length > 0 && <button onClick={() => clear("all")} className="ms-auto h-9 px-2 text-[12.5px] font-semibold text-[var(--accent)] hover:underline">Clear filters</button>}
           </div>
-          {active.length > 0 && (
-            <div className="flex flex-wrap gap-1.5" aria-live="polite">
-              {active.map(([k, l]) => (
-                <button key={k} onClick={() => clear(k)} aria-label={`Remove filter ${l}`} className="inline-flex h-7 items-center gap-1 rounded-full border border-[var(--hairline-strong)] bg-white px-2.5 text-[12px] font-semibold hover:border-[var(--accent)]">{l} <X size={12} /></button>
-              ))}
-              {active.length > 1 && <button onClick={() => clear("all")} className="h-7 px-2 text-[12px] font-semibold text-[var(--accent)] hover:underline">Clear all</button>}
-            </div>
-          )}
         </div>
       )}
 
