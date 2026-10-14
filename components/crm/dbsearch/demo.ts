@@ -109,6 +109,12 @@ export async function demoDs(method: string, action: string, body?: Record<strin
   if (!signedIn) return { ok: false, error: "ds_signin_required" };
 
   switch (action) {
+    case "campaign_ai": return ok({ message: "{Hi|Hello|Good day} {name}, this is {agent} from Lababidi Properties. We have buyers asking about {building}. Would you consider an offer on unit {unit}? If you prefer not to hear from us, just let me know." });
+    case "campaign_mark": return ok({ marked: 1 });
+    case "campaign_status": {
+      const refs = Array.isArray(body?.refs) ? body.refs as string[] : [];
+      return ok({ marks: refs.length > 1 ? { [refs[1]]: { how: "called", at: new Date(Date.now() - 2 * 86_400_000).toISOString(), by: "Sara Haddad" } } : {} });
+    }
     case "investors": {
       /* Sample investors for the demo only: invented names and figures. */
       const areas = [{ name: "Business Bay", investors: 17627, units: 41856, value: 41e9 }, { name: "Jumeirah Village Circle", investors: 12673, units: 39126, value: 16e9 }, { name: "Dubai Marina", investors: 9261, units: 19540, value: 30e9 }, { name: "Palm Jumeirah", investors: 4634, units: 10989, value: 52e9 }, { name: "Dubai Hills Estate", investors: 6455, units: 10014, value: 25e9 }, { name: "Downtown Dubai", investors: 8163, units: 13749, value: 33e9 }];

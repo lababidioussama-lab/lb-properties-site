@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Check, MessageCircle, Plus, Search, Send, ShieldCheck } from "lucide-react";
+import { Check, MessageCircle, Phone, Plus, Search, Send, ShieldCheck, Sparkles } from "lucide-react";
 
 import { api } from "../shared";
 import type { CrmTemplate } from "@/lib/crm";
@@ -57,6 +57,11 @@ const toDial = (s: string) => {
 
 const KEEP = "ds:campaign";
 
+type Mark = { how: string; at: string; by: string | null };
+/* On a phone the WhatsApp app is opened straight away (whatsapp://), not through a web page. */
+const onPhone = () => typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const markText = (m: Mark) => `${m.how === "called" ? "Called" : "Messaged"}${m.by ? ` by ${m.by.split(" ")[0]}` : ""} · ${new Date(m.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+
 export function DsCampaign({ onExpired, onUsage, meName = "" }: { onExpired: () => void; onUsage: (u: DsUsage, s?: { endsAt: number }) => void; /** Fills {agent} in CRM templates. */ meName?: string }) {
   const agent = first(meName);
   const [q, setQ] = useState("");
@@ -73,6 +78,11 @@ export function DsCampaign({ onExpired, onUsage, meName = "" }: { onExpired: () 
   const [state, setState] = useState<Record<string, Sent>>(kept?.state ?? {});
   const [working, setWorking] = useState<string | null>(null);
   const sends = useRef<number[]>([]);
+  /* Who on the list was already called or messaged, by anyone (kept on the server). */
+  const [marks, setMarks] = useState<Record<string, Mark>>({});
+  /* Numbers already revealed in this session, so a second tap (Call after WhatsApp) is instant. */
+  const [dials, setDials] = useState<Record<string, string>>({});
+  const [ai, setAi] = useState<{ open: boolean; brief: string; language: string; tone: string; busy: boolean; error: string | null }>({ open: false, brief: "", language: "English", tone: "Friendly", busy: false, error: null });
   const [, tick] = useState(0);
 
   /* The campaign survives leaving the page: the list, the message and who
@@ -83,6 +93,23 @@ export function DsCampaign({ onExpired, onUsage, meName = "" }: { onExpired: () 
   useEffect(() => {
     try { sessionStorage.setItem(KEEP, JSON.stringify({ list, msg, queue, state })); } catch {}
   }, [list, msg, queue, state]);
+
+  const listKeys = list.map((x) => x.key).join("|");
+  useEffect(() => {
+    if (!list.length) return;
+    const t = window.setTimeout(async () => {
+      const refs = list.filter((x) => x.ref).map((x) => x.ref as string);
+      const phones = list.filter((x) => !x.ref && x.phone).map((x) => x.phone as string);
+      const res = await ds<{ marks: Record<string, Mark> }>("POST", "campaign_status", { refs, phones });
+      if (!res.ok) return;
+      const byKey: Record<string, Mark> = {};
+      for (const x of list) { const m = res.marks[x.ref ?? `p:${(x.phone ?? "").slice(-9)}`]; if (m) byKey[x.key] = m; }
+      setMarks((old) => ({ ...byKey, ...old }));
+      // Anyone already contacted starts unticked, so they are not contacted twice.
+      setList((l) => l.map((x) => (byKey[x.key] && !marks[x.key] ? { ...x, on: false } : x)));
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [listKeys]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     void api<{ rows: CrmTemplate[] }>("GET", "data/templates").then((r) => r.ok && setTemplates(r.rows ?? []));
@@ -135,27 +162,63 @@ export function DsCampaign({ onExpired, onUsage, meName = "" }: { onExpired: () 
   const recent = sends.current.filter((t) => Date.now() - t < PACE_MS);
   const waitMin = recent.length >= PACE_MAX ? Math.ceil((PACE_MS - (Date.now() - recent[0])) / 60_000) : 0;
 
-  async function send(r: Recipient, i: number) {
-    const text = fill(msg, r, i, agent);
-    if (r.phone) {
-      window.open(`https://wa.me/${r.phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
-      setState((s) => ({ ...s, [r.key]: "sent" }));
-      return;
-    }
+  /** The number for this person: typed by hand, revealed earlier, or revealed now (recorded, do-not-contact refused). */
+  async function dialFor(r: Recipient): Promise<string | null> {
+    if (r.phone) return r.phone;
+    if (dials[r.key]) return dials[r.key];
     setWorking(r.key);
     const x = await ds<{ dial: string | null; usage: DsUsage }>("POST", "reveal", { ref: r.ref, index: 0, kind: "phone", reason: "owner_outreach" });
     setWorking(null);
     if (!x.ok) {
-      if (x.error === "ds_signin_required") return onExpired();
-      if (x.error === "do_not_contact") return setState((s) => ({ ...s, [r.key]: "dnc" }));
+      if (x.error === "ds_signin_required") { onExpired(); return null; }
+      if (x.error === "do_not_contact") { setState((s) => ({ ...s, [r.key]: "dnc" })); return null; }
       setState((s) => ({ ...s, [r.key]: "failed" }));
-      return setError(x.error === "daily_limit" ? `You have used all ${x.limit} reveals for today. They reset at midnight.` : dsError(x.error));
+      setError(x.error === "daily_limit" ? `You have used all ${x.limit} reveals for today. They reset at midnight.` : dsError(x.error));
+      return null;
     }
     onUsage(x.usage, x.session);
     sends.current = [...recent, Date.now()];
-    if (!x.dial) return setState((s) => ({ ...s, [r.key]: "failed" }));
-    window.open(`https://wa.me/${x.dial}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+    if (!x.dial) { setState((s) => ({ ...s, [r.key]: "failed" })); return null; }
+    setDials((d) => ({ ...d, [r.key]: x.dial as string }));
+    return x.dial;
+  }
+
+  function mark(r: Recipient, how: "call" | "whatsapp") {
+    const m: Mark = { how: how === "call" ? "called" : "messaged", at: new Date().toISOString(), by: meName || null };
+    setMarks((all) => ({ ...all, [r.key]: m }));
     setState((s) => ({ ...s, [r.key]: "sent" }));
+    void ds("POST", "campaign_mark", { ref: r.ref, phone: r.phone, how, name: r.name });
+  }
+
+  async function send(r: Recipient, i: number) {
+    const text = fill(msg, r, i, agent);
+    // On a computer a tab must be opened during the tap itself, or the browser blocks it; it is pointed at the chat once the number is known.
+    const tab = onPhone() ? null : window.open("about:blank", "_blank");
+    const dial = await dialFor(r);
+    if (!dial) { tab?.close(); return; }
+    const t = encodeURIComponent(text);
+    if (tab) tab.location.href = `https://web.whatsapp.com/send?phone=${dial}&text=${t}`;
+    else window.location.href = `whatsapp://send?phone=${dial}&text=${t}`;
+    mark(r, "whatsapp");
+  }
+
+  async function call(r: Recipient) {
+    const dial = await dialFor(r);
+    if (!dial) return;
+    window.location.href = `tel:+${dial}`;
+    mark(r, "call");
+  }
+
+  async function writeWithAi() {
+    if (ai.brief.trim().length < 3) return setAi({ ...ai, error: "Say in a few words what the message is about." });
+    setAi({ ...ai, busy: true, error: null });
+    const res = await ds<{ message: string }>("POST", "campaign_ai", { brief: ai.brief, language: ai.language, tone: ai.tone });
+    if (!res.ok) {
+      if (res.error === "ds_signin_required") return onExpired();
+      return setAi((v) => ({ ...v, busy: false, error: res.error === "daily_limit" ? "You have used today's 40 AI drafts." : res.error === "not_configured" ? "AI writing is not set up on this site." : "The AI could not write the message just now. Try again." }));
+    }
+    setMsg(res.message);
+    setAi((v) => ({ ...v, busy: false, open: false }));
   }
 
   const place = (r: Recipient) => [r.unit && `Unit ${r.unit}`, r.building, r.community].filter(Boolean).join(", ");
@@ -178,7 +241,7 @@ export function DsCampaign({ onExpired, onUsage, meName = "" }: { onExpired: () 
         {list.length > 0 && (
           <div className="mt-3 overflow-hidden rounded-[10px] border border-[var(--hairline)]">
             <div className="flex items-center gap-3 border-b border-[var(--hairline)] px-3 py-2 text-[12px] text-[var(--text-muted)]">
-              <span className="flex-1"><b className="text-[var(--text-primary)]">{chosen.length}</b> of {list.length} selected. Anyone already in the CRM starts unticked.</span>
+              <span className="flex-1"><b className="text-[var(--text-primary)]">{chosen.length}</b> of {list.length} selected. Anyone already in the CRM, or already called or messaged, starts unticked.</span>
               <button onClick={() => setList((l) => l.map((x) => ({ ...x, on: true })))} className="font-semibold text-[var(--accent)] hover:underline">All</button>
               <button onClick={() => setList((l) => l.map((x) => ({ ...x, on: false })))} className="font-semibold text-[var(--accent)] hover:underline">None</button>
               <button onClick={() => { setList([]); setQueue(null); setState({}); try { sessionStorage.removeItem(KEEP); } catch {} }} className="font-semibold text-[var(--text-muted)] hover:underline">Clear list</button>
@@ -188,7 +251,8 @@ export function DsCampaign({ onExpired, onUsage, meName = "" }: { onExpired: () 
                 <li key={r.key} className="flex items-center gap-3 border-b border-[var(--hairline-soft)] px-3 py-2 text-[13px] last:border-0">
                   <input type="checkbox" checked={r.on} onChange={() => setList((l) => l.map((x) => (x.key === r.key ? { ...x, on: !x.on } : x)))} className="h-4 w-4 accent-[var(--accent-solid)]" aria-label={`Include ${r.name || r.phone}`} />
                   <span className="min-w-0 flex-1 truncate"><b>{r.name || <span className="figure">+{r.phone}</span>}</b>{place(r) && <span className="text-[var(--text-muted)]"> · {place(r)}</span>}</span>
-                  {r.ref && <span className="figure text-[11.5px] text-[var(--text-muted)]">number hidden</span>}
+                  {marks[r.key] ? <span className="shrink-0 rounded-full bg-[var(--warn-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--warn)]">{markText(marks[r.key])}</span>
+                    : r.ref && <span className="figure text-[11.5px] text-[var(--text-muted)]">number hidden</span>}
                 </li>
               ))}
             </ul>
@@ -197,6 +261,31 @@ export function DsCampaign({ onExpired, onUsage, meName = "" }: { onExpired: () 
       </DsBox>
 
       <DsBox label="2. Message: {name} {community} {building} {unit}; {Hi|Hello} gives each person a different word" icon={<MessageCircle size={13} />}>
+        <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          <button type="button" onClick={() => setAi({ ...ai, open: !ai.open, error: null })}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[var(--accent-dim)] bg-[var(--accent-wash)] px-3 text-[12.5px] font-semibold text-[var(--accent)] hover:brightness-110">
+            <Sparkles size={13} /> Write with AI
+          </button>
+        </div>
+        {ai.open && (
+          <div className="mb-3 space-y-2 rounded-[12px] border border-[var(--hairline)] bg-[var(--input-bg)] p-3">
+            <textarea value={ai.brief} onChange={(e) => setAi({ ...ai, brief: e.target.value })} rows={2} maxLength={500}
+              placeholder="What is the message about? e.g. We have a buyer for 2-bed units in this building, ask if they would sell"
+              className={`${DS_INPUT} !h-auto py-2.5`} aria-label="What the message is about" />
+            <div className="flex flex-wrap items-center gap-1.5">
+              <select value={ai.language} onChange={(e) => setAi({ ...ai, language: e.target.value })} className={`${DS_INPUT} !h-9 !w-auto !text-[13px]`} aria-label="Language">
+                {["English", "Arabic", "Russian", "Chinese", "French"].map((l) => <option key={l}>{l}</option>)}
+              </select>
+              {["Friendly", "Formal", "Short"].map((t) => (
+                <button key={t} type="button" onClick={() => setAi({ ...ai, tone: t })}
+                  className={`h-9 rounded-full border px-3 text-[12.5px] font-semibold ${ai.tone === t ? "border-[var(--accent)] bg-[var(--accent-wash)] text-[var(--accent)]" : "border-[var(--hairline)] text-[var(--text-muted)]"}`}>{t}</button>
+              ))}
+              <button type="button" disabled={ai.busy} onClick={() => void writeWithAi()} className={`${DS_GO} ms-auto !h-9`}><Sparkles size={14} /> {ai.busy ? "Writing…" : "Write the message"}</button>
+            </div>
+            {ai.error && <p className="text-[12.5px] text-[var(--bad)]">{ai.error}</p>}
+            <p className="text-[11.5px] text-[var(--text-muted)]">The AI writes a draft into the box below. Read it and change anything before you send.</p>
+          </div>
+        )}
         {templates.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-1.5">
             {templates.slice(0, 10).map((t) => <button key={t.id} onClick={() => setMsg(t.body)} className={DS_CHIP}>{t.name}</button>)}
@@ -215,7 +304,7 @@ export function DsCampaign({ onExpired, onUsage, meName = "" }: { onExpired: () 
       </div>
       <button disabled={!chosen.length || !msg.trim()} onClick={() => { setQueue(chosen); setState({}); }}
         className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-[#1f9d57] text-[14px] font-bold text-white transition hover:brightness-110 disabled:opacity-50">
-        <Send size={15} /> Manual send: one tap per contact ({chosen.length})
+        <Send size={15} /> Start: one tap per contact ({chosen.length})
       </button>
 
       {queue && (
@@ -239,13 +328,19 @@ export function DsCampaign({ onExpired, onUsage, meName = "" }: { onExpired: () 
                     <span className="block truncate text-[13.5px] font-semibold">{r.name || `+${r.phone}`}</span>
                     <span className="block truncate text-[12px] text-[var(--text-muted)]">{fill(msg, r, i, agent)}</span>
                   </span>
-                  {st === "sent" ? <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--ok)]"><Check size={14} /> Opened</span>
-                    : st === "dnc" ? <span className="text-[12px] font-semibold text-[var(--bad)]">Do not contact</span>
+                  {st === "dnc" ? <span className="text-[12px] font-semibold text-[var(--bad)]">Do not contact</span>
+                    : marks[r.key] ? <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold text-[var(--ok)]"><Check size={14} /> {markText(marks[r.key])}</span>
                     : (
-                      <button disabled={working === r.key || (!!r.ref && waitMin > 0)} onClick={() => void send(r, i)}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-[rgb(37_211_102/0.34)] bg-[rgb(37_211_102/0.09)] px-3 text-[12px] font-semibold text-[var(--wa)] transition hover:bg-[rgb(37_211_102/0.18)] disabled:opacity-50">
-                        <MessageCircle size={13} /> {working === r.key ? "Opening…" : st === "failed" ? "Try again" : "WhatsApp"}
-                      </button>
+                      <span className="flex shrink-0 gap-1.5">
+                        <button disabled={working === r.key || (!!r.ref && !dials[r.key] && waitMin > 0)} onClick={() => void call(r)} aria-label={`Call ${r.name || r.phone}`}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-[var(--hairline-strong)] px-3 text-[12.5px] font-semibold text-[var(--text-primary)] transition hover:border-[var(--accent)] disabled:opacity-50">
+                          <Phone size={13} /> Call
+                        </button>
+                        <button disabled={working === r.key || (!!r.ref && !dials[r.key] && waitMin > 0)} onClick={() => void send(r, i)} aria-label={`WhatsApp ${r.name || r.phone}`}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-[rgb(37_211_102/0.34)] bg-[rgb(37_211_102/0.09)] px-3 text-[12.5px] font-semibold text-[var(--wa)] transition hover:bg-[rgb(37_211_102/0.18)] disabled:opacity-50">
+                          <MessageCircle size={13} /> {working === r.key ? "Opening…" : st === "failed" ? "Try again" : "WhatsApp"}
+                        </button>
+                      </span>
                     )}
                 </li>
               );

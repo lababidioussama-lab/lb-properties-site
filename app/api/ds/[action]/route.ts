@@ -309,6 +309,74 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return fail("invalid");
     }
 
+    /* ---------------------------------------------------- campaign */
+
+    /* The message, written by Claude from a short brief. A draft only: it lands in the
+       message box, where the person reads and edits it before anything is sent. */
+    case "campaign_ai": {
+      const key = process.env.ANTHROPIC_API_KEY;
+      if (!key) return fail("not_configured", 503);
+      const brief = str(b.brief, 500);
+      if (brief.length < 3) return fail("brief_required");
+      const lang = ["English", "Arabic", "Russian", "Chinese", "French"].includes(str(b.language, 20)) ? str(b.language, 20) : "English";
+      const tone = ["Friendly", "Formal", "Short"].includes(str(b.tone, 20)) ? str(b.tone, 20) : "Friendly";
+      const since = new Date(Date.now() - 86_400_000).toISOString();
+      const { count } = await db.from("crm_audit").select("id", { count: "exact", head: true }).eq("entity", "campaign_ai").eq("user_id", user.id).gte("created_at", since);
+      if ((count ?? 0) >= 40) return fail("daily_limit", 429, { kind: "ai", limit: 40 });
+      const system = `You write one WhatsApp message for a real-estate agent at Lababidi Properties, a RERA-licensed Dubai brokerage, to send personally to property owners one at a time.
+Rules: ${lang}. ${tone === "Short" ? "Under 35 words." : "Under 60 words."} ${tone === "Formal" ? "Formal and respectful." : "Warm, natural and professional, like a person, not an advert."}
+Say who is writing (Lababidi Properties). Be honest: no invented buyers, prices, deadlines or claims; only what the brief says. No pressure, no capitals for emphasis, no hashtags, at most one emoji and only if friendly.
+End with one easy question, and a short line that they can say if they prefer not to be contacted.
+You may use these placeholders exactly as written, they are filled per person: {name} (first name), {building}, {unit}, {community}, {agent} (the agent's first name). Use {Hi|Hello|Good day} style alternatives for the greeting so each person gets a slightly different message.
+Answer with the message text only.`;
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-5-5", max_tokens: 400, thinking: { type: "disabled" }, system, messages: [{ role: "user", content: `Brief: ${brief}` }] }),
+        signal: AbortSignal.timeout(30_000),
+      }).catch(() => null);
+      if (!res?.ok) return fail("upstream", 502);
+      const out = (await res.json().catch(() => null)) as { content?: { type: string; text?: string }[] } | null;
+      const text = (out?.content ?? []).filter((x) => x.type === "text").map((x) => x.text ?? "").join("").trim().replace(/^["']|["']$/g, "").slice(0, 1200);
+      if (!text) return fail("upstream", 502);
+      await db.from("crm_audit").insert({ user_id: user.id, entity: "campaign_ai", entity_id: null, action: "drafted", detail: { brief, language: lang, tone } });
+      return done({ message: text });
+    }
+
+    /* Someone was called or messaged from the campaign: marked, so nobody contacts them twice.
+       Kept per owner record (from the card) or per number (typed by hand). */
+    case "campaign_mark": {
+      const how = b.how === "call" ? "called" : "messaged";
+      const ids = b.ref ? readRef(b.ref, user.id) : null;
+      const phone = str(b.phone, 30).replace(/\D/g, "");
+      const keys = ids?.length ? ids.map((x) => `o:${x}`) : phone.length >= 9 ? [`p:${phone.slice(-9)}`] : [];
+      if (!keys.length) return fail("invalid");
+      await db.from("crm_audit").insert(keys.map((k) => ({ user_id: user.id, entity: "campaign_contact", entity_id: k, action: how, detail: { name: str(b.name, 120) || null } })));
+      return done({ marked: keys.length });
+    }
+
+    /* Who on this list was already called or messaged, by anyone, and when. */
+    case "campaign_status": {
+      const refs = (Array.isArray(b.refs) ? b.refs : []).slice(0, 400);
+      const phones = (Array.isArray(b.phones) ? b.phones : []).slice(0, 400).map((x) => String(x).replace(/\D/g, "").slice(-9)).filter((x) => x.length === 9);
+      const byKey = new Map<string, string[]>();
+      for (const r of refs) for (const id of readRef(r, user.id) ?? []) byKey.set(`o:${id}`, [...(byKey.get(`o:${id}`) ?? []), String(r)]);
+      for (const p of phones) byKey.set(`p:${p}`, [...(byKey.get(`p:${p}`) ?? []), `p:${p}`]);
+      const keys = [...byKey.keys()];
+      const marks: Record<string, { how: string; at: string; by: string | null }> = {};
+      const { data: people } = await db.from("crm_users").select("id, full_name");
+      const nameOf = new Map((people ?? []).map((u) => [u.id as string, u.full_name as string]));
+      for (let i = 0; i < keys.length; i += 200) {
+        const { data } = await db.from("crm_audit").select("entity_id, action, created_at, user_id").eq("entity", "campaign_contact").in("entity_id", keys.slice(i, i + 200)).order("created_at", { ascending: false });
+        for (const row of data ?? []) {
+          for (const owner of byKey.get(row.entity_id as string) ?? []) {
+            if (!marks[owner]) marks[owner] = { how: row.action as string, at: row.created_at as string, by: nameOf.get(row.user_id as string) ?? null };
+          }
+        }
+      }
+      return done({ marks });
+    }
+
     case "suggest": {
       // Name completion for the pickers: aggregate names only, not counted as a search.
       return done({ items: await suggest(db, str(b.kind, 20), str(b.q, 80), str(b.scope, 12)) });
