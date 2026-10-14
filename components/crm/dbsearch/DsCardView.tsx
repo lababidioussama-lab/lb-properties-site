@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { AlertTriangle, Building2, Check, Copy, FileStack, Globe2, Hash, Landmark, Link2, Mail, MapPin, MessageCircle, Phone, Plus, Search, Tag, User } from "lucide-react";
 
-import { REASONS, ds, dsError, type DsCard, type DsCrmLink, type DsRevealed, type DsSoldFlag, type DsUsage } from "./api";
+import { REASONS, ds, dsError, isDsAdmin, type DsCard, type DsCrmLink, type DsRevealed, type DsSoldFlag, type DsUsage } from "./api";
 
 /**
  * One result card, laid out and worded as DB Search's ownerCard(): owner tag,
@@ -169,7 +169,7 @@ export function DsCardView({ card, also, soldFlag, actions }: { card: DsCard; al
       ) : card.phoneCount > 0 ? (
         asking === "phones"
           ? <ReasonPicker what={card.phoneCount > 1 ? "these numbers" : "this number"} busy={busy} onPick={(r) => reveal("phones", r)} onCancel={() => setAsking(null)} />
-          : <button onClick={() => { setAsking("phones"); setError(null); }} className="inline-flex h-9 w-fit items-center gap-2 rounded-lg bg-[var(--accent-solid)] px-3.5 text-[12.5px] font-semibold text-white hover:bg-[var(--accent-solid-hover)]">
+          : <button onClick={() => { setError(null); if (isDsAdmin()) void reveal("phones", "admin"); else setAsking("phones"); }} className="inline-flex h-9 w-fit items-center gap-2 rounded-lg bg-[var(--accent-solid)] px-3.5 text-[12.5px] font-semibold text-white hover:bg-[var(--accent-solid-hover)]">
               <Phone size={14} /> Show {card.phoneCount} number{card.phoneCount > 1 ? "s" : ""}
             </button>
       ) : (
@@ -239,7 +239,7 @@ export function DsCardView({ card, also, soldFlag, actions }: { card: DsCard; al
           : (
             <div className="flex items-center gap-2 text-[12.5px]">
               <Mail size={13} className={MUTED} /> <span className="figure">{card.email}</span>
-              <button onClick={() => { setAsking("email"); setError(null); }} className="text-[12px] font-semibold text-[var(--accent)] hover:underline">Show</button>
+              <button onClick={() => { setError(null); if (isDsAdmin()) void reveal("email", "admin"); else setAsking("email"); }} className="text-[12px] font-semibold text-[var(--accent)] hover:underline">Show</button>
             </div>
           )
       )}

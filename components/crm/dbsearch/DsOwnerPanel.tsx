@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Eye, History, Mail, Phone, Plus, Users, X } from "lucide-react";
 
 import { SidePanel, BTN, BTN_GHOST } from "../shared";
-import { REGION_LABEL, STATUS_LABEL, STATUS_STYLE, aed, ds, dsError, fullDate, placeText, sizeText, type DsCrmLink, type DsOwner, type DsUsage } from "./api";
+import { REGION_LABEL, STATUS_LABEL, STATUS_STYLE, aed, ds, isDsAdmin, dsError, fullDate, placeText, sizeText, type DsCrmLink, type DsOwner, type DsUsage } from "./api";
 
 const REASONS = [
   ["owner_outreach", "Selling: owner outreach"],
@@ -165,9 +165,12 @@ function RevealDialog({ owner, target, onCancel, onDone, onExpired, onUsage }: {
   onExpired: () => void;
   onUsage: (u: DsUsage, s?: { endsAt: number }) => void;
 }) {
-  const [reason, setReason] = useState<string>("");
+  const admin = isDsAdmin();
+  const [reason, setReason] = useState<string>(admin ? "admin" : "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The admin reveals straight away, with no reason to give.
+  useEffect(() => { if (admin) void reveal(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function reveal() {
     setBusy(true); setError(null);
@@ -194,13 +197,13 @@ function RevealDialog({ owner, target, onCancel, onDone, onExpired, onUsage }: {
         </div>
         <p className="mt-1 text-[13px] text-[var(--text-secondary)]">{owner.name} · {placeText(owner.properties[0]?.property ?? { community: null, building: null, unit: null, propertyNo: null, plot: null, dmNo: null, type: null, beds: null, size: null, price: null, date: null })}{p ? ` · ${p.masked}` : ""}</p>
 
-        <label className="mt-5 block">
+        {admin ? <p className="mt-5 text-[13px] text-[var(--text-secondary)]">{error ? "" : "Revealing…"}</p> : <label className="mt-5 block">
           <span className="mb-1.5 block text-[12px] font-semibold text-[var(--text-secondary)]">Why do you need it?</span>
           <select value={reason} onChange={(e) => setReason(e.target.value)} className="h-11 w-full rounded-lg border border-[var(--hairline-strong)] bg-white px-3 text-[14px] outline-none focus:border-[var(--accent)]">
             <option value="">Choose a reason</option>
             {REASONS.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
           </select>
-        </label>
+        </label>}
         <ul className="mt-4 space-y-1.5 text-[12.5px] text-[var(--text-secondary)]">
           <li>· Numbers on the do-not-contact list are refused automatically.</li>
           <li>· The reveal, the reason and the time are recorded against your name.</li>

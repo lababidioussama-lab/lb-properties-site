@@ -5,7 +5,7 @@ import Image from "next/image";
 import { motion } from "motion/react";
 import { ArrowLeft, Gem, Info, ChevronDown, Compass, FileSearch, Lock, LogOut, Moon, Phone, Search, Send, Sparkles, Sun, UserPlus, Wrench } from "lucide-react";
 
-import { ds, dsError, type DsSessionInfo, type DsUsage } from "./api";
+import { ds, dsError, setDsRole, type DsSessionInfo, type DsUsage } from "./api";
 import { DsSignIn } from "./DsSignIn";
 import { DsSmart } from "./DsSmart";
 import { DsSearch } from "./DsSearch";
@@ -82,7 +82,7 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
 
   const load = useCallback(async () => {
     const r = await ds<DsSessionInfo>("GET", "session");
-    if (r.ok) { setInfo(r); setProblem(null); }
+    if (r.ok) { setInfo(r); setDsRole(r.user.role); setProblem(null); }
     else setProblem(r.error);
   }, []);
 

@@ -185,8 +185,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const info = readRefInfo(b.ref, user.id);
       if (!info) return fail("expired_ref", 410);
       const ids = info.ids;
-      const reason = str(b.reason, 40) as Reason;
-      if (!(reason in REASONS)) return fail("reason_required");
+      // Agents say why they need it; the admin does not have to (recorded as "admin").
+      const reason = (user.role === "admin" && !(str(b.reason, 40) in REASONS) ? "admin" : str(b.reason, 40)) as Reason | "admin";
+      if (reason !== "admin" && !(reason in REASONS)) return fail("reason_required");
       const kind = b.kind === "email" ? "email" : b.kind === "phone" ? "phone" : "phones";
       const limited = await quota(user, db, "reveals");
       if (limited) return limited;

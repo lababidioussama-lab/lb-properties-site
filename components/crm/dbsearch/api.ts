@@ -163,6 +163,12 @@ export const DS_ERRORS: Record<string, string> = {
   network: "Could not reach the server.",
 };
 
+/* Who is using DB Search in this tab, set once the session is known. The admin
+   reveals without giving a reason; agents always give one (the server checks too). */
+let dsRole: "admin" | "agent" | null = null;
+export const setDsRole = (role: "admin" | "agent" | null) => { dsRole = role; };
+export const isDsAdmin = () => dsRole === "admin";
+
 export const dsError = (e: string) => DS_ERRORS[e] ?? `Something went wrong (${e}).`;
 
 /* ------------------------------------------------------------ display */
