@@ -15,7 +15,7 @@ async function logSession(userId: string | null, action: string, detail: Record<
 }
 
 /** Count recent session events in the audit log — shared across every server instance. */
-async function countRecent(action: string, match: { userId?: string; email?: string; nonce?: string; ip?: string }, withinMs: number) {
+async function countRecent(action: string, match: { userId?: string; email?: string; nonce?: string; ip?: string; purpose?: string }, withinMs: number) {
   const db = getSupabaseAdmin();
   if (!db) return { count: 0, last: 0 };
   let q = db.from("crm_audit").select("created_at").eq("entity", "session").eq("action", action)
@@ -24,6 +24,7 @@ async function countRecent(action: string, match: { userId?: string; email?: str
   if (match.email) q = q.eq("detail->>email", match.email);
   if (match.nonce) q = q.eq("detail->>nonce", match.nonce);
   if (match.ip) q = q.eq("detail->>ip", match.ip);
+  if (match.purpose) q = q.eq("detail->>purpose", match.purpose);
   const { data } = await q;
   return { count: data?.length ?? 0, last: data?.[0] ? new Date(data[0].created_at as string).getTime() : 0 };
 }
@@ -37,9 +38,12 @@ const ALERT_AT_WRONG_PASSWORDS = 5;
 
 /** Send a sign-in code, at most five per account per 15 minutes and one per 30 seconds. */
 async function sendLimited(userId: string, email: string, ticket: { code: string; cookie: string }, nonce: string, purpose: OtpPurpose = "crm", device?: string) {
-  const sent = await countRecent("otp_sent", { userId }, 15 * 60_000);
-  if (sent.count >= MAX_CODE_EMAILS) return "rate_limited";
-  if (Date.now() - sent.last < 30_000) return "wait";
+  /* Five codes per account per 15 minutes in all. The 30-second pause is per sign-in
+     (CRM, DB Search, Documents): opening DB Search right after the CRM sign-in must
+     not be refused because the CRM's own code went out a moment earlier. */
+  const [sent, sameKind] = await Promise.all([countRecent("otp_sent", { userId }, 15 * 60_000), countRecent("otp_sent", { userId, purpose }, 60_000)]);
+  if (sent.count >= MAX_CODE_EMAILS + 2) return "rate_limited";
+  if (Date.now() - sameKind.last < 30_000) return "wait";
   // The email and its note are sent side by side: each is a round trip, and the sign-in must answer within the host's ten seconds.
   const [delivered] = await Promise.all([sendCode(email, ticket.code, purpose, { device }), logSession(userId, "otp_sent", { nonce, purpose })]);
   return delivered ? null : "email_failed";

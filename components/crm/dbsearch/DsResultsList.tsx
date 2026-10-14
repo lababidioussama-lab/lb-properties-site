@@ -214,12 +214,7 @@ export function DsResultsList({ data, query, summary, actions, emptyText }: {
       {summary}
 
       {showBar && (
-        <div role="search" aria-label="Refine these results" className="panel relative z-20 space-y-3 !p-3">
-          <label className="flex h-11 items-center gap-2.5 rounded-[10px] border border-[var(--hairline)] bg-[var(--input-bg)] px-3.5 transition focus-within:border-[var(--accent)] focus-within:ring-[3px] focus-within:ring-[var(--accent-wash)]">
-            <ListFilter size={15} className="text-[var(--text-muted)]" />
-            <input type="search" value={typed} onChange={(e) => setTyped(e.target.value)} maxLength={100} placeholder="Refine by name, unit or building" aria-label="Refine these results by name, unit or building" className="h-full flex-1 bg-transparent text-[14px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]" />
-            <span className="figure shrink-0 text-[12px] text-[var(--text-muted)]">{list.length.toLocaleString("en-US")} of {all.length.toLocaleString("en-US")}</span>
-          </label>
+        <div role="group" aria-label="Filter these results" className="panel relative z-20 !p-3">
           <div className="flex flex-wrap items-center gap-1.5">
             {showComm && <FilterPill label="Community" value={comm} onChange={setComm} options={count(all, data.cards, (c) => c.comm).map(([v, n]) => [v.toLowerCase(), v, n])} />}
             {opts.party.length > 1 && <FilterPill label="Owner" value={more.party} onChange={(v) => setMore({ ...more, party: v })} options={count(all, data.cards, (c) => c.model.tx.party).map(([v, n]) => [v, PARTY[v] ?? v, n])} />}
@@ -230,7 +225,10 @@ export function DsResultsList({ data, query, summary, actions, emptyText }: {
             {opts.crm > 0 && <FilterPill label="CRM" value={more.crm} onChange={(v) => setMore({ ...more, crm: v as More["crm"] })} options={[["out", "Not in CRM yet", all.length - opts.crm], ["in", "Already in CRM", opts.crm]]} />}
             {showPhone && <Toggle label="Has phone" n={withPhone} on={phone} onClick={() => setPhone((v) => !v)} />}
             {opts.email > 0 && <Toggle label="Has email" n={opts.email} on={more.email} onClick={() => setMore({ ...more, email: !more.email })} />}
-            {active.length > 0 && <button onClick={() => clear("all")} className="ms-auto h-9 px-2 text-[12.5px] font-semibold text-[var(--accent)] hover:underline">Clear filters</button>}
+            <span className="ms-auto flex items-center gap-3 ps-2">
+              {active.length > 0 && <button onClick={() => clear("all")} className="h-9 text-[12.5px] font-semibold text-[var(--accent)] hover:underline">Clear filters</button>}
+              <span className="figure text-[12px] text-[var(--text-muted)]">{list.length.toLocaleString("en-US")} of {all.length.toLocaleString("en-US")}</span>
+            </span>
           </div>
         </div>
       )}

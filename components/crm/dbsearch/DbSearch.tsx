@@ -16,13 +16,14 @@ import { DsCampaign } from "./DsCampaign";
 import { DsArea } from "./DsArea";
 import { DsBrokers } from "./DsBrokers";
 import { DsInvestors } from "./DsInvestors";
+import { DsFilter } from "./DsFilter";
 import { DsChecks, type CheckMode } from "./DsChecks";
 import { DsVastu } from "./DsVastu";
 
 /* Every DB Search view id. Access lives in the CRM (Team & rules); ds_home
    is kept so old links land on Search. */
-export type DsView = "ds_home" | "ds_smart" | "ds_search" | "ds_phone" | "ds_unit" | "ds_portfolio" | "ds_area" | "ds_checks" | "ds_vastu" | "ds_brokers" | "ds_access" | "ds_campaign" | "ds_investors";
-export const DS_VIEWS: DsView[] = ["ds_home", "ds_smart", "ds_search", "ds_phone", "ds_unit", "ds_area", "ds_brokers", "ds_campaign", "ds_checks", "ds_vastu", "ds_portfolio", "ds_investors"];
+export type DsView = "ds_home" | "ds_smart" | "ds_search" | "ds_phone" | "ds_unit" | "ds_portfolio" | "ds_area" | "ds_checks" | "ds_vastu" | "ds_brokers" | "ds_access" | "ds_campaign" | "ds_investors" | "ds_filter";
+export const DS_VIEWS: DsView[] = ["ds_home", "ds_smart", "ds_search", "ds_phone", "ds_unit", "ds_area", "ds_brokers", "ds_campaign", "ds_checks", "ds_vastu", "ds_portfolio", "ds_investors", "ds_filter"];
 
 /* The extra tools, behind one Tools menu in the bar. All of them are for
    the admin: an agent gets the four tabs, the Vastu Map and the WhatsApp
@@ -163,7 +164,7 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
   const isAdmin = info.user.role === "admin";
   if (!isAdmin && ADMIN_ONLY.includes(tab)) tab = "ds_search";
   /* The area filter and unit history open from a search, so Search stays lit. */
-  const lit = tab === "ds_area" || tab === "ds_unit" ? "ds_search" : tab;
+  const lit = tab === "ds_area" || tab === "ds_unit" || tab === "ds_filter" ? "ds_search" : tab;
   const more = isAdmin ? MORE : [];
   const inMore = more.some((m) => m.id === tab);
 
@@ -230,18 +231,19 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
               The new database is being prepared — search will return when it is uploaded.
             </p>
           )}
-          {(tab === "ds_area" || tab === "ds_unit" || tab === "ds_campaign" || inMore) && (
+          {(tab === "ds_area" || tab === "ds_unit" || tab === "ds_filter" || tab === "ds_campaign" || inMore) && (
             <button onClick={() => onView("ds_search")} className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline"><ArrowLeft size={14} /> Back to Search</button>
           )}
           {/* The four tabs stay loaded and are only hidden, so a search is still
               there when you come back to its tab and costs nothing to see again. */}
-          <div hidden={tab !== "ds_smart"}><DsSmart onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} onAreaFilter={() => onView("ds_area")} /></div>
-          <div hidden={tab !== "ds_search"}><DsSearch onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={searchQuery} onPhone={(q) => { setPhoneQuery(q); onView("ds_phone"); }} onAreaFilter={() => onView("ds_area")} /></div>
+          <div hidden={tab !== "ds_smart"}><DsSmart onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} onAreaFilter={() => onView("ds_filter")} /></div>
+          <div hidden={tab !== "ds_search"}><DsSearch onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={searchQuery} onPhone={(q) => { setPhoneQuery(q); onView("ds_phone"); }} onAreaFilter={() => onView("ds_filter")} /></div>
           <div hidden={tab !== "ds_phone"}><DsPhone onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} initialQuery={phoneQuery} /></div>
           <div hidden={tab !== "ds_brokers"}><DsBrokers onExpired={onExpired} /></div>
           {tab === "ds_campaign" && <DsCampaign onExpired={onExpired} onUsage={onUsage} meName={info.user.name} />}
           {tab === "ds_unit" && <DsUnit {...shared} initial={unitQuery} />}
           {tab === "ds_area" && <DsArea {...shared} />}
+          {tab === "ds_filter" && <DsFilter onExpired={onExpired} onUsage={onUsage} onOpenLead={onOpenLead} onCallingList={() => onView("ds_area")} />}
           {tab === "ds_checks" && <DsChecks mode={checkMode} onMode={setCheckMode} onExpired={onExpired} onOpenOwner={setOwnerRef} />}
           {tab === "ds_vastu" && <DsVastu />}
           {tab === "ds_investors" && <DsInvestors onExpired={onExpired} onSearchName={(name) => { setSearchQuery(name); onView("ds_search"); }} />}
