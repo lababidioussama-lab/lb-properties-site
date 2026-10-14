@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { ArrowLeft, Gem, ChevronDown, Compass, FileSearch, Lock, LogOut, Moon, Phone, Search, Send, Sparkles, Sun, UserPlus, Wrench } from "lucide-react";
+import { ArrowLeft, Gem, Info, ChevronDown, Compass, FileSearch, Lock, LogOut, Moon, Phone, Search, Send, Sparkles, Sun, UserPlus, Wrench } from "lucide-react";
 
 import { ds, dsError, type DsSessionInfo, type DsUsage } from "./api";
 import { DsSignIn } from "./DsSignIn";
@@ -224,6 +224,12 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
         </nav>
 
         <main>
+          {info.dataSource && info.dataSource !== "legacy" && (
+            <p role="status" className="mb-4 flex items-start gap-2 rounded-[12px] border border-[var(--warn-bd)] bg-[var(--warn-bg)] px-4 py-3 text-[13.5px] text-[var(--text-primary)]">
+              <Info size={16} className="mt-0.5 shrink-0 text-[var(--warn)]" />
+              The new database is being prepared — search will return when it is uploaded.
+            </p>
+          )}
           {(tab === "ds_area" || tab === "ds_unit" || tab === "ds_campaign" || inMore) && (
             <button onClick={() => onView("ds_search")} className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline"><ArrowLeft size={14} /> Back to Search</button>
           )}

@@ -115,6 +115,8 @@ export interface DsSessionInfo {
   limits: DsLimits | null;
   usage: DsUsage | null;
   session?: { endsAt: number; idleMinutes: number };
+  /** DS_DATA_SOURCE on the server: anything but "legacy" means the old data is switched off. */
+  dataSource?: "legacy" | "off" | "uae";
 }
 
 export interface DsUnitResult {
@@ -147,6 +149,7 @@ export async function ds<T>(method: "GET" | "POST" | "PATCH" | "DELETE", action:
 /** Plain-language errors. The server's codes stay out of the agent's way. */
 export const DS_ERRORS: Record<string, string> = {
   ds_signin_required: "Your DB Search session has ended. Sign in again to continue.",
+  data_off: "The new database is being prepared — search will return when it is uploaded.",
   no_access: "Your account does not have DB Search access. Ask your admin to switch it on.",
   locked: "DB Search is locked on your account because of unusual activity. Your admin can unlock it.",
   daily_limit: "You have reached today's limit for this. It resets at midnight.",

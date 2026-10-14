@@ -100,7 +100,10 @@ const ok = (b: Record<string, unknown>) => ({ ok: true, ...b, session: { endsAt:
 
 export async function demoDs(method: string, action: string, body?: Record<string, unknown>) {
   await wait(action === "search" ? 450 : 200);
-  if (action === "session" && method === "GET") return ok({ signedIn, user: typeof location !== "undefined" && new URLSearchParams(location.search).get("demo") === "agent" ? { name: "Sara Haddad", role: "agent" } : { name: "Oussama Lababidi", role: "admin" }, limits, usage: signedIn ? usage : null });
+  /* ?demo&source=off shows DB Search as it looks with DS_DATA_SOURCE=off. */
+  const off = typeof location !== "undefined" && new URLSearchParams(location.search).get("source") === "off";
+  if (off && signedIn && ["search", "community", "phone", "owner", "reveal", "unit", "add", "area", "area_send", "pnumber", "brokers"].includes(action)) return { ok: false, error: "data_off" };
+  if (action === "session" && method === "GET") return ok({ dataSource: off ? "off" : "legacy", signedIn, user: typeof location !== "undefined" && new URLSearchParams(location.search).get("demo") === "agent" ? { name: "Sara Haddad", role: "agent" } : { name: "Oussama Lababidi", role: "admin" }, limits, usage: signedIn ? usage : null });
   if (action === "session" && method === "DELETE") { signedIn = false; return { ok: true }; }
   if (action === "demo_signin") { signedIn = true; return { ok: true }; }
   if (!signedIn) return { ok: false, error: "ds_signin_required" };

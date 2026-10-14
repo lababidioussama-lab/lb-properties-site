@@ -7,6 +7,7 @@ import { crmLinks, emailOf, ownerDetail, phoneAt, unitLookup } from "@/lib/dbsea
 import { MAX_QUERY, communityList, phoneList, phonesForRef, searchFull, soldFlags } from "@/lib/dbsearch/results";
 import { areaOwners, brokers, listedNow, permitLookup, propertyNumber, suggest } from "@/lib/dbsearch/tools";
 import * as inv from "@/lib/dbsearch/investors";
+import { blockedBySource, dataSource } from "@/lib/dbsearch/source";
 import { formatPhone, maskPhone, phoneCore, toInternational } from "@/lib/dbsearch/model";
 import { SESSION_COOKIE_OPTIONS } from "@/lib/crm-auth";
 
@@ -65,12 +66,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       user: { name: g.user.name, role: g.user.role },
       limits: g.user.role === "admin" ? null : g.user.limits,
       usage: signedIn ? await usageToday(g.db, g.user.id) : null,
+      // Which data DB Search reads (DS_DATA_SOURCE): the screen shows a note when it is not today's.
+      dataSource: dataSource(),
     });
   }
 
   if (action === "stats") {
     const g = await dsGate(request);
     if (!g.ok) return g.response;
+    if (blockedBySource("stats")) return g.done({ stats: null });
     const { data } = await g.db.rpc("get_stats");
     const d = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
     return g.done({ stats: d ? { owners: Number(d.owners ?? 0), properties: Number(d.properties ?? 0), projects: Number(d.projects ?? 0), phones: Number(d.phones ?? 0) } : null });
@@ -120,6 +124,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!g.ok) return g.response;
   const { user, db, done } = g;
   const b = ((await request.json().catch(() => ({}))) ?? {}) as Body;
+
+  /* DS_DATA_SOURCE=off (or uae, not built yet): the old owner data is not read.
+     Pickers and "already sold" flags quietly come back empty; every search answers
+     with the "being prepared" note instead of results. Nothing is counted or logged. */
+  if (blockedBySource(action)) {
+    if (action === "suggest") return done({ items: [] });
+    if (action === "sold") return done({ found: [] });
+    return fail("data_off", 503);
+  }
 
   switch (action) {
     case "search":
