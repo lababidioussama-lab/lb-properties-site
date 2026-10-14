@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { ArrowLeft, BarChart3, Gem, ChevronDown, Compass, FileSearch, Lock, LogOut, Moon, Phone, Search, Send, Sparkles, Sun, UserPlus, Wrench } from "lucide-react";
+import { ArrowLeft, Gem, ChevronDown, Compass, FileSearch, Lock, LogOut, Moon, Phone, Search, Send, Sparkles, Sun, UserPlus, Wrench } from "lucide-react";
 
 import { ds, dsError, type DsSessionInfo, type DsUsage } from "./api";
 import { DsSignIn } from "./DsSignIn";
@@ -15,7 +15,6 @@ import { DsOwnerPanel } from "./DsOwnerPanel";
 import { DsCampaign } from "./DsCampaign";
 import { DsArea } from "./DsArea";
 import { DsBrokers } from "./DsBrokers";
-import { DsPortfolio } from "./DsPortfolio";
 import { DsInvestors } from "./DsInvestors";
 import { DsChecks, type CheckMode } from "./DsChecks";
 import { DsVastu } from "./DsVastu";
@@ -30,7 +29,6 @@ export const DS_VIEWS: DsView[] = ["ds_home", "ds_smart", "ds_search", "ds_phone
    campaign. */
 const MORE: { id: DsView; label: string; icon: typeof Search }[] = [
   { id: "ds_checks", label: "Property checks", icon: FileSearch },
-  { id: "ds_portfolio", label: "Portfolio", icon: BarChart3 },
   { id: "ds_investors", label: "Investors", icon: Gem },
 ];
 const ADMIN_ONLY: DsView[] = MORE.map((m) => m.id);
@@ -159,7 +157,8 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
   const hm = left == null ? "" : `${Math.floor(left / 3_600_000)}:${String(Math.floor((left % 3_600_000) / 60_000)).padStart(2, "0")}`;
 
   const shared = { onExpired, onUsage, onOpenOwner: setOwnerRef };
-  let tab: DsView = view === "ds_home" ? "ds_search" : view;
+  // Portfolio was replaced by Investors; an old link lands there.
+  let tab: DsView = view === "ds_home" ? "ds_search" : view === "ds_portfolio" ? "ds_investors" : view;
   if (!(DS_VIEWS as string[]).includes(tab)) tab = "ds_search";
   const isAdmin = info.user.role === "admin";
   if (!isAdmin && ADMIN_ONLY.includes(tab)) tab = "ds_search";
@@ -240,7 +239,6 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
           {tab === "ds_checks" && <DsChecks mode={checkMode} onMode={setCheckMode} onExpired={onExpired} onOpenOwner={setOwnerRef} />}
           {tab === "ds_vastu" && <DsVastu />}
           {tab === "ds_investors" && <DsInvestors onExpired={onExpired} onSearchName={(name) => { setSearchQuery(name); onView("ds_search"); }} />}
-          {tab === "ds_portfolio" && <DsPortfolio {...shared} onSearchName={(name) => { setSearchQuery(name); onView("ds_search"); }} />}
         </main>
       </div>
 

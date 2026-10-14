@@ -135,10 +135,6 @@ export async function demoDs(method: string, action: string, body?: Record<strin
       return ok({ kind: "phone", value: "+971 50 555 0112", dial: "971505550112", usage });
     case "unit": usage.searches++; return ok({ unit: UNIT });
     case "add": return body?.ref === "d1" ? { ok: false, error: "already_in_crm", link: HITS[0].inCrm } : ok({ created: { as: body?.as, id: "new" } });
-    case "portfolio": return ok({ owners: [
-      { name: "Sample Investor One", units: 14 }, { name: "Sample Investor Two", units: 9 }, { name: "Khalid Rahman", units: 3 },
-      { name: "Sample Holdings Owner", units: 7 }, { name: "Sample Family Trust Owner", units: 5 },
-    ] });
     case "suggest": return ok({ items: String(body?.q ?? "").length < 2 ? [] : [
       { name: "Marina Gate 2", meta: "212 owners" }, { name: "Marina Gate 1", meta: "198 owners" }, { name: "Dubai Marina", meta: "18,400 owners" },
     ] });

@@ -62,8 +62,6 @@ async function main() {
   console.log(`valuation Dubai Marina 1,200 sq ft: ${v.data?.error ?? `${v.data?.comps?.total} comps, confidence ${v.data?.confidence?.score}`}`);
   const rn = await tools.rentals(db, "Marsa Dubai", "") as { data?: { totals?: { contracts: number } } };
   console.log(`rents Marsa Dubai: ${rn.data?.totals?.contracts} contracts`);
-  const p = await tools.portfolioOwners(db, 10);
-  console.log(`portfolio owners with 10+ units: ${p.length}`);
   const a = await tools.areaOwners(db, viewer, "Marina Gate 2");
   console.log(`area "Marina Gate 2": ${a.total} owners with a number, ${a.hits.filter((h) => h.optedOut).length} opted out, all masked: ${a.hits.every((h) => h.phones.every((x) => x.masked.includes("•")))}`);
   const b = await tools.brokers(db, "Betterhomes");

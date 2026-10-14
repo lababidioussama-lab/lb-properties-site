@@ -20,7 +20,7 @@ export function DbSearchApp({ me, demo = false }: { me: SessionUser; demo?: bool
   const [view, setViewState] = useState<DsView>("ds_search");
   const [email, setEmail] = useState("");
   const [theme, setTheme] = useState<CrmTheme>("dark");
-  /* Portfolio in the CRM hands a name over as ?q= to search straight away. */
+  /* A name handed over as ?q= is searched straight away. */
   const [initialSearch] = useState(() => (typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("q")));
 
   useEffect(() => {

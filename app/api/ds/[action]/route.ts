@@ -5,7 +5,7 @@ import { LEAD_SLA_HOURS } from "@/lib/crm";
 import { DS_COOKIE, audit, dsGate, fail, getSettings, lockIfBurst, putSettings, readRef, readRefInfo, revealedToday, signedIn as signedInAs, usageToday, type DsSettings, type DsUser } from "@/lib/dbsearch/guard";
 import { crmLinks, emailOf, ownerDetail, phoneAt, unitLookup } from "@/lib/dbsearch/search";
 import { MAX_QUERY, communityList, phoneList, phonesForRef, searchFull, soldFlags } from "@/lib/dbsearch/results";
-import { areaOwners, brokers, listedNow, permitLookup, portfolioOwners, propertyNumber, suggest } from "@/lib/dbsearch/tools";
+import { areaOwners, brokers, listedNow, permitLookup, propertyNumber, suggest } from "@/lib/dbsearch/tools";
 import * as inv from "@/lib/dbsearch/investors";
 import { formatPhone, maskPhone, phoneCore, toInternational } from "@/lib/dbsearch/model";
 import { SESSION_COOKIE_OPTIONS } from "@/lib/crm-auth";
@@ -28,7 +28,6 @@ export const dynamic = "force-dynamic";
  *   POST   reveal    { ref, reason, kind }          → the card's numbers, or its email
  *   POST   unit      { code, place? }               → a unit's owners
  *   POST   add       { ref, as, index }             → create lead / contact / temp lead
- *   POST   portfolio { min }                        → owners of several units (by name)
  *   POST   area      { area }                       → a community as a masked calling list
  *   POST   area_send { refs, list }                 → put owners from it into Temp leads
  *   POST   investors { op, … }                      → the Investors workbook (admin):
@@ -229,25 +228,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     /* ---------------------------------------------------- lookups */
-    case "portfolio":
     case "area":
     case "permit":
     case "pnumber":
     case "listed":
     case "brokers": {
-      // The four tabs are for everyone; the Tools menu (portfolio and the
-      // property checks) is the admin's.
+      // The four tabs are for everyone; the Tools menu (the property checks) is the admin's.
       if (action !== "area" && action !== "brokers" && user.role !== "admin") return fail("forbidden", 403);
       const limited = await quota(user, db, "searches");
       if (limited) return limited;
-      const kind = action === "portfolio" ? "portfolio" : action === "area" ? "area" : action === "brokers" ? "brokers"
+      const kind = action === "area" ? "area" : action === "brokers" ? "brokers"
         : action === "permit" || action === "pnumber" || action === "listed" ? "check" : "market";
       const q = str(b.q ?? b.area ?? b.name, MAX_QUERY);
       await audit(db, user, kind, { query: `${action}: ${q || String(b.min ?? "")}`.slice(0, 300), request });
       if (await lockIfBurst(db, user, request)) return fail("locked", 423);
 
       switch (action) {
-        case "portfolio": return done({ owners: await portfolioOwners(db, Number(b.min ?? 5)) });
         case "area": {
           if (q.length < 3) return fail("query_too_short");
           return done(await areaOwners(db, user, q));

@@ -25,7 +25,7 @@ const ACTION_LABEL: Record<string, string> = {
   login: "Signed in to the CRM", logout: "Signed out of the CRM", login_failed: "Failed CRM sign-in", otp_sent: "Sign-in code sent", otp_failed: "Wrong sign-in code",
   docs_login: "Opened Company documents", ds_login: "DB Search code accepted",
   signin: "Signed in to DB Search", signout: "Left DB Search", search: "Searched", open: "Opened a record", reveal: "Revealed a number",
-  unit: "Unit history", portfolio: "Portfolio", area: "Area filter", market: "Market", check: "Property check", brokers: "Agent search",
+  unit: "Unit history", portfolio: "Investors", area: "Area filter", market: "Market", check: "Property check", brokers: "Agent search",
   to_lead: "Created a lead", to_contact: "Added a contact", to_temp: "Sent to Temp leads", denied: "Refused (no access)", locked: "Locked automatically", admin: "Settings changed by admin",
 };
 const REASON_LABEL: Record<string, string> = { owner_outreach: "owner outreach", buyer_followup: "buyer follow-up", listing_check: "checking a listing", buyer_match: "buyer match" };

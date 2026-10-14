@@ -15,16 +15,6 @@ import { crmLinks } from "./search";
 type Db = SupabaseClient;
 const clip = (s: unknown, n: number) => String(s ?? "").trim().slice(0, n);
 
-/* ------------------------------------------------------------ portfolio */
-
-/** People who own several units. Grouped by NAME in DB Search's owner_counts, so the UI says so. */
-export async function portfolioOwners(db: Db, min: number) {
-  const { data } = await db.rpc("owners_by_min_properties", { min_count: Math.min(Math.max(min, 2), 50) });
-  return ((data ?? []) as { name_norm: string; full_name: string; property_count: number }[])
-    .map((r) => ({ name: r.full_name, units: Number(r.property_count) }))
-    .slice(0, 300);
-}
-
 /* ------------------------------------------------------------ areas */
 
 export async function communities(db: Db, q: string) {
