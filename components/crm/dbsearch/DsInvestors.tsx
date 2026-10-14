@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, Bookmark, Building2, Download, Eye, Globe, Info, MapPin, Phone, Plus, Search, Sparkles, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { ArrowDown, ArrowUp, Bookmark, Download, Eye, Info, Phone, Plus, Search, Sparkles, X } from "lucide-react";
 
 import { ds, dsError } from "./api";
 import { DS_INPUT } from "./ui";
@@ -236,10 +236,24 @@ export function DsInvestors({ onExpired, onSearchName }: { onExpired: () => void
           </div>
         </div>
 
+        {/* The filters, always in view: each opens its editor in plain words */}
+        <div className="flex flex-wrap gap-1.5 border-b border-[var(--hairline)] px-4 py-3 sm:px-5">
+          {FILTERS.map(([k, label]) => {
+            const on = filterOn(k, f);
+            return (
+              <button key={k} onClick={() => (k === "mobile" || k === "email") ? apply(k === "mobile" ? { ...f, has_mobile: !f.has_mobile } : { ...f, has_email: !f.has_email }) : setAdding(adding === k ? null : k)}
+                className={`inline-flex h-9 items-center gap-1.5 rounded-[10px] border px-3 text-[12.5px] font-semibold transition-colors ${on ? "text-[var(--text-primary)]" : "border-[var(--hairline)] text-[var(--text-muted)] hover:border-[var(--hairline-strong)] hover:text-[var(--text-primary)]"}`}
+                style={on ? { borderColor: GOLD, background: `${GOLD}1A` } : undefined}>
+                {label}{k !== "mobile" && k !== "email" ? <span className="text-[10px] opacity-70">▾</span> : null}
+              </button>
+            );
+          })}
+        </div>
+
         {/* What it understood, in words, each one editable */}
         <div className="px-4 py-3 sm:px-5">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="me-1 text-[12px] text-[var(--text-muted)]">{conds.length ? "Showing" : "Showing every investor"}</span>
+            <span className="me-1 text-[12px] text-[var(--text-muted)]">{conds.length ? "Showing" : "Showing every investor. Ask above or pick a filter."}</span>
             {conds.map((c) => (
               <span key={c.key} className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[12.5px] font-semibold"
                 style={{ borderColor: `${GOLD}99`, background: `${GOLD}1A`, color: "var(--text-primary)" }}>
@@ -247,7 +261,6 @@ export function DsInvestors({ onExpired, onSearchName }: { onExpired: () => void
                 <button onClick={() => apply(c.remove(f))} aria-label={`Remove ${c.label}`} className="ms-0.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X size={12} /></button>
               </span>
             ))}
-            <AddMenu onPick={setAdding} />
             {conds.length > 0 && <button onClick={() => { setText(""); apply(EMPTY, 50); }} className="ms-auto text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)]">Clear all</button>}
           </div>
           {adding && ov && <Editor kind={adding} f={f} ov={ov} onClose={() => setAdding(null)} onApply={(next) => { setAdding(null); apply(next); }} />}
@@ -361,6 +374,12 @@ export function DsInvestors({ onExpired, onSearchName }: { onExpired: () => void
   );
 }
 
+const FILTERS: [string, string][] = [["area", "Area"], ["props", "Number of properties"], ["value", "Total value"], ["nat", "Nationality"], ["building", "Building"], ["name", "Name"], ["mobile", "Has mobile"], ["email", "Has email"]];
+function filterOn(k: string, f: Filters) {
+  return k === "area" ? f.areas.length > 0 : k === "props" ? f.min_props != null || f.max_props != null : k === "value" ? f.min_value != null || f.max_value != null
+    : k === "nat" ? f.nationalities.length > 0 : k === "building" ? !!f.building : k === "name" ? !!f.q : k === "mobile" ? f.has_mobile : f.has_email;
+}
+
 const SORT_WORDS: Record<string, string> = { value: "total value", units: "number of properties", area_units: "units in the chosen area", area_value: "value in the chosen area", avg: "average price", communities: "number of areas", rank: "workbook rank", name: "name" };
 
 /* --------------------------------------------------- conditions in words */
@@ -380,25 +399,6 @@ function conditions(f: Filters, ov: Overview | null) {
   if (f.has_email) out.push({ key: "email", label: "Has an email", remove: (x) => ({ ...x, has_email: false }) });
   void ov;
   return out;
-}
-
-function AddMenu({ onPick }: { onPick: (k: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const items: [string, string, ReactNode][] = [["area", "Area", <MapPin key="a" size={13} />], ["props", "Number of properties", <Building2 key="b" size={13} />], ["value", "Total value", <span key="c" className="text-[11px] font-bold">AED</span>], ["nat", "Nationality", <Globe key="d" size={13} />], ["building", "Building or tower", <Building2 key="e" size={13} />], ["name", "Name", <Search key="f" size={13} />], ["mobile", "Has a mobile", <Phone key="g" size={13} />], ["email", "Has an email", <span key="h" className="text-[11px] font-bold">@</span>]];
-  return (
-    <span className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--hairline-strong)] px-3 py-1 text-[12.5px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"><Plus size={12} /> Add condition</button>
-      {open && (
-        <div role="menu" className="crm-pop absolute start-0 top-9 z-30 w-56 overflow-hidden rounded-[12px] border border-[var(--hairline)] bg-[var(--surface-solid)] py-1 shadow-[var(--shadow-pop)]">
-          {items.map(([k, label, icon]) => (
-            <button key={k} role="menuitem" onClick={() => { setOpen(false); onPick(k); }} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] hover:bg-[var(--surface-hover)]">
-              <span className="flex w-4 justify-center text-[var(--text-muted)]">{icon}</span>{label}
-            </button>
-          ))}
-        </div>
-      )}
-    </span>
-  );
 }
 
 /** One condition at a time, edited in words: never "≥" or "is". */
