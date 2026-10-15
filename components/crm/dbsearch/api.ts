@@ -150,6 +150,7 @@ export async function ds<T>(method: "GET" | "POST" | "PATCH" | "DELETE", action:
 export const DS_ERRORS: Record<string, string> = {
   ds_signin_required: "Your DB Search session has ended. Sign in again to continue.",
   data_off: "The new database is being prepared — search will return when it is uploaded.",
+  not_in_new_data: "This tool is not on the new database yet.",
   no_access: "Your account does not have DB Search access. Ask your admin to switch it on.",
   locked: "DB Search is locked on your account because of unusual activity. Your admin can unlock it.",
   daily_limit: "You have reached today's limit for this. It resets at midnight.",

@@ -8,6 +8,7 @@ import { MAX_QUERY, communityList, phoneList, phonesForRef, searchFull, soldFlag
 import { areaOwners, brokers, listedNow, permitLookup, propertyNumber, suggest } from "@/lib/dbsearch/tools";
 import * as inv from "@/lib/dbsearch/investors";
 import { blockedBySource, dataSource } from "@/lib/dbsearch/source";
+import * as uae from "@/lib/dbsearch/uae";
 import { formatPhone, maskPhone, phoneCore, toInternational } from "@/lib/dbsearch/model";
 import { SESSION_COOKIE_OPTIONS } from "@/lib/crm-auth";
 
@@ -75,6 +76,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const g = await dsGate(request);
     if (!g.ok) return g.response;
     if (blockedBySource("stats")) return g.done({ stats: null });
+    if (dataSource() === "uae") return g.done({ stats: await uae.stats(g.db) });
     const { data } = await g.db.rpc("get_stats");
     const d = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
     return g.done({ stats: d ? { owners: Number(d.owners ?? 0), properties: Number(d.properties ?? 0), projects: Number(d.projects ?? 0), phones: Number(d.phones ?? 0) } : null });
@@ -131,8 +133,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (blockedBySource(action)) {
     if (action === "suggest") return done({ items: [] });
     if (action === "sold") return done({ found: [] });
-    return fail("data_off", 503);
+    return fail(dataSource() === "uae" ? "not_in_new_data" : "data_off", 503);
   }
+  /* DS_DATA_SOURCE=uae: the same screens, answered from the clean database (lib/dbsearch/uae.ts). */
+  const onUae = dataSource() === "uae";
+  const S = onUae
+    ? { searchFull: uae.searchFull, communityList: uae.communityList, phoneList: uae.phoneList, ownerDetail: uae.ownerDetail, phonesForRef: uae.phonesForRef, phoneAt: uae.phoneAt, emailOf: uae.emailOf, unitLookup: uae.unitLookup, areaOwners: uae.areaOwners, propertyNumber: uae.propertyNumber }
+    : { searchFull, communityList, phoneList, ownerDetail, phonesForRef, phoneAt, emailOf, unitLookup, areaOwners, propertyNumber };
 
   switch (action) {
     case "search":
@@ -145,9 +152,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       await audit(db, user, "search", { query: action === "search" ? q : `${action}: ${q}`, request });
       if (await lockIfBurst(db, user, request)) return fail("locked", 423);
       const includeEmpty = b.includeEmpty === true;
-      const result = action === "search" ? await searchFull(db, user, q, includeEmpty)
-        : action === "community" ? await communityList(db, user, q, includeEmpty)
-        : await phoneList(db, user, q);
+      const result = action === "search" ? await S.searchFull(db, user, q, includeEmpty)
+        : action === "community" ? await S.communityList(db, user, q, includeEmpty)
+        : await S.phoneList(db, user, q);
       return done({ ...result, usage: await usageToday(db, user.id) });
     }
 
@@ -174,7 +181,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     case "owner": {
       const ids = readRef(b.ref, user.id);
       if (!ids) return fail("expired_ref", 410);
-      const owner = await ownerDetail(db, user, ids);
+      const owner = await S.ownerDetail(db, user, ids);
       if (!owner) return fail("not_found", 404);
       await audit(db, user, "open", { target: ids.join(","), request });
       if (await lockIfBurst(db, user, request)) return fail("locked", 423);
@@ -192,16 +199,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const limited = await quota(user, db, "reveals");
       if (limited) return limited;
 
+      const early = onUae && uae.isUaeIds(ids);
+      if (early) {
+        await audit(db, user, "reveal", { target: ids.join(","), detail: { reason, kind, source: "uae" }, request });
+        if (await lockIfBurst(db, user, request)) return fail("locked", 423);
+      }
+
       if (kind === "email") {
-        const value = info.email ?? await emailOf(db, ids);
+        const value = info.email ?? await S.emailOf(db, ids);
         if (!value) return fail("not_found", 404);
-        await audit(db, user, "reveal", { target: ids.join(","), detail: { reason, kind }, request });
+        if (!early) await audit(db, user, "reveal", { target: ids.join(","), detail: { reason, kind }, request });
         if (await lockIfBurst(db, user, request)) return fail("locked", 423);
         return done({ kind, value, usage: await usageToday(db, user.id) });
       }
 
       // DB Search's "Show N numbers": every number on the record at once, in one fixed order.
-      const all = await phonesForRef(db, ids);
+      const all = await S.phonesForRef(db, ids);
       const at = Number(b.index ?? 0);
       const list = kind === "phone" ? all.slice(at, at + 1) : all;
       if (!list.length) return fail("no_phone", 404);
@@ -211,8 +224,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const numbers = list.map((p) => blocked.has(toInternational(p))
         ? { index: all.indexOf(p), value: maskPhone(p), dial: null, dnc: true, inCrm: null }
         : { index: all.indexOf(p), value: formatPhone(p), dial: toInternational(p), dnc: false, inCrm: links.get(phoneCore(p)) ?? null });
-      await audit(db, user, "reveal", { target: ids.join(","), detail: { reason, kind, count: numbers.filter((n) => !n.dnc).length }, request });
-      if (await lockIfBurst(db, user, request)) return fail("locked", 423);
+      if (!early) {
+        await audit(db, user, "reveal", { target: ids.join(","), detail: { reason, kind, count: numbers.filter((n) => !n.dnc).length }, request });
+        if (await lockIfBurst(db, user, request)) return fail("locked", 423);
+      }
       if (kind === "phone") {
         const n = numbers[0];
         if (n.dnc) return fail("do_not_contact", 409);
@@ -228,7 +243,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (limited) return limited;
       await audit(db, user, "unit", { query: code, target: str(b.place, 200) || null, request });
       if (await lockIfBurst(db, user, request)) return fail("locked", 423);
-      return done({ unit: await unitLookup(db, user, code, str(b.place, 200) || null) });
+      return done({ unit: await S.unitLookup(db, user, code, str(b.place, 200) || null) });
     }
 
     /* Where the live DLD tool is, for the admin's browser to ask it directly:
@@ -260,10 +275,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       switch (action) {
         case "area": {
           if (q.length < 3) return fail("query_too_short");
-          return done(await areaOwners(db, user, q));
+          return done(await S.areaOwners(db, user, q));
         }
         case "permit": return done(await permitLookup(db, q) as Record<string, unknown>);
-        case "pnumber": return done({ rows: await propertyNumber(db, user, q) });
+        case "pnumber": return done({ rows: await S.propertyNumber(db, user, q) });
         case "listed": return done(await listedNow(db, q));
         case "brokers": return done({ brokers: await brokers(db, q) });
       }
@@ -379,7 +394,7 @@ Answer with the message text only.`;
 
     case "suggest": {
       // Name completion for the pickers: aggregate names only, not counted as a search.
-      return done({ items: await suggest(db, str(b.kind, 20), str(b.q, 80), str(b.scope, 12)) });
+      return done({ items: onUae ? await uae.suggest(db, str(b.kind, 20), str(b.q, 80)) : await suggest(db, str(b.kind, 20), str(b.q, 80), str(b.scope, 12)) });
     }
 
     case "area_send": {
@@ -393,11 +408,12 @@ Answer with the message text only.`;
       let added = 0, skipped = 0;
       for (const ref of refs.slice(0, room)) {
         const ids = readRef(ref, user.id);
-        const phone = ids ? await phoneAt(db, ids, 0) : null;
+        if (ids && onUae && uae.isUaeIds(ids)) await audit(db, user, "to_temp", { target: ids.join(","), detail: { list, source: "uae", before_read: true }, request });
+        const phone = ids ? await S.phoneAt(db, ids, 0) : null;
         if (!ids || !phone) { skipped++; continue; }
         const { data: consent } = await db.from("wa_consent").select("opted_out_at").eq("phone", toInternational(phone)).maybeSingle();
         if (consent?.opted_out_at || (await crmLinks(db, [phoneCore(phone)], user)).size) { skipped++; continue; }
-        const owner = await ownerDetail(db, user, ids);
+        const owner = await S.ownerDetail(db, user, ids);
         if (!owner) { skipped++; continue; }
         const p = owner.properties[0]?.property;
         const where = p ? [p.unit && `Unit ${p.unit}`, p.building, p.community].filter(Boolean).join(", ") : "";
@@ -406,7 +422,7 @@ Answer with the message text only.`;
           notes: `${list}${where ? ` — owner of ${where}` : ""}.`,
         }).select("id").single();
         if (error || !row) { skipped++; continue; }
-        await audit(db, user, "to_temp", { target: ids.join(","), detail: { list, id: row.id }, request });
+        if (!(onUae && uae.isUaeIds(ids))) await audit(db, user, "to_temp", { target: ids.join(","), detail: { list, id: row.id }, request });
         added++;
       }
       return done({ added, skipped, capped: refs.length > room ? refs.length - room : 0, usage: await usageToday(db, user.id) });
@@ -421,7 +437,8 @@ Answer with the message text only.`;
       const already = as !== "temp" && (await revealedToday(db, user.id, ids.join(",")));
       const limited = already ? null : await quota(user, db, as === "temp" ? "lists" : "reveals");
       if (limited) return limited;
-      const phone = await phoneAt(db, ids, Number(b.index ?? 0));
+      if (onUae && uae.isUaeIds(ids) && !already) await audit(db, user, "reveal", { target: ids.join(","), detail: { reason: "add_to_crm", kind: "phone", source: "uae" }, request });
+      const phone = await S.phoneAt(db, ids, Number(b.index ?? 0));
       if (!phone) return fail("no_phone", 422);
       const { data: consent } = await db.from("wa_consent").select("opted_out_at").eq("phone", toInternational(phone)).maybeSingle();
       if (consent?.opted_out_at) return fail("do_not_contact", 409);
@@ -433,7 +450,7 @@ Answer with the message text only.`;
       // A search card carries its own name and place; the other tools' handles are looked up.
       let personName = info.name ?? null, where = info.where ?? "", nationality = info.nat ?? null;
       if (!personName) {
-        const owner = await ownerDetail(db, user, ids);
+        const owner = await S.ownerDetail(db, user, ids);
         if (!owner) return fail("not_found", 404);
         const p = owner.properties[0]?.property;
         personName = owner.name;

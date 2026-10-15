@@ -225,7 +225,7 @@ export function DbSearch({ view, onView, meEmail, onOpenLead, theme, onTheme, cr
         </nav>
 
         <main>
-          {info.dataSource && info.dataSource !== "legacy" && (
+          {info.dataSource === "off" && (
             <p role="status" className="mb-4 flex items-start gap-2 rounded-[12px] border border-[var(--warn-bd)] bg-[var(--warn-bg)] px-4 py-3 text-[13.5px] text-[var(--text-primary)]">
               <Info size={16} className="mt-0.5 shrink-0 text-[var(--warn)]" />
               The new database is being prepared — search will return when it is uploaded.

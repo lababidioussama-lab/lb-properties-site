@@ -6,8 +6,9 @@
  *   off               the old data is not read at all: every owner, phone, unit,
  *                     area and property-number lookup answers "no results" with a
  *                     short note, while the rest of the CRM keeps working.
- *   uae               reserved for the clean `uae` schema; until it is built it
- *                     behaves exactly like off.
+ *   uae               the clean database (schema `uae`, lib/dbsearch/uae.ts): the same
+ *                     screens, answered from it. Agent (broker) search and the
+ *                     "already sold" flags are not in it yet and say so.
  *
  * Only this CRM reads the variable. dbsearchdubai.com is a separate app and is
  * not affected.
@@ -32,4 +33,8 @@ export const DATA_OFF_NOTE = "The new database is being prepared — search will
 const OLD_DATA_ACTIONS = new Set(["search", "community", "phone", "sold", "owner", "reveal", "unit", "add", "area", "area_send", "pnumber", "brokers", "suggest", "stats"]);
 
 /** True when this action must answer "no results" because the old data is switched off. */
-export const blockedBySource = (action: string) => !legacyData() && OLD_DATA_ACTIONS.has(action);
+/* On the clean data (uae) almost everything has a new answer; these do not exist there yet. */
+const NOT_IN_UAE = new Set(["brokers", "sold"]);
+
+export const blockedBySource = (action: string) =>
+  dataSource() === "off" ? OLD_DATA_ACTIONS.has(action) : dataSource() === "uae" ? NOT_IN_UAE.has(action) : false;
