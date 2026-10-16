@@ -48,8 +48,17 @@ export function TeamView({ users, meId, onUser }: {
   }
 
   async function resetPassword(u: CrmUser) {
-    const password = window.prompt(`New password for ${u.full_name} (10+ characters)`);
-    if (password) await patch(u.id, { password });
+    const password = window.prompt(`New password for ${u.full_name} (at least 10 characters)`);
+    if (password == null) return;
+    // Said plainly, before and after: a reset that silently failed left an admin locked out.
+    if (password.trim().length < 10) { setError(`Password not changed: it must be at least 10 characters (that one had ${password.trim().length}).`); return; }
+    setError(null);
+    const r = await api<{ user: CrmUser }>("PATCH", "users", { id: u.id, password: password.trim() });
+    if (r.user) {
+      onUser(r.user as CrmUser);
+      setSaved({ id: u.id, text: `Password changed. ${u.full_name.split(" ")[0]} can sign in with it now; they will get an email code as usual.` });
+      window.setTimeout(() => setSaved((c) => (c?.id === u.id ? null : c)), 8000);
+    } else setError(`Password NOT changed for ${u.full_name} (${r.error ?? "unknown error"}). Try again.`);
   }
 
   return (
